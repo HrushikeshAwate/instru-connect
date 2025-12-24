@@ -15,4 +15,12 @@ class Routes {
   static const profile = '/profile';
   static const createNotice = '/createnotice';
   static const complaints = '/complaints';
+
+  // Resources
+  static const resources = '/resources';
+  static const resourceDetail = '/resources/detail';
+  static const addResource = '/resources/add';
+
+  // Batches
+  static const manageBatches = '/batches/manage';
 }

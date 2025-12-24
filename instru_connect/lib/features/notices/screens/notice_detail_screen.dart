@@ -15,13 +15,17 @@ class NoticeDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notice')),
+      appBar: AppBar(
+        title: const Text('Notice'),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title
+            // =================================================
+            // TITLE
+            // =================================================
             Text(
               notice.title,
               style: Theme.of(context).textTheme.titleLarge,
@@ -29,7 +33,9 @@ class NoticeDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // Date
+            // =================================================
+            // DATE
+            // =================================================
             Text(
               formatDate(notice.createdAt),
               style: Theme.of(context).textTheme.bodySmall,
@@ -37,53 +43,44 @@ class NoticeDetailScreen extends StatelessWidget {
 
             const Divider(height: 32),
 
-            // Body
+            // =================================================
+            // BODY + ATTACHMENTS
+            // =================================================
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // BODY
                     Text(
                       notice.body,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style:
+                          Theme.of(context).textTheme.bodyMedium,
                     ),
 
-                    // 🔽 ATTACHMENTS
+                    // =================================================
+                    // ATTACHMENTS
+                    // =================================================
                     if (notice.attachments.isNotEmpty) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
+
                       Text(
                         'Attachments',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium,
                       ),
+
                       const SizedBox(height: 8),
 
                       ...notice.attachments.map((url) {
-                        final isPdf =
-                            url.toLowerCase().endsWith('.pdf');
+                        final isPdf = url
+                            .toLowerCase()
+                            .endsWith('.pdf');
 
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            isPdf
-                                ? Icons.picture_as_pdf
-                                : Icons.image,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary,
-                          ),
-                          title: Text(
-                            isPdf ? 'View PDF' : 'View Attachment',
-                          ),
-                          onTap: () async {
-                            final uri = Uri.parse(url);
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(
-                                uri,
-                                mode:
-                                    LaunchMode.externalApplication,
-                              );
-                            }
-                          },
+                        return _AttachmentTile(
+                          url: url,
+                          isPdf: isPdf,
                         );
                       }),
                     ],
@@ -91,6 +88,62 @@ class NoticeDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachmentTile extends StatelessWidget {
+  final String url;
+  final bool isPdf;
+
+  const _AttachmentTile({
+    required this.url,
+    required this.isPdf,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+        }
+      },
+      child: Ink(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isPdf
+                  ? Icons.picture_as_pdf_outlined
+                  : Icons.image_outlined,
+              color:
+                  Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isPdf ? 'View PDF' : 'View Attachment',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium,
+              ),
+            ),
+            const Icon(Icons.open_in_new),
           ],
         ),
       ),

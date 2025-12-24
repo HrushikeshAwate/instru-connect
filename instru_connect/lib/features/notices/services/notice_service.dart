@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:instru_connect/features/notices/models/notice_model.dart';
 import '../../../core/constants/firestore_collections.dart';
 
 class NoticeService {
@@ -41,6 +42,20 @@ class NoticeService {
 
     return docRef.id;
   }
+  Future<List<Notice>> fetchRecentNotices({
+  // required String departmentId,
+  int limit = 3,
+}) async {
+  final snapshot = await _firestore
+      .collection(FirestoreCollections.notices)
+      .orderBy('createdAt', descending: true)
+      .limit(limit)
+      .get();
+
+  return snapshot.docs
+      .map((doc) => Notice.fromFirestore(doc))
+      .toList();
+}
 
   Future<void> addAttachment({
     required String noticeId,
