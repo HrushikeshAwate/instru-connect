@@ -39,18 +39,8 @@ class HomeCr extends StatelessWidget {
           // =================================================
           // TOP IMAGE CAROUSEL
           // =================================================
-          Container(
+          Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  UIColors.primaryBlue.withOpacity(0.15),
-                  UIColors.iceBlue.withOpacity(0.4),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
             child: const HomeImageCarousel(),
           ),
 

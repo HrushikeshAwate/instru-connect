@@ -47,18 +47,8 @@ class HomeFaculty extends StatelessWidget {
           // =================================================
           // HERO SECTION
           // =================================================
-          Container(
+          Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  UIColors.primaryBlue.withOpacity(0.15),
-                  UIColors.iceBlue.withOpacity(0.4),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
             child: Column(
               children: const [HomeImageCarousel(), SizedBox(height: 20)],
             ),
