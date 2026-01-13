@@ -31,6 +31,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // added later keith
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.example.instru_connect"
     }
 
     buildTypes {
