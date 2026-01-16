@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:instru_connect/features/batches/screens/batch_detail_screen.dart';
+import 'package:instru_connect/features/batches/screens/assign_batch.dart';
+import 'batch_subject_screen.dart';
 
 class ManageBatchesScreen extends StatelessWidget {
   const ManageBatchesScreen({super.key});
 
+  // =====================================
+  // CREATE BATCH DIALOG (UNCHANGED)
+  // =====================================
   Future<void> _showCreateBatchDialog(BuildContext context) async {
     final nameController = TextEditingController();
-    String academicYear = 'FY';
+    int currentYear = 1;
 
     await showDialog(
       context: context,
@@ -24,19 +28,19 @@ class ManageBatchesScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: academicYear,
+              DropdownButtonFormField<int>(
+                initialValue: currentYear,
                 items: const [
-                  DropdownMenuItem(value: 'FY', child: Text('FY')),
-                  DropdownMenuItem(value: 'SY', child: Text('SY')),
-                  DropdownMenuItem(value: 'TY', child: Text('TY')),
-                  DropdownMenuItem(value: 'FINAL', child: Text('FINAL')),
+                  DropdownMenuItem(value: 1, child: Text('FY')),
+                  DropdownMenuItem(value: 2, child: Text('SY')),
+                  DropdownMenuItem(value: 3, child: Text('TY')),
+                  DropdownMenuItem(value: 4, child: Text('Final')),
                 ],
                 onChanged: (value) {
-                  academicYear = value!;
+                  currentYear = value!;
                 },
                 decoration: const InputDecoration(
-                  labelText: 'Academic Year',
+                  labelText: 'Current Year',
                 ),
               ),
             ],
@@ -55,15 +59,18 @@ class ManageBatchesScreen extends StatelessWidget {
                     .add({
                   'name': nameController.text.trim(),
                   'department': 'Instrumentation',
-                  'academicYear': academicYear,
+                  'currentYear': currentYear,
                   'isActive': true,
-                  'crIds': [],
+                  'crUserIds': [],
+                  'maxCRs': 2,
                 });
 
                 Navigator.pop(context);
 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Batch created')),
+                  const SnackBar(
+                    content: Text('Batch created successfully'),
+                  ),
                 );
               },
               child: const Text('Create'),
@@ -74,45 +81,77 @@ class ManageBatchesScreen extends StatelessWidget {
     );
   }
 
+  // =====================================
+  // SCREEN
+  // =====================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Batches')),
+      appBar: AppBar(
+        title: const Text('Manage Batches'),
 
-      // ➕ CREATE BATCH (FAB is correct here)
+        // ✅ NEW ACTION ADDED (ONLY CHANGE)
+        actions: [
+          IconButton(
+            tooltip: 'Assign batches to students',
+            icon: const Icon(Icons.assignment_ind_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const AssignBatchToStudentsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+
+      // ➕ CREATE BATCH (UNCHANGED)
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateBatchDialog(context),
         child: const Icon(Icons.add),
       ),
 
+      // =====================================
+      // BATCH LIST
+      // =====================================
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('batches')
-            .orderBy('academicYear')
+            .orderBy('currentYear')
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData ||
+              snapshot.data!.docs.isEmpty) {
             return const _EmptyState();
           }
 
           final batches = snapshot.data!.docs;
 
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+            padding:
+                const EdgeInsets.fromLTRB(16, 16, 16, 80),
             itemCount: batches.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) =>
+                const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final doc = batches[index];
-              final data = doc.data() as Map<String, dynamic>;
+              final data =
+                  doc.data() as Map<String, dynamic>;
 
               return _BatchTile(
                 batchId: doc.id,
                 name: data['name'],
-                academicYear: data['academicYear'],
+                currentYear: data['currentYear'],
                 isActive: data['isActive'],
               );
             },
@@ -124,19 +163,19 @@ class ManageBatchesScreen extends StatelessWidget {
 }
 
 // =======================================================
-// BATCH TILE (POLISHED)
-// =======================================================
+// BATCH TILE (UNCHANGED)
+/// =======================================================
 
 class _BatchTile extends StatelessWidget {
   final String batchId;
   final String name;
-  final String academicYear;
+  final int currentYear;
   final bool isActive;
 
   const _BatchTile({
     required this.batchId,
     required this.name,
-    required this.academicYear,
+    required this.currentYear,
     required this.isActive,
   });
 
@@ -150,9 +189,8 @@ class _BatchTile extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => BatchDetailScreen(
+            builder: (_) => BatchSubjectsScreen(
               batchId: batchId,
-              batchName: name,
             ),
           ),
         );
@@ -161,11 +199,13 @@ class _BatchTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest,
         ),
         child: Row(
           children: [
-            // LEFT ICON
+            // ICON
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -180,18 +220,20 @@ class _BatchTile extends StatelessWidget {
 
             const SizedBox(width: 14),
 
-            // TITLE
+            // TEXT
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     name,
-                    style:
-                        Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium,
                   ),
                   const SizedBox(height: 6),
-                  _YearChip(year: academicYear),
+                  _YearChip(year: currentYear),
                 ],
               ),
             ),
@@ -209,12 +251,19 @@ class _BatchTile extends StatelessWidget {
 // =======================================================
 
 class _YearChip extends StatelessWidget {
-  final String year;
+  final int year;
 
   const _YearChip({required this.year});
 
   @override
   Widget build(BuildContext context) {
+    final label = switch (year) {
+      1 => 'FY',
+      2 => 'SY',
+      3 => 'TY',
+      _ => 'Final',
+    };
+
     return Container(
       padding:
           const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -226,10 +275,11 @@ class _YearChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        year,
+        label,
         style: TextStyle(
           fontSize: 12,
-          color: Theme.of(context).colorScheme.primary,
+          color:
+              Theme.of(context).colorScheme.primary,
         ),
       ),
     );

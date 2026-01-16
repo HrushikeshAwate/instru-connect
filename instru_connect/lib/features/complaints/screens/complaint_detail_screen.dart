@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:instru_connect/features/complaints/screens/update_complaint_progress.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/complaint_model.dart';
 import 'assign_complaint_screen.dart';
+import 'update_complaint_progress.dart';
 
 class ComplaintDetailScreen extends StatelessWidget {
   final ComplaintModel complaint;
@@ -15,7 +16,7 @@ class ComplaintDetailScreen extends StatelessWidget {
   });
 
   // =======================================================
-  // FETCH CURRENT USER ROLE (UNCHANGED)
+  // FETCH CURRENT USER ROLE
   // =======================================================
 
   Future<String?> _getUserRole() async {
@@ -28,6 +29,21 @@ class ComplaintDetailScreen extends StatelessWidget {
         .get();
 
     return doc.data()?['role'] as String?;
+  }
+
+  // =======================================================
+  // OPEN VIDEO IN BROWSER
+  // =======================================================
+
+  Future<void> _openInBrowser(String url) async {
+    final uri = Uri.parse(url);
+
+    if (!await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw 'Could not open $url';
+    }
   }
 
   // =======================================================
@@ -54,7 +70,7 @@ class ComplaintDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
 
           // =================================================
-          // META INFO (CHIPS)
+          // META INFO
           // =================================================
           Wrap(
             spacing: 8,
@@ -90,7 +106,7 @@ class ComplaintDetailScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // =================================================
-          // MEDIA
+          // MEDIA (IMAGE / VIDEO)
           // =================================================
           if (complaint.mediaUrl != null) ...[
             const _SectionTitle('Attachment'),
@@ -102,8 +118,12 @@ class ComplaintDetailScreen extends StatelessWidget {
                 child: Image.network(complaint.mediaUrl!),
               )
             else
-              const Text(
-                'Video attached (open externally)',
+              OutlinedButton.icon(
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Open Video in Browser'),
+                onPressed: () {
+                  _openInBrowser(complaint.mediaUrl!);
+                },
               ),
 
             const SizedBox(height: 24),
@@ -129,28 +149,24 @@ class ComplaintDetailScreen extends StatelessWidget {
               onPressed: () async {
                 final role = await _getUserRole();
 
-                if (role == 'admin') {
-                  if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssignComplaintScreen(
-                          complaintId: complaint.id,
-                        ),
+                if (role == 'admin' && context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AssignComplaintScreen(
+                        complaintId: complaint.id,
                       ),
-                    );
-                  }
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'You are not allowed to assign complaints',
-                        ),
-                        behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'You are not allowed to assign complaints',
                       ),
-                    );
-                  }
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 }
               },
             ),
@@ -180,6 +196,9 @@ class ComplaintDetailScreen extends StatelessWidget {
   }
 }
 
+// =======================================================
+// UI COMPONENTS
+// =======================================================
 
 class _SectionTitle extends StatelessWidget {
   final String title;

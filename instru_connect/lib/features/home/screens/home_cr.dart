@@ -20,10 +20,9 @@ class HomeCr extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              showLogoutDialog();
-            },
+            onPressed: () => showLogoutDialog(context),
           ),
+
           IconButton(
             icon: const Icon(Icons.person_outline),
             onPressed: () {

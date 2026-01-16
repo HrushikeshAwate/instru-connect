@@ -15,7 +15,6 @@ import 'package:instru_connect/features/notices/screens/notice_detail_screen.dar
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
 import 'package:instru_connect/features/notices/services/notice_service.dart';
 
-
 class HomeFaculty extends StatelessWidget {
   const HomeFaculty({super.key});
 
@@ -29,9 +28,7 @@ class HomeFaculty extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              showLogoutDialog();
-            },
+            onPressed: () => showLogoutDialog(context),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline),

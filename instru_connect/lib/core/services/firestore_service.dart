@@ -18,12 +18,24 @@ class FirestoreService {
     if (!snap.exists) {
       final data = {
         'uid': firebaseUser.uid,
+        'name': firebaseUser.displayName ?? '',
         'email': firebaseUser.email,
         'role': AppRoles.student,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
       await ref.set(data);
+      return data;
+    }
+
+    if (snap.exists) {
+      final data = snap.data()!;
+
+      if ((data['name'] == null || data['name'] == '') &&
+          firebaseUser.displayName != null) {
+        await ref.update({'name': firebaseUser.displayName});
+      }
+
       return data;
     }
 

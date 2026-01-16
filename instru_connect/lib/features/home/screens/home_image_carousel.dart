@@ -12,10 +12,8 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
       PageController(viewportFraction: 0.92);
 
   final List<String> images = const [
-    'https://theharekrishnamovement.org/wp-content/uploads/2013/05/sri-sri-radha-madhava.jpg',
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsrb8AIbMVFCV6rg547azt2EHoU71VDskPNg&s',
-    'https://i.pinimg.com/736x/1c/e6/ff/1ce6ff2a121125b2f24c02ced048dc76.jpg',
-    'https://live.staticflickr.com/5523/11432062175_f6e1c87a6c.jpg',
+    'https://www.coeptech.ac.in/wp-content/uploads/2024/06/Dept-Photo-1024x683.jpeg',
+    'https://www.coeptech.ac.in/wp-content/uploads/elementor/thumbs/COEP-Website-Pic-1-r4qfk1ygvn7y9y1tf4vppvonlurjzsbf6jrltou9w8.jpg'
   ];
 
   @override

@@ -18,9 +18,7 @@ class HomeStaff extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              showLogoutDialog();
-            },
+            onPressed: () => showLogoutDialog(context),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -75,8 +73,7 @@ class HomeStaff extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => ComplaintListScreen(
-                              stream: ComplaintService()
-                                  .fetchAllComplaints(),
+                              stream: ComplaintService().fetchAllComplaints(),
                             ),
                           ),
                         );
@@ -89,8 +86,7 @@ class HomeStaff extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                const NoticeListScreen(),
+                            builder: (_) => const NoticeListScreen(),
                           ),
                         );
                       },
@@ -101,8 +97,7 @@ class HomeStaff extends StatelessWidget {
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content:
-                                Text('Timetable coming soon'),
+                            content: Text('Timetable coming soon'),
                           ),
                         );
                       },
@@ -149,28 +144,20 @@ class HomeStaff extends StatelessWidget {
   }
 }
 
-
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style:
-                Theme.of(context).textTheme.titleMedium),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
-        Text(subtitle,
-            style:
-                Theme.of(context).textTheme.bodyMedium),
+        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }
@@ -205,16 +192,14 @@ class _ActionCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
                 size: 30,
-                color:
-                    Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 14),
               Text(
@@ -245,9 +230,7 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

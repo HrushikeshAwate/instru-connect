@@ -10,7 +10,6 @@ import 'package:instru_connect/features/complaints/services/complaint_service.da
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/admin/services/admin_service.dart';
-import 'package:instru_connect/features/admin/services/admin_service.dart';
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -46,9 +45,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              showLogoutDialog();
-            },
+            onPressed: () => showLogoutDialog(context),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline),

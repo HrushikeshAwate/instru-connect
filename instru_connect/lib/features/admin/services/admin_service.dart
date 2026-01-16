@@ -18,7 +18,7 @@ class AdminService {
       .snapshots()
       .map((snapshot) {
         return snapshot.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
           final status = data['status'] ?? 'submitted';
           return status != 'resolved';
         }).length;
@@ -34,7 +34,7 @@ Stream<Map<String, int>> complaintStatusCounts() {
         int resolved = 0;
 
         for (final doc in snapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
           final status = data['status'] ?? 'submitted';
 
           if (status == 'resolved') {
