@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+// import 'package:instru_connect/core/bootstrap/user_context.dart';
+import 'package:instru_connect/core/sessioin/current_user.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
@@ -14,6 +16,7 @@ class HomeCr extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? batchId = CurrentUser.batchId;
     return Scaffold(
       appBar: AppBar(
         title: const Text('CR Dashboard'),
@@ -68,17 +71,20 @@ class HomeCr extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _ActionCard(
-                      icon: Icons.campaign_outlined,
-                      label: 'Create Class Notice',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateNoticeScreen(),
-                          ),
-                        );
-                      },
-                    ),
+  icon: Icons.campaign_outlined,
+  label: 'Create Class Notice',
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateNoticeScreen(
+          fixedBatchIds: [?batchId],   // 🔒 CR batch
+          showBatchSelector: false,   // ❌ no selector
+        ),
+      ),
+    );
+  },
+),
                     _ActionCard(
                       icon: Icons.campaign_outlined,
                       label: 'View Notices',

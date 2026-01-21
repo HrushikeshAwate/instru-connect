@@ -51,7 +51,7 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => ProfileScreen());
 
       case Routes.createNotice:
-        return MaterialPageRoute(builder: (_) => CreateNoticeScreen());
+        return MaterialPageRoute(builder: (_) => CreateNoticeScreen(showBatchSelector: true,));
 
       case Routes.complaints:
         return MaterialPageRoute(

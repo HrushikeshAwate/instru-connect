@@ -3,6 +3,71 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class BatchService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+    Future<void> promoteAllStudents() async {
+  // Step 1: Fetch all batches
+  final batchesSnapshot =
+      await _db.collection('batches').get();
+
+  // Map: currentYear -> batchId
+  final Map<int, String> yearToBatchId = {};
+
+  for (final doc in batchesSnapshot.docs) {
+    final data = doc.data();
+    final int year = data['currentYear'];
+    yearToBatchId[year] = doc.id;
+  }
+
+  // Promotion chain
+  final Map<int, int> promotionMap = {
+    1: 2, // FY → SY
+    2: 3, // SY → TY
+    3: 4, // TY → Final
+    4: 0, // Final → Alumni
+  };
+
+  final usersSnapshot = await _db
+      .collection('users')
+      .where('role', whereIn: ['student', 'cr'])
+      .get();
+
+  if (usersSnapshot.docs.isEmpty) return;
+
+  final batch = _db.batch();
+
+  for (final userDoc in usersSnapshot.docs) {
+    final data = userDoc.data();
+    final String? currentBatchId = data['batchId'];
+
+    if (currentBatchId == null) continue;
+
+    // Find current year of user's batch
+    final currentBatchEntry = yearToBatchId.entries
+        .firstWhere(
+          (e) => e.value == currentBatchId,
+          orElse: () => const MapEntry(-1, ''),
+        );
+
+    if (currentBatchEntry.key == -1) continue;
+
+    final int currentYear = currentBatchEntry.key;
+
+    // Alumni stays as is
+    if (currentYear == 0) continue;
+
+    final int? nextYear = promotionMap[currentYear];
+    final String? nextBatchId = yearToBatchId[nextYear];
+
+    if (nextBatchId == null) continue;
+
+    batch.update(userDoc.reference, {
+      'batchId': nextBatchId,
+    });
+  }
+
+  await batch.commit();
+}
+
+
   /// Assign ONE student to a batch (admin use)
   Future<void> assignStudentToBatch({
     required String studentUid,

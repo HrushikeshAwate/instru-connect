@@ -29,6 +29,7 @@ class NoticeService {
     required String title,
     required String body,
     required String departmentId,
+    required List<String> batchIds,
   }) async {
     final docRef = await _firestore
         .collection(FirestoreCollections.notices)
@@ -36,26 +37,26 @@ class NoticeService {
           'title': title.trim(),
           'body': body.trim(),
           'departmentId': departmentId,
-          'createdAt': Timestamp.now(), // important
+          'batchIds': batchIds,
+          'createdAt': Timestamp.now(),
           'attachments': [],
         });
 
     return docRef.id;
   }
-  Future<List<Notice>> fetchRecentNotices({
-  // required String departmentId,
-  int limit = 3,
-}) async {
-  final snapshot = await _firestore
-      .collection(FirestoreCollections.notices)
-      .orderBy('createdAt', descending: true)
-      .limit(limit)
-      .get();
 
-  return snapshot.docs
-      .map((doc) => Notice.fromFirestore(doc))
-      .toList();
-}
+  Future<List<Notice>> fetchRecentNotices({
+    // required String departmentId,
+    int limit = 3,
+  }) async {
+    final snapshot = await _firestore
+        .collection(FirestoreCollections.notices)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
+
+    return snapshot.docs.map((doc) => Notice.fromFirestore(doc)).toList();
+  }
 
   Future<void> addAttachment({
     required String noticeId,

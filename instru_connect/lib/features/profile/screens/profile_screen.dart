@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
 import '../services/profile_service.dart';
-
+import 'certification_screen.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -90,9 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // =================================================
-              // PROFILE HEADER
-              // =================================================
+              // ================= PROFILE HEADER =================
               _ProfileHeader(
                 name: profile.name,
                 email: profile.email,
@@ -100,9 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // =================================================
-              // BASIC INFO (READ ONLY)
-              // =================================================
+              // ================= BASIC INFO =================
               const _SectionTitle('Basic Information'),
               const SizedBox(height: 12),
 
@@ -113,10 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       _readOnlyField('Name', profile.name),
                       _readOnlyField('Email', profile.email),
-                      _readOnlyField(
-                        'Batch',
-                        profile.batchId ?? '-',
-                      ),
+                      _readOnlyField('Batch', profile.batchId ?? '-'),
                     ],
                   ),
                 ),
@@ -124,9 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 32),
 
-              // =================================================
-              // PERSONAL DETAILS (EDITABLE)
-              // =================================================
+              // ================= PERSONAL DETAILS =================
               const _SectionTitle('Personal Details'),
               const SizedBox(height: 12),
 
@@ -136,19 +127,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     children: [
                       _editableField('MIS No', _misController),
-                      _editableField(
-                        'Department',
-                        _deptController,
-                      ),
+                      _editableField('Department', _deptController),
                       _editableField(
                         'Co-curricular Activities',
                         _coCurricularController,
                         maxLines: 3,
                       ),
-                      _editableField(
-                        'Contact No',
-                        _contactController,
-                      ),
+                      _editableField('Contact No', _contactController),
                       _editableField(
                         'Parent Contact No',
                         _parentContactController,
@@ -160,9 +145,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 32),
 
-              // =================================================
-              // SAVE BUTTON
-              // =================================================
+              // ================= CERTIFICATIONS =================
+              const _SectionTitle('Professional'),
+              const SizedBox(height: 12),
+
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.workspace_premium_outlined),
+                  title: const Text('Certifications'),
+                  subtitle:
+                      const Text('Upload and manage your certificates'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CertificationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // ================= SAVE BUTTON =================
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -171,9 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Save Changes'),
                 ),
@@ -185,9 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // =======================================================
-  // FIELD WIDGETS (UI ONLY)
-  // =======================================================
+  // ================= FIELD WIDGETS =================
 
   Widget _readOnlyField(String label, String value) {
     return Padding(
@@ -216,6 +219,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+// ================= HEADER =================
+
 class _ProfileHeader extends StatelessWidget {
   final String name;
   final String email;
@@ -241,17 +246,11 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                name,
-                style:
-                    Theme.of(context).textTheme.titleMedium,
-              ),
+              Text(name,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
-              Text(
-                email,
-                style:
-                    Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text(email,
+                  style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -259,6 +258,8 @@ class _ProfileHeader extends StatelessWidget {
     );
   }
 }
+
+// ================= SECTION TITLE =================
 
 class _SectionTitle extends StatelessWidget {
   final String title;

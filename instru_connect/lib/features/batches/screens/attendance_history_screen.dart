@@ -34,7 +34,7 @@ class AttendanceHistoryScreen extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         // --- DEFENSIVE CHECK: This stops the "Bad State" crash ---
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
 
         // Check if absentUids exists, if not use an empty list
         final List absentees = data.containsKey('absentUids') ? data['absentUids'] : [];

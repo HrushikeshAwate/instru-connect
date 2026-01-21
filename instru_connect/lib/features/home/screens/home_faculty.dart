@@ -82,11 +82,15 @@ class HomeFaculty extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const CreateNoticeScreen(),
+                            builder: (_) => const CreateNoticeScreen(
+                              fixedBatchIds: null,
+                              showBatchSelector: true, // ✅ selector shown
+                            ),
                           ),
                         );
                       },
                     ),
+
                     _ActionCard(
                       icon: Icons.menu_book_outlined,
                       title: 'Study Resources',

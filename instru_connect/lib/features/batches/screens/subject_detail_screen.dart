@@ -129,7 +129,7 @@ class AttendanceHistoryScreen extends StatelessWidget {
 
       String csvData = const ListToCsvConverter().convert(rows);
       final directory = await getTemporaryDirectory();
-      final path = "${directory.path}/Attendance_Report_${batchId}.csv";
+      final path = "${directory.path}/Attendance_Report_$batchId.csv";
       final file = File(path);
       await file.writeAsString(csvData);
 

@@ -186,7 +186,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
                           final complaints = snapshot.data!;
                           final resolvedCount = complaints.where((complaint) {
-                            final status = complaint.status ?? 'submitted';
+                            final status = complaint.status;
                             return status == 'resolved';
                           }).length;
 
@@ -225,11 +225,15 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const CreateNoticeScreen(),
+                            builder: (_) => const CreateNoticeScreen(
+                              fixedBatchIds: null,
+                              showBatchSelector: true, // ✅ selector shown
+                            ),
                           ),
                         );
                       },
                     ),
+
                     _ActionCard(
                       icon: Icons.manage_accounts_outlined,
                       label: 'Manage Users',
