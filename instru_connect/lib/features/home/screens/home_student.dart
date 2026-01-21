@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
@@ -13,6 +15,9 @@ class HomeStudent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the current user ID to fetch attendance live
+    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student Dashboard'),
@@ -29,36 +34,113 @@ class HomeStudent extends StatelessWidget {
           ),
         ],
       ),
-
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // =================================================
-          // TOP CAROUSEL (SAME ACROSS ALL ROLES)
-          // =================================================
+          // 1. TOP CAROUSEL
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             child: Column(
               children: const [HomeImageCarousel(), SizedBox(height: 20)],
             ),
           ),
-          // =================================================
-          // CONTENT
-          // =================================================
+
+          // 2. LIVE ATTENDANCE TRACKER
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUserId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return const SizedBox.shrink();
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              final int total = data['totalClasses'] ?? 0;
+              final int attended = data['attendedClasses'] ?? 0;
+              final double percentage = total == 0 ? 0.0 : (attended / total) * 100;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ListTile(
+                        leading: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: percentage / 100,
+                              backgroundColor: Colors.grey.shade200,
+                              color: percentage < 75 ? Colors.red : Colors.green,
+                            ),
+                            const Icon(Icons.percent, size: 12),
+                          ],
+                        ),
+                        title: const Text(
+                          "Your Attendance",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text("$attended / $total Classes Attended"),
+                        trailing: Text(
+                          "${percentage.toStringAsFixed(1)}%",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: percentage < 75 ? Colors.red : Colors.green,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (total > 0 && percentage < 75)
+                      Container(
+                        margin: const EdgeInsets.only(top: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.warning_amber_rounded, color: Colors.red),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "Warning: Below 75%! Please attend classes regularly.",
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          // 3. CONTENT
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ---------------------------------------------
-                // QUICK ACTIONS
-                // ---------------------------------------------
+                const SizedBox(height: 24),
                 const _SectionHeader(
                   title: 'Quick Actions',
                   subtitle: 'Common student activities',
                 ),
                 const SizedBox(height: 14),
-
                 GridView.count(
                   crossAxisCount: 2,
                   mainAxisSpacing: 14,
@@ -72,9 +154,7 @@ class HomeStudent extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const NoticeListScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const NoticeListScreen()),
                         );
                       },
                     ),
@@ -83,9 +163,7 @@ class HomeStudent extends StatelessWidget {
                       label: 'Timetable',
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Timetable coming soon'),
-                          ),
+                          const SnackBar(content: Text('Timetable coming soon')),
                         );
                       },
                     ),
@@ -121,43 +199,25 @@ class HomeStudent extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 36),
-
-                // ---------------------------------------------
-                // TODAY'S TIMETABLE
-                // ---------------------------------------------
                 const _SectionHeader(
                   title: "Today's Timetable",
                   subtitle: 'Your classes for today',
                 ),
                 const SizedBox(height: 14),
-
                 Card(
                   elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Column(
                     children: const [
-                      _TimetableTile(
-                        time: '10:00 – 11:00',
-                        subject: 'Control Systems',
-                      ),
+                      _TimetableTile(time: '10:00 – 11:00', subject: 'Control Systems'),
                       Divider(height: 1),
-                      _TimetableTile(
-                        time: '11:15 – 12:15',
-                        subject: 'Instrumentation',
-                      ),
+                      _TimetableTile(time: '11:15 – 12:15', subject: 'Instrumentation'),
                       Divider(height: 1),
-                      _TimetableTile(
-                        time: '2:00 – 4:00',
-                        subject: 'Lab Session',
-                      ),
+                      _TimetableTile(time: '2:00 – 4:00', subject: 'Lab Session'),
                     ],
                   ),
                 ),
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -169,104 +229,17 @@ class HomeStudent extends StatelessWidget {
                     child: const Text('View full timetable'),
                   ),
                 ),
-
                 const SizedBox(height: 36),
-
-                // ---------------------------------------------
-                // STUDY RESOURCES
-                // ---------------------------------------------
                 const _SectionHeader(
-                  title: 'Study Resources',
-                  subtitle: 'Recently added materials',
+                  title: 'Support',
+                  subtitle: 'Need help?',
                 ),
                 const SizedBox(height: 14),
-
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: const [
-                      _ResourceTile(
-                        title: 'Control Systems – Unit 3 Notes',
-                        subtitle: 'PDF • Uploaded yesterday',
-                      ),
-                      Divider(height: 1),
-                      _ResourceTile(
-                        title: 'Instrumentation Lab Manual',
-                        subtitle: 'PDF • Updated this week',
-                      ),
-                      Divider(height: 1),
-                      _ResourceTile(
-                        title: 'Signals & Systems – Reference Book',
-                        subtitle: 'Link • Google Drive',
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 36),
-
-                // ---------------------------------------------
-                // LATEST NOTICES
-                // ---------------------------------------------
-                const _SectionHeader(
-                  title: 'Latest Notices',
-                  subtitle: 'Important announcements',
-                ),
-                const SizedBox(height: 14),
-
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: const [
-                      _NoticeTile(
-                        title: 'Mid-semester exam schedule',
-                        subtitle: 'Published today',
-                      ),
-                      Divider(height: 1),
-                      _NoticeTile(
-                        title: 'Workshop on AI & ML',
-                        subtitle: 'Tomorrow',
-                      ),
-                    ],
-                  ),
-                ),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NoticeListScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('View all notices'),
-                  ),
-                ),
-
-                const SizedBox(height: 36),
-
-                // ---------------------------------------------
-                // SUPPORT
-                // ---------------------------------------------
-                const _SectionHeader(title: 'Support', subtitle: 'Need help?'),
-                const SizedBox(height: 14),
-
                 _SupportCard(
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateComplaintScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => CreateComplaintScreen()),
                     );
                   },
                 ),
@@ -279,12 +252,12 @@ class HomeStudent extends StatelessWidget {
   }
 }
 
+// --- Helper classes ---
+
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-
   const _SectionHeader({required this.title, required this.subtitle});
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -302,13 +275,7 @@ class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
+  const _ActionCard({required this.icon, required this.label, required this.onTap});
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -331,17 +298,9 @@ class _ActionCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 30,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              Icon(icon, size: 30, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 14),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13),
-              ),
+              Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13)),
             ],
           ),
         ),
@@ -353,9 +312,7 @@ class _ActionCard extends StatelessWidget {
 class _TimetableTile extends StatelessWidget {
   final String time;
   final String subject;
-
   const _TimetableTile({required this.time, required this.subject});
-
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -366,44 +323,9 @@ class _TimetableTile extends StatelessWidget {
   }
 }
 
-class _ResourceTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const _ResourceTile({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.description_outlined),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-    );
-  }
-}
-
-class _NoticeTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const _NoticeTile({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-    );
-  }
-}
-
 class _SupportCard extends StatelessWidget {
   final VoidCallback onTap;
-
   const _SupportCard({required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
