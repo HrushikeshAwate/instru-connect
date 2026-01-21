@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'mark_attendance_screen.dart';
+import '../../attendance/screens/mark_attendance_screen.dart';
 
 class SubjectDetailScreen extends StatelessWidget {
   final String subjectName;
@@ -29,7 +29,10 @@ class SubjectDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AttendanceHistoryScreen(batchId: batchId),
+                  builder: (context) => AttendanceHistoryScreen(
+                    batchId: batchId,
+                    subjectName: subjectName,
+                  ),
                 ),
               );
             },
@@ -53,19 +56,53 @@ class SubjectDetailScreen extends StatelessWidget {
             itemCount: students.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
-              final data = students[index].data() as Map<String, dynamic>? ?? {}; // Safety cast
-              final int total = data['totalClasses'] ?? 0;
-              final int attended = data['attendedClasses'] ?? 0;
+              final data = students[index].data() as Map<String, dynamic>? ?? {};
+
+              // --- FIELD NAME FIXES ---
+              final String studentName = data['Name'] ?? data['name'] ?? 'Unnamed Student';
+              final String mis = (data['MIS No'] ?? data['mis'] ?? 'N/A').toString();
+
+              // --- SUBJECT SPECIFIC CALCULATION ---
+              final Map<String, dynamic> subjectsMap = data['subjects'] ?? {};
+              final Map<String, dynamic> stats = subjectsMap[subjectName] ?? {};
+
+              final int total = stats['total'] ?? 0;
+              final int attended = stats['attended'] ?? 0;
               final double percentage = total == 0 ? 0.0 : (attended / total) * 100;
 
+              final bool isLowAttendance = percentage < 75 && total > 0;
+
               return ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                leading: CircleAvatar(
-                  backgroundColor: percentage < 75 ? Colors.red.shade50 : Colors.green.shade50,
-                  child: Text("${percentage.toInt()}%", style: TextStyle(fontSize: 10, color: percentage < 75 ? Colors.red : Colors.green, fontWeight: FontWeight.bold)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: isLowAttendance ? Colors.red.shade200 : Colors.grey.shade200)
                 ),
-                title: Text(data['name'] ?? 'Unnamed Student'),
-                subtitle: Text("Attended: $attended/$total"),
+                tileColor: isLowAttendance ? Colors.red.shade50 : Colors.white,
+                leading: CircleAvatar(
+                  backgroundColor: isLowAttendance ? Colors.red : Colors.green,
+                  child: Text(
+                      "${percentage.toInt()}%",
+                      style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)
+                  ),
+                ),
+                title: Text(
+                    studentName,
+                    style: TextStyle(fontWeight: isLowAttendance ? FontWeight.bold : FontWeight.normal)
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("MIS: $mis | Subject Attended: $attended/$total"),
+                    if (isLowAttendance)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4.0),
+                        child: Text(
+                            "⚠ WARNING: LOW ATTENDANCE (<75%)",
+                            style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                  ],
+                ),
               );
             },
           );
@@ -86,17 +123,23 @@ class SubjectDetailScreen extends StatelessWidget {
   }
 }
 
-// --- THE FULLY PROTECTED HISTORY SCREEN ---
 class AttendanceHistoryScreen extends StatelessWidget {
   final String batchId;
-  const AttendanceHistoryScreen({super.key, required this.batchId});
+  final String subjectName;
+
+  const AttendanceHistoryScreen({
+    super.key,
+    required this.batchId,
+    required this.subjectName
+  });
 
   Future<void> _exportToCSV(BuildContext context) async {
     try {
       final query = FirebaseFirestore.instance
           .collection('batches')
           .doc(batchId)
-          .collection('attendance');
+          .collection('attendance')
+          .where('subject', isEqualTo: subjectName);
 
       final snapshot = await query.get();
 
@@ -112,29 +155,23 @@ class AttendanceHistoryScreen extends StatelessWidget {
       ];
 
       for (var doc in snapshot.docs) {
-        // ULTIMATE SAFETY CHECK: Prevents Bad State
-        if (!doc.exists) continue;
-        final data = doc.data() as Map<String, dynamic>?;
-        if (data == null) continue;
+        final data = doc.data();
+        final List absentees = data['absentUids'] ?? [];
+        final String date = data['date'] ?? "Unknown";
 
-        final List absentees = data['absentUids'] ?? []; // Safe access
-
-        String docId = doc.id;
-        List<String> parts = docId.split('_');
-        String date = parts.isNotEmpty ? parts[0] : "Unknown";
-        String subject = parts.length > 1 ? parts[1] : "General";
-
-        rows.add([date, subject, absentees.length, absentees.join(", ")]);
+        rows.add([date, subjectName, absentees.length, absentees.join(", ")]);
       }
 
       String csvData = const ListToCsvConverter().convert(rows);
       final directory = await getTemporaryDirectory();
-      final path = "${directory.path}/Attendance_Report_$batchId.csv";
+      // Clean file name for subjects with spaces
+      final String fileName = subjectName.replaceAll(' ', '_');
+      final path = "${directory.path}/${fileName}_Report.csv";
       final file = File(path);
       await file.writeAsString(csvData);
 
       if (context.mounted) {
-        await Share.shareXFiles([XFile(path)], text: 'Attendance Report');
+        await Share.shareXFiles([XFile(path)], text: '$subjectName Attendance Report');
       }
     } catch (e) {
       if (context.mounted) {
@@ -147,7 +184,7 @@ class AttendanceHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Attendance History"),
+        title: Text("$subjectName History"),
         actions: [
           IconButton(
             icon: const Icon(Icons.download),
@@ -160,13 +197,14 @@ class AttendanceHistoryScreen extends StatelessWidget {
             .collection('batches')
             .doc(batchId)
             .collection('attendance')
+            .where('subject', isEqualTo: subjectName)
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No records found yet."));
+            return const Center(child: Text("No records found for this subject."));
           }
 
           return ListView.builder(
@@ -174,15 +212,17 @@ class AttendanceHistoryScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemBuilder: (context, index) {
               final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>? ?? {}; // Avoid Bad State
+              final data = doc.data() as Map<String, dynamic>? ?? {};
               final List absentees = data['absentUids'] ?? [];
+              final String date = data['date'] ?? doc.id.split('_')[0]; // Fallback to ID date
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  leading: const Icon(Icons.history_edu),
-                  title: Text(doc.id.replaceAll('_', ' - ')),
-                  subtitle: Text("${absentees.length} Absentees"),
+                  leading: const Icon(Icons.history_edu, color: Colors.blueAccent),
+                  title: Text(date),
+                  subtitle: Text("${absentees.length} Students Absent"),
+                  trailing: const Icon(Icons.chevron_right),
                 ),
               );
             },
