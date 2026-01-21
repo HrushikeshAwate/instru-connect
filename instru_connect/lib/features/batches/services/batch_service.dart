@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class BatchService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -54,31 +55,33 @@ class BatchService {
     await batch.commit();
   }
 
-  /// Submit Attendance with Duplicate Check
+  /// Submit Attendance with Duplicate Check and Dot Notation
   Future<void> submitAttendance({
     required String batchId,
     required String subjectName,
     required List<String> absentStudentUids,
     required List<String> allStudentUids,
   }) async {
+    // Normalize subject name to prevent "Math " and "Math" being treated as different
+    final normalizedSubject = subjectName.trim();
     final String dateKey = DateTime.now().toIso8601String().split('T')[0];
 
-    // Check if attendance for this subject and date already exists
+    // Check for duplicates
     final existingSnapshot = await _db
         .collection('batches')
         .doc(batchId)
         .collection('attendance')
         .where('date', isEqualTo: dateKey)
-        .where('subject', isEqualTo: subjectName)
+        .where('subject', isEqualTo: normalizedSubject)
         .get();
 
     if (existingSnapshot.docs.isNotEmpty) {
-      throw Exception('Attendance already marked for $subjectName today.');
+      throw Exception('Attendance already marked for $normalizedSubject today.');
     }
 
     final writeBatch = _db.batch();
     final String uniqueId = DateTime.now().millisecondsSinceEpoch.toString();
-    final attendanceDocId = "${dateKey}_${subjectName}_$uniqueId";
+    final attendanceDocId = "${dateKey}_${normalizedSubject.replaceAll(' ', '_')}_$uniqueId";
 
     final attendanceRef = _db
         .collection('batches')
@@ -86,37 +89,31 @@ class BatchService {
         .collection('attendance')
         .doc(attendanceDocId);
 
-    // RECORD SESSION
     writeBatch.set(attendanceRef, {
       'timestamp': FieldValue.serverTimestamp(),
-      'subject': subjectName,
+      'subject': normalizedSubject,
       'absentUids': absentStudentUids,
       'allStudentUids': allStudentUids,
       'date': dateKey,
     });
 
-    // UPDATE STUDENT STATS
     for (String uid in allStudentUids) {
       final userRef = _db.collection('users').doc(uid);
       bool isAbsent = absentStudentUids.contains(uid);
 
-      writeBatch.set(userRef, {
-        'subjects': {
-          subjectName: {
-            'total': FieldValue.increment(1),
-            'attended': isAbsent ? FieldValue.increment(0) : FieldValue.increment(1),
-          }
-        },
-        // Updating global counters if you use them in your dashboard
+      // IMPROVEMENT: Use Dot Notation to prevent overwriting other subjects in the map
+      writeBatch.update(userRef, {
+        'subjects.$normalizedSubject.total': FieldValue.increment(1),
+        'subjects.$normalizedSubject.attended': isAbsent ? FieldValue.increment(0) : FieldValue.increment(1),
         'totalClasses': FieldValue.increment(1),
         'attendedClasses': isAbsent ? FieldValue.increment(0) : FieldValue.increment(1),
-      }, SetOptions(merge: true));
+      });
     }
 
     await writeBatch.commit();
   }
 
-  /// Update existing attendance and correct student stats
+  /// Update existing attendance using safe Dot Notation
   Future<void> updateAttendance({
     required String batchId,
     required String docId,
@@ -124,9 +121,10 @@ class BatchService {
     required List<String> newAbsentUids,
     required List<String> allStudentUids,
   }) async {
+    final normalizedSubject = subjectName.trim();
     final docRef = _db.collection('batches').doc(batchId).collection('attendance').doc(docId);
-    final snap = await docRef.get();
 
+    final snap = await docRef.get();
     if (!snap.exists) throw Exception("Attendance record not found");
 
     final data = snap.data() as Map<String, dynamic>;
@@ -134,13 +132,11 @@ class BatchService {
 
     final writeBatch = _db.batch();
 
-    // 1. Update the session record in history
     writeBatch.update(docRef, {
       'absentUids': newAbsentUids,
       'lastEdited': FieldValue.serverTimestamp(),
     });
 
-    // 2. Adjust individual student counts based on the difference
     for (var uidObj in allStudentUids) {
       final String uid = uidObj.toString();
       final userRef = _db.collection('users').doc(uid);
@@ -148,62 +144,58 @@ class BatchService {
       bool wasAbsent = oldAbsentUids.contains(uid);
       bool isNowAbsent = newAbsentUids.contains(uid);
 
-      // Change: Student was absent but is now marked present
+      // Student was absent, now present: Increment attended
       if (wasAbsent && !isNowAbsent) {
-        writeBatch.set(userRef, {
-          'subjects': {
-            subjectName: {'attended': FieldValue.increment(1)}
-          },
+        writeBatch.update(userRef, {
+          'subjects.$normalizedSubject.attended': FieldValue.increment(1),
           'attendedClasses': FieldValue.increment(1),
-        }, SetOptions(merge: true));
+        });
       }
-      // Change: Student was present but is now marked absent
+      // Student was present, now absent: Decrement attended
       else if (!wasAbsent && isNowAbsent) {
-        writeBatch.set(userRef, {
-          'subjects': {
-            subjectName: {'attended': FieldValue.increment(-1)}
-          },
+        writeBatch.update(userRef, {
+          'subjects.$normalizedSubject.attended': FieldValue.increment(-1),
           'attendedClasses': FieldValue.increment(-1),
-        }, SetOptions(merge: true));
+        });
       }
     }
 
     await writeBatch.commit();
   }
 
-  /// Delete Attendance and revert student counts
+  /// Delete Attendance and safely revert student counts
   Future<void> deleteAttendance(String batchId, String docId) async {
-    final docRef = _db.collection('batches').doc(batchId).collection('attendance').doc(docId);
-    final snap = await docRef.get();
+    try {
+      final docRef = _db.collection('batches').doc(batchId).collection('attendance').doc(docId);
+      final snap = await docRef.get();
 
-    if (!snap.exists) return;
+      if (!snap.exists) return;
 
-    final data = snap.data() as Map<String, dynamic>;
-    final String subject = data['subject'] ?? '';
-    final List absentUids = data['absentUids'] ?? [];
-    final List allUids = data['allStudentUids'] ?? [];
+      final data = snap.data() as Map<String, dynamic>;
+      final String subject = data['subject'] ?? '';
+      final List absentUids = data['absentUids'] ?? [];
+      final List allUids = data['allStudentUids'] ?? [];
 
-    final writeBatch = _db.batch();
+      final writeBatch = _db.batch();
 
-    for (var uidObj in allUids) {
-      final String uid = uidObj.toString();
-      final userRef = _db.collection('users').doc(uid);
-      bool wasAbsent = absentUids.contains(uid);
+      for (var uidObj in allUids) {
+        final String uid = uidObj.toString();
+        final userRef = _db.collection('users').doc(uid);
+        bool wasAbsent = absentUids.contains(uid);
 
-      // Revert the session (decrement total and attended if they weren't absent)
-      writeBatch.set(userRef, {
-        'subjects': {
-          subject: {
-            'total': FieldValue.increment(-1),
-            'attended': wasAbsent ? FieldValue.increment(0) : FieldValue.increment(-1),
-          }
-        },
-        'totalClasses': FieldValue.increment(-1),
-        'attendedClasses': wasAbsent ? FieldValue.increment(0) : FieldValue.increment(-1),
-      }, SetOptions(merge: true));
+        writeBatch.update(userRef, {
+          'subjects.$subject.total': FieldValue.increment(-1),
+          'subjects.$subject.attended': wasAbsent ? FieldValue.increment(0) : FieldValue.increment(-1),
+          'totalClasses': FieldValue.increment(-1),
+          'attendedClasses': wasAbsent ? FieldValue.increment(0) : FieldValue.increment(-1),
+        });
+      }
+
+      writeBatch.delete(docRef);
+      await writeBatch.commit();
+    } catch (e) {
+      debugPrint("Delete Error: $e");
+      rethrow;
     }
-
-    writeBatch.delete(docRef);
-    await writeBatch.commit();
   }
 }

@@ -11,64 +11,36 @@ class BatchSubjectsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Subjects')),
-
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () => _showCreateSubjectDialog(context),
       ),
-
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('subjects')
             .where('batchId', isEqualTo: batchId)
             .snapshots(),
         builder: (context, snapshot) {
-          // -------------------------------
-          // ERROR
-          // -------------------------------
           if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error loading subjects:\n${snapshot.error}',
-                textAlign: TextAlign.center,
-              ),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
 
-          // -------------------------------
-          // LOADING (ONLY WHILE CONNECTING)
-          // -------------------------------
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          // -------------------------------
-          // EMPTY STATE
-          // -------------------------------
           final subjects = snapshot.data?.docs ?? [];
-
           if (subjects.isEmpty) {
-            return const Center(
-              child: Text('No subjects created'),
-            );
+            return const Center(child: Text('No subjects created'));
           }
 
-          // -------------------------------
-          // LIST
-          // -------------------------------
           return ListView.builder(
             itemCount: subjects.length,
             itemBuilder: (context, index) {
               final doc = subjects[index];
-              final data =
-                  doc.data() as Map<String, dynamic>;
+              final data = doc.data() as Map<String, dynamic>;
 
               return ListTile(
-                leading:
-                    const Icon(Icons.menu_book_outlined),
+                leading: const Icon(Icons.menu_book_outlined),
                 title: Text(data['name']),
                 subtitle: Text(data['code']),
                 trailing: const Icon(Icons.chevron_right),
@@ -77,7 +49,7 @@ class BatchSubjectsScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => SubjectDetailScreen(
-                        subjectName: data['name'],
+                        subjectName: data['name'], // Passes the exact name for the query
                         batchId: batchId,
                       ),
                     ),
@@ -91,11 +63,7 @@ class BatchSubjectsScreen extends StatelessWidget {
     );
   }
 
-  // ===============================
-  // CREATE SUBJECT DIALOG
-  // ===============================
-  Future<void> _showCreateSubjectDialog(
-      BuildContext context) async {
+  Future<void> _showCreateSubjectDialog(BuildContext context) async {
     final nameController = TextEditingController();
     final codeController = TextEditingController();
 
@@ -109,43 +77,35 @@ class BatchSubjectsScreen extends StatelessWidget {
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject Name',
-                ),
+                decoration: const InputDecoration(labelText: 'Subject Name'),
+                textCapitalization: TextCapitalization.words, // Better UX
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject Code',
-                ),
+                decoration: const InputDecoration(labelText: 'Subject Code (e.g. CS101)'),
+                textCapitalization: TextCapitalization.characters,
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
               child: const Text('Create'),
               onPressed: () async {
-                if (nameController.text.trim().isEmpty ||
-                    codeController.text.trim().isEmpty) {
-                  return;
-                }
+                final name = nameController.text.trim();
+                final code = codeController.text.trim();
 
-                await FirebaseFirestore.instance
-                    .collection('subjects')
-                    .add({
-                  'name': nameController.text.trim(),
-                  'code': codeController.text.trim(),
+                if (name.isEmpty || code.isEmpty) return;
+
+                await FirebaseFirestore.instance.collection('subjects').add({
+                  'name': name,
+                  'code': code,
                   'batchId': batchId,
-                  'createdAt':
-                      FieldValue.serverTimestamp(),
+                  'createdAt': FieldValue.serverTimestamp(),
                 });
 
-                Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
             ),
           ],
