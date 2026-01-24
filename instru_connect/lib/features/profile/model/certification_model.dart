@@ -11,7 +11,7 @@ class CertificationModel {
   final Timestamp createdAt;
 
   CertificationModel({
-    required this.id,
+    required this.id, 
     required this.uid,
     required this.title,
     required this.issuer,

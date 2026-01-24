@@ -9,14 +9,14 @@ class CertificationService {
   final _storage = FirebaseStorage.instance;
 
   Stream<List<CertificationModel>> fetchCertificates(String uid) {
-    return _db
-        .collection('certifications')
-        .where('uid', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snap) =>
-            snap.docs.map(CertificationModel.fromDoc).toList());
-  }
+  return _db
+      .collection('certifications')
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map((snap) =>
+          snap.docs.map(CertificationModel.fromDoc).toList());
+}
+
 
   Future<void> uploadCertificate({
     required String uid,
