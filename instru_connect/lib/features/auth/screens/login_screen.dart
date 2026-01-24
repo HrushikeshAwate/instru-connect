@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../config/theme/ui_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,15 +16,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginWithMicrosoft() async {
     setState(() => _loading = true);
-
     try {
       await _authService.signInWithMicrosoft();
-      // ⛔ NO NAVIGATION
-      // SplashScreen listens to authStateChanges
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -36,56 +33,77 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // =============================================
-            // APP / DEPARTMENT IDENTITY
-            // =============================================
-            Icon(
-              Icons.school_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-
-            Text(
-              'InstruConnect',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 6),
-
-            Text(
-              'Department App',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-
-            const SizedBox(height: 40),
-
-            // =============================================
-            // LOGIN BUTTON
-            // =============================================
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loginWithMicrosoft,
-                child: const Text('Sign in with College Email'),
+      backgroundColor: UIColors.background,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ================= LOGO =================
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  gradient: UIColors.heroGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.school_outlined,
+                  size: 42,
+                  color: Colors.white,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-            // =============================================
-            // HELPER TEXT
-            // =============================================
-            Text(
-              'Use your official college Microsoft account',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+              // ================= TITLE =================
+              Text(
+                'InstruConnect',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                'Instrumentation Department',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: UIColors.textSecondary),
+              ),
+
+              const SizedBox(height: 40),
+
+              // ================= BUTTON =================
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.login),
+                  label: const Text(
+                    'Sign in with College Email',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                  onPressed: _loginWithMicrosoft,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ================= FOOTER =================
+              Text(
+                'Use your official Microsoft college account',
+                textAlign: TextAlign.center,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: UIColors.textMuted),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../config/theme/ui_colors.dart';
 import '../models/complaint_model.dart';
 import 'complaint_detail_screen.dart';
 
@@ -14,83 +15,138 @@ class ComplaintListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Complaints')),
-      body: StreamBuilder<List<ComplaintModel>>(
-        stream: stream,
-        builder: (context, snapshot) {
-          // -----------------------------
-          // LOADING
-          // -----------------------------
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      backgroundColor: UIColors.background,
+      body: Stack(
+        children: [
+          // ================= HEADER GRADIENT =================
+          Container(
+            height: 180,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
+              ),
+            ),
+          ),
 
-          final complaints = snapshot.data!;
+          SafeArea(
+            child: Column(
+              children: [
+                // ================= CUSTOM APP BAR =================
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Text(
+                        'Complaints',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-          // -----------------------------
-          // EMPTY
-          // -----------------------------
-          if (complaints.isEmpty) {
-            return const _EmptyState();
-          }
+                // ================= LIST =================
+                Expanded(
+                  child: StreamBuilder<List<ComplaintModel>>(
+                    stream: stream,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
 
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            itemCount: complaints.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final complaint = complaints[index];
+                      final complaints = snapshot.data!;
 
-              return _ComplaintTile(
-                complaint: complaint,
-              );
-            },
-          );
-        },
+                      if (complaints.isEmpty) {
+                        return const _EmptyState();
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                        itemCount: complaints.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 14),
+                        itemBuilder: (context, index) {
+                          return _ComplaintCard(
+                            complaint: complaints[index],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ComplaintTile extends StatelessWidget {
+// =======================================================
+// COMPLAINT CARD
+// =======================================================
+
+class _ComplaintCard extends StatelessWidget {
   final ComplaintModel complaint;
 
-  const _ComplaintTile({
-    required this.complaint,
-  });
+  const _ComplaintCard({required this.complaint});
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = _statusColor(complaint.status);
+    final statusGradient = _statusGradient(complaint.status);
+
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(24),
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ComplaintDetailScreen(
-              complaint: complaint,
-            ),
+            builder: (_) => ComplaintDetailScreen(complaint: complaint),
           ),
         );
       },
-      child: Ink(
-        padding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Theme.of(context)
-              .colorScheme
-              .surfaceContainerHighest,
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: statusColor.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // LEFT STATUS DOT
-            _StatusDot(status: complaint.status),
+            // STATUS STRIP
+            Container(
+              width: 6,
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: statusGradient,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
 
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
 
             // CONTENT
             Expanded(
@@ -99,23 +155,31 @@ class _ComplaintTile extends StatelessWidget {
                 children: [
                   Text(
                     complaint.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
-                        .titleMedium,
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   _StatusChip(status: complaint.status),
                 ],
               ),
             ),
 
-            const Icon(Icons.chevron_right),
+            const Icon(Icons.chevron_right_rounded,
+                color: UIColors.textMuted),
           ],
         ),
       ),
     );
   }
 }
+
+// =======================================================
+// STATUS CHIP
+// =======================================================
 
 class _StatusChip extends StatelessWidget {
   final String status;
@@ -124,61 +188,29 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(status);
+    final gradient = _statusGradient(status);
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        gradient: gradient,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status,
-        style: TextStyle(
-          fontSize: 12,
-          color: color,
+        status.replaceAll('_', ' ').toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
       ),
     );
   }
 }
 
-class _StatusDot extends StatelessWidget {
-  final String status;
-
-  const _StatusDot({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _statusColor(status);
-
-    return Container(
-      width: 10,
-      height: 10,
-      margin: const EdgeInsets.only(top: 6),
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-}
-
-Color _statusColor(String status) {
-  switch (status) {
-    case 'submitted':
-      return Colors.grey;
-    case 'acknowledged':
-      return Colors.blue;
-    case 'in_progress':
-      return Colors.orange;
-    case 'resolved':
-      return Colors.green;
-    default:
-      return Colors.grey;
-  }
-}
+// =======================================================
+// EMPTY STATE
+// =======================================================
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -189,15 +221,63 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.report_problem_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: UIColors.softBackgroundGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.report_problem_outlined,
+              size: 48,
+              color: UIColors.textMuted,
+            ),
           ),
-          const SizedBox(height: 12),
-          const Text('No complaints found'),
+          const SizedBox(height: 16),
+          const Text(
+            'No complaints found',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: UIColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
+  }
+}
+
+// =======================================================
+// STATUS HELPERS
+// =======================================================
+
+Color _statusColor(String status) {
+  switch (status) {
+    case 'submitted':
+      return UIColors.info;
+    case 'acknowledged':
+      return UIColors.primary;
+    case 'in_progress':
+      return UIColors.warning;
+    case 'resolved':
+      return UIColors.success;
+    default:
+      return UIColors.textMuted;
+  }
+}
+
+Gradient _statusGradient(String status) {
+  switch (status) {
+    case 'submitted':
+      return UIColors.secondaryGradient;
+    case 'acknowledged':
+      return UIColors.primaryGradient;
+    case 'in_progress':
+      return UIColors.warningGradient;
+    case 'resolved':
+      return UIColors.successGradient;
+    default:
+      return UIColors.softBackgroundGradient;
   }
 }

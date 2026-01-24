@@ -22,70 +22,142 @@ class ResourceDetailScreen extends StatelessWidget {
     final ResourceModel resource = args;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Resource'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // =================================================
-            // TITLE
-            // =================================================
-            Text(
-              resource.title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-
-            const SizedBox(height: 8),
-
-            // =================================================
-            // SUBJECT
-            // =================================================
-            Text(
-              resource.subject,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-
-            const Divider(height: 32),
-
-            // =================================================
-            // DESCRIPTION
-            // =================================================
-            if (resource.description.isNotEmpty) ...[
-              const _SectionTitle('Description'),
-              const SizedBox(height: 8),
-              Text(
-                resource.description,
-                style:
-                    Theme.of(context).textTheme.bodyMedium,
+      body: Stack(
+        children: [
+          // ================= HEADER GRADIENT =================
+          Container(
+            height: 200,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF2563EB),
+                  Color(0xFF4F46E5),
+                  Color(0xFF06B6D4),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-
-            const Spacer(),
-
-            // =================================================
-            // ACTION
-            // =================================================
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Open / Download'),
-                onPressed: () async {
-                  final uri = Uri.parse(resource.fileUrl);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(
-                      uri,
-                      mode: LaunchMode.externalApplication,
-                    );
-                  }
-                },
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
               ),
             ),
-          ],
-        ),
+          ),
+
+          // ================= CONTENT =================
+          SafeArea(
+            child: Column(
+              children: [
+                // ---------- APP BAR ----------
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Text(
+                        'Resource',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ---------- MAIN CARD ----------
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: SizedBox(
+                      width: double.infinity, // 🔥 KEY FIX
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 24,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ================= TITLE =================
+                            Text(
+                              resource.title,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // ================= SUBJECT =================
+                            Text(
+                              resource.subject,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: Colors.grey[600]),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // ================= DESCRIPTION =================
+                            if (resource.description.isNotEmpty) ...[
+                              const _SectionTitle('Description'),
+                              const SizedBox(height: 8),
+                              Text(
+                                resource.description,
+                                style:
+                                    Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+
+                            const Spacer(),
+
+                            // ================= ACTION =================
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.open_in_new),
+                                label: const Text('Open / Download'),
+                                onPressed: () async {
+                                  final uri =
+                                      Uri.parse(resource.fileUrl);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -103,8 +175,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style:
-          Theme.of(context).textTheme.titleMedium,
+      style: Theme.of(context)
+          .textTheme
+          .titleMedium
+          ?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 }

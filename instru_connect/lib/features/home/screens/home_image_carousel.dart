@@ -1,4 +1,8 @@
+// features/home/screens/home_image_carousel.dart
+
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:instru_connect/config/theme/ui_colors.dart';
 
 class HomeImageCarousel extends StatefulWidget {
   const HomeImageCarousel({super.key});
@@ -8,46 +12,154 @@ class HomeImageCarousel extends StatefulWidget {
 }
 
 class _HomeImageCarouselState extends State<HomeImageCarousel> {
-  final PageController _controller =
-      PageController(viewportFraction: 0.92);
+  final PageController _controller = PageController(viewportFraction: 0.88);
+  int _currentPage = 0;
+  Timer? _timer;
 
   final List<String> images = const [
     'https://www.coeptech.ac.in/wp-content/uploads/2024/06/Dept-Photo-1024x683.jpeg',
-    'https://www.coeptech.ac.in/wp-content/uploads/elementor/thumbs/COEP-Website-Pic-1-r4qfk1ygvn7y9y1tf4vppvonlurjzsbf6jrltou9w8.jpg'
+    'https://www.coeptech.ac.in/wp-content/uploads/elementor/thumbs/COEP-Website-Pic-1-r4qfk1ygvn7y9y1tf4vppvonlurjzsbf6jrltou9w8.jpg',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _currentPage = (_currentPage + 1) % images.length;
+      if (_controller.hasClients) {
+        _controller.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 220, // compact, non-dominating
-      child: PageView.builder(
-        controller: _controller,
-        itemCount: images.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                images[index],
-                fit: BoxFit.cover,
-                width: double.infinity,
-
-                // 🔒 NO BACKGROUND, NO PLACEHOLDER
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const SizedBox.shrink();
+    return Column(
+      children: [
+        SizedBox(
+          height: 210,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: images.length,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemBuilder: (context, index) {
+              return AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  double scale = 1.0;
+                  if (_controller.position.haveDimensions) {
+                    scale = (_controller.page! - index).abs();
+                    scale = (1 - scale * 0.12).clamp(0.88, 1.0);
+                  }
+                  return Transform.scale(scale: scale, child: child);
                 },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 24,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          images[index],
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Container(color: Colors.grey.shade300);
+                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.grey.shade300,
+                            child: const Icon(
+                              Icons.broken_image_rounded,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
 
-                // Optional: fail silently if image breaks
-                errorBuilder: (_, __, ___) {
-                  return const SizedBox.shrink();
-                },
+                        // Multi-layer cinematic gradient
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                UIColors.deepTeal.withOpacity(0.25),
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.45),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Subtle color wash
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black54,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Premium indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(images.length, (index) {
+            final bool active = _currentPage == index;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 350),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              height: 6,
+              width: active ? 22 : 6,
+              decoration: BoxDecoration(
+                gradient: active
+                    ? UIColors.primaryGradient
+                    : null,
+                color: active
+                    ? null
+                    : UIColors.deepTeal.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(6),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }

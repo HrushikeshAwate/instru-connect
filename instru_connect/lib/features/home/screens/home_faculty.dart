@@ -1,14 +1,11 @@
+// features/home/screens/home_faculty.dart
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
-
-import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
-import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
-
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
@@ -18,267 +15,270 @@ import 'package:instru_connect/features/notices/services/notice_service.dart';
 class HomeFaculty extends StatelessWidget {
   const HomeFaculty({super.key});
 
-  // static const String _departmentId = 'Instrumentation'; // 🔑 SAME SOURCE EVERYWHERE
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Faculty Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => showLogoutDialog(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {
-              Navigator.pushNamed(context, Routes.profile);
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: EdgeInsets.zero,
+      backgroundColor: UIColors.background,
+      body: Stack(
         children: [
-          // =================================================
-          // HERO SECTION
-          // =================================================
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              children: const [HomeImageCarousel(), SizedBox(height: 20)],
+          // =========================
+          // HERO GRADIENT HEADER
+          // =========================
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
             ),
           ),
 
-          // =================================================
-          // CONTENT
-          // =================================================
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                // ---------------------------------------------
-                // QUICK ACTIONS
-                // ---------------------------------------------
-                const _SectionHeader(
-                  title: 'Quick Actions',
-                  subtitle: 'Frequently used faculty tools',
-                ),
-                const SizedBox(height: 14),
-
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _ActionCard(
-                      icon: Icons.campaign_outlined,
-                      title: 'Create Notice',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateNoticeScreen(
-                              fixedBatchIds: null,
-                              showBatchSelector: true, // ✅ selector shown
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    _ActionCard(
-                      icon: Icons.menu_book_outlined,
-                      title: 'Study Resources',
-                      onTap: () {
-                        Navigator.pushNamed(context, Routes.resources);
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.upload_file_outlined,
-                      title: 'Add Resource',
-                      onTap: () {
-                        Navigator.pushNamed(context, Routes.addResource);
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.groups_outlined,
-                      title: 'Manage Batches',
-                      onTap: () {
-                        Navigator.pushNamed(context, Routes.manageBatches);
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.report_problem_outlined,
-                      title: 'Complaints',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ComplaintListScreen(
-                              stream: ComplaintService().fetchAllComplaints(),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 36),
-
-                // ---------------------------------------------
-                // RECENT NOTICES (REAL DATA)
-                // ---------------------------------------------
-                const _SectionHeader(
-                  title: 'Recent Notices',
-                  subtitle: 'Latest academic announcements',
-                ),
-                const SizedBox(height: 14),
-
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: FutureBuilder<List<Notice>>(
-                    future: NoticeService().fetchRecentNotices(
-                      // departmentId: _departmentId,
-                      limit: 3,
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text('No recent notices'),
-                        );
-                      }
-
-                      final notices = snapshot.data!;
-
-                      return Column(
+                // =========================
+                // TOP BAR
+                // =========================
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (int i = 0; i < notices.length; i++) ...[
-                            _NoticeTile(
-                              title: notices[i].title,
-                              subtitle: 'Tap to view',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        NoticeDetailScreen(notice: notices[i]),
-                                  ),
-                                );
-                              },
+                          Text(
+                            'Faculty Portal',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
-                            if (i != notices.length - 1)
-                              const Divider(height: 1),
-                          ],
+                          ),
+                          Text(
+                            'Academic Session 2025–26',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
-                      );
-                    },
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.person_outline,
+                            color: Colors.white),
+                        onPressed: () =>
+                            Navigator.pushNamed(context, Routes.profile),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.logout_rounded,
+                            color: Colors.white),
+                        onPressed: () => showLogoutDialog(context),
+                      ),
+                    ],
                   ),
                 ),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NoticeListScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('View all notices'),
-                  ),
-                ),
+                const SizedBox(height: 16),
+                const HomeImageCarousel(),
+                const SizedBox(height: 28),
 
-                const SizedBox(height: 36),
-
-                // ---------------------------------------------
+                // =========================
                 // COMPLAINTS OVERVIEW
-                // ---------------------------------------------
-                const _SectionHeader(
-                  title: 'Complaints Overview',
-                  subtitle: 'Current issue status',
-                ),
-                const SizedBox(height: 14),
-
+                // =========================
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('complaints')
                       .snapshots(),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              label: 'Pending',
-                              value: '—',
-                              color: UIColors.skyBlue,
-                            ),
-                          ),
-                          SizedBox(width: 14),
-                          Expanded(
-                            child: _StatCard(
-                              label: 'Resolved',
-                              value: '—',
-                              color: UIColors.primaryBlue,
-                            ),
-                          ),
-                        ],
-                      );
-                    }
+                    final pending = !snapshot.hasData
+                        ? '—'
+                        : snapshot.data!.docs
+                            .where((d) =>
+                                (d.data() as Map)['status'] != 'resolved')
+                            .length
+                            .toString();
 
-                    final docs = snapshot.data!.docs;
-
-                    final pendingCount = docs.where((d) {
-                      final data = d.data() as Map<String, dynamic>;
-                      final status = data['status'] ?? 'submitted';
-                      return status != 'resolved';
-                    }).length;
-
-                    final resolvedCount = docs.where((d) {
-                      final data = d.data() as Map<String, dynamic>;
-                      return data['status'] == 'resolved';
-                    }).length;
+                    final resolved = !snapshot.hasData
+                        ? '—'
+                        : snapshot.data!.docs
+                            .where((d) =>
+                                (d.data() as Map)['status'] == 'resolved')
+                            .length
+                            .toString();
 
                     return Row(
                       children: [
                         Expanded(
                           child: _StatCard(
                             label: 'Pending',
-                            value: pendingCount.toString(),
-                            color: UIColors.skyBlue,
+                            value: pending,
+                            icon: Icons.pending_outlined,
+                            gradient: UIColors.warningGradient,
                           ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: _StatCard(
                             label: 'Resolved',
-                            value: resolvedCount.toString(),
-                            color: UIColors.primaryBlue,
+                            value: resolved,
+                            icon: Icons.check_circle_outline,
+                            gradient: UIColors.successGradient,
                           ),
                         ),
                       ],
                     );
                   },
                 ),
+
+                const SizedBox(height: 36),
+
+                // =========================
+                // QUICK ACTIONS
+                // =========================
+                const _SectionHeader(
+                  title: 'Quick Actions',
+                  subtitle: 'Academic & management tools',
+                ),
+                const SizedBox(height: 16),
+
+                GridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.25,
+                  children: [
+                    _ActionCard(
+                      icon: Icons.add_alert_outlined,
+                      title: 'Create Notice',
+                      gradient: UIColors.primaryGradient,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CreateNoticeScreen(
+                            fixedBatchIds: null,
+                            showBatchSelector: true,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.library_books_outlined,
+                      title: 'Resources',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.resources),
+                    ),
+                    _ActionCard(
+                      icon: Icons.upload_file_rounded,
+                      title: 'Add Resource',
+                      gradient: UIColors.primaryGradient,
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.addResource),
+                    ),
+                    _ActionCard(
+                      icon: Icons.group_work_outlined,
+                      title: 'Manage Batches',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.manageBatches),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 36),
+
+                // =========================
+                // RECENT NOTICES
+                // =========================
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _SectionHeader(
+                      title: 'Recent Notices',
+                      subtitle: 'Latest announcements',
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NoticeListScreen(),
+                        ),
+                      ),
+                      child: const Text('View All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: UIColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: FutureBuilder<List<Notice>>(
+                    future: NoticeService().fetchRecentNotices(limit: 3),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('No notices found'),
+                        );
+                      }
+
+                      return Column(
+                        children: snapshot.data!
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                          final isLast =
+                              entry.key == snapshot.data!.length - 1;
+                          return Column(
+                            children: [
+                              _NoticeTile(
+                                notice: entry.value,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => NoticeDetailScreen(
+                                      notice: entry.value,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (!isLast)
+                                const Divider(height: 1),
+                            ],
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 48),
               ],
             ),
           ),
@@ -288,27 +288,91 @@ class HomeFaculty extends StatelessWidget {
   }
 }
 
-// =======================================================
-// LOCAL WIDGETS
-// =======================================================
+// ===================================================================
+// UI COMPONENTS
+// ===================================================================
 
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-
   const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(subtitle, style: theme.textTheme.bodyMedium),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: UIColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 13,
+            color: UIColors.textSecondary,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Gradient gradient;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.gradient,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white, size: 26),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -316,48 +380,58 @@ class _SectionHeader extends StatelessWidget {
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
+  final Gradient gradient;
   final VoidCallback onTap;
 
   const _ActionCard({
     required this.icon,
     required this.title,
+    required this.gradient,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 30,
-                color: Theme.of(context).colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
+                  fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -369,60 +443,32 @@ class _ActionCard extends StatelessWidget {
 }
 
 class _NoticeTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
+  final Notice notice;
   final VoidCallback onTap;
 
   const _NoticeTile({
-    required this.title,
-    required this.subtitle,
+    required this.notice,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text(label),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      title: Text(
+        notice.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
+      subtitle: const Text(
+        'Tap to view details',
+        style: TextStyle(fontSize: 12),
+      ),
+      trailing:
+          const Icon(Icons.arrow_forward_ios, size: 14),
+      onTap: onTap,
     );
   }
 }

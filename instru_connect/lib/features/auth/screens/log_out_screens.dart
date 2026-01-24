@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // REQUIRED for cache clearing
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 
@@ -13,23 +13,30 @@ Future<void> showLogoutDialog(BuildContext context) async {
     builder: (dialogContext) {
       return AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+
         title: Row(
           children: [
-            Icon(Icons.logout, color: colorScheme.error),
+            Icon(Icons.logout_rounded, color: colorScheme.error),
             const SizedBox(width: 8),
             Text(
               'Logout',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
+
         content: const Text(
-          'Are you sure you want to logout?\nThis will clear your local app cache.',
+          'Are you sure you want to logout?\n\n'
+          'This will clear your local app cache and sign you out securely.',
           style: TextStyle(fontSize: 14),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+
         actions: [
           SizedBox(
             width: double.infinity,
@@ -57,34 +64,33 @@ Future<void> showLogoutDialog(BuildContext context) async {
   );
 
   if (confirm == true) {
-    // Show a loading overlay so the user doesn't tap multiple times
+    // Loading overlay
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (_) =>
+          const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      // 1. CLEAR THE CACHE (The Fix for your 70MB issue)
-      // Terminate stops current listeners, clearPersistence deletes the local DB file
+      // Clear Firestore cache
       await FirebaseFirestore.instance.terminate();
       await FirebaseFirestore.instance.clearPersistence();
 
-      // 2. SIGN OUT
+      // Sign out
       await AuthService().signOut();
 
       if (context.mounted) {
-        // Remove the loading indicator and go to login
-        Navigator.of(context).pop();
+        Navigator.pop(context); // remove loader
         Navigator.pushNamedAndRemoveUntil(
           context,
           Routes.login,
-              (route) => false,
+          (_) => false,
         );
       }
     } catch (e) {
-      if (context.mounted) Navigator.of(context).pop(); // Remove loader on error
-      debugPrint("Logout Error: $e");
+      if (context.mounted) Navigator.pop(context);
+      debugPrint('Logout Error: $e');
     }
   }
 }

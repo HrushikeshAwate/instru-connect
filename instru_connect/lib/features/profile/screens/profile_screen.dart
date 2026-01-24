@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
+import '../../../config/theme/ui_colors.dart';
 import '../services/profile_service.dart';
 import 'certification_screen.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -82,110 +84,172 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ================= PROFILE HEADER =================
-              _ProfileHeader(
-                name: profile.name,
-                email: profile.email,
+      backgroundColor: UIColors.background,
+      body: Stack(
+        children: [
+          // ================= GRADIENT HEADER =================
+          Container(
+            height: 200,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
               ),
-
-              const SizedBox(height: 24),
-
-              // ================= BASIC INFO =================
-              const _SectionTitle('Basic Information'),
-              const SizedBox(height: 12),
-
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _readOnlyField('Name', profile.name),
-                      _readOnlyField('Email', profile.email),
-                      _readOnlyField('Batch', profile.batchId ?? '-'),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ================= PERSONAL DETAILS =================
-              const _SectionTitle('Personal Details'),
-              const SizedBox(height: 12),
-
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _editableField('MIS No', _misController),
-                      _editableField('Department', _deptController),
-                      _editableField(
-                        'Co-curricular Activities',
-                        _coCurricularController,
-                        maxLines: 3,
-                      ),
-                      _editableField('Contact No', _contactController),
-                      _editableField(
-                        'Parent Contact No',
-                        _parentContactController,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ================= CERTIFICATIONS =================
-              const _SectionTitle('Professional'),
-              const SizedBox(height: 12),
-
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.workspace_premium_outlined),
-                  title: const Text('Certifications'),
-                  subtitle:
-                      const Text('Upload and manage your certificates'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CertificationsScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ================= SAVE BUTTON =================
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save Changes'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ================= APP BAR =================
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Text(
+                          'Profile',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ================= PROFILE HEADER CARD =================
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: UIColors.primary.withOpacity(0.12),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: _ProfileHeader(
+                        name: profile.name,
+                        email: profile.email,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ================= BASIC INFO =================
+                    const _SectionTitle('Basic Information'),
+                    const SizedBox(height: 12),
+
+                    _WhiteCard(
+                      child: Column(
+                        children: [
+                          _readOnlyField('Name', profile.name),
+                          _readOnlyField('Email', profile.email),
+                          _readOnlyField('Batch', profile.batchId ?? '-'),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ================= PERSONAL DETAILS =================
+                    const _SectionTitle('Personal Details'),
+                    const SizedBox(height: 12),
+
+                    _WhiteCard(
+                      child: Column(
+                        children: [
+                          _editableField('MIS No', _misController),
+                          _editableField('Department', _deptController),
+                          _editableField(
+                            'Co-curricular Activities',
+                            _coCurricularController,
+                            maxLines: 3,
+                          ),
+                          _editableField('Contact No', _contactController),
+                          _editableField(
+                            'Parent Contact No',
+                            _parentContactController,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ================= CERTIFICATIONS =================
+                    const _SectionTitle('Professional'),
+                    const SizedBox(height: 12),
+
+                    _WhiteCard(
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: UIColors.secondaryGradient,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.workspace_premium_outlined,
+                            color: Colors.white,
+                          ),
+                        ),
+                        title: const Text('Certifications'),
+                        subtitle: const Text(
+                            'Upload and manage your certificates'),
+                        trailing:
+                            const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const CertificationsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ================= SAVE BUTTON =================
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _saving ? null : _save,
+                        child: _saving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              )
+                            : const Text('Save Changes'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,27 +298,65 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 28,
+        Container(
+          decoration: BoxDecoration(
+            gradient: UIColors.primaryGradient,
+            shape: BoxShape.circle,
+          ),
+          padding: const EdgeInsets.all(14),
           child: Text(
             name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: const TextStyle(fontSize: 22),
+            style: const TextStyle(
+              fontSize: 22,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(name,
-                  style: Theme.of(context).textTheme.titleMedium),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium),
               const SizedBox(height: 4),
               Text(email,
-                  style: Theme.of(context).textTheme.bodyMedium),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+// ================= WHITE CARD =================
+
+class _WhiteCard extends StatelessWidget {
+  final Widget child;
+  const _WhiteCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

@@ -4,17 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../config/theme/ui_colors.dart';
 import '../../../core/services/storage_service.dart';
 import '../services/notice_service.dart';
 
 class CreateNoticeScreen extends StatefulWidget {
-  /// If provided, notice will ALWAYS be sent to these batches
-  /// (used for CR)
   final List<String>? fixedBatchIds;
-
-  /// Whether batch selector UI should be shown
-  /// Faculty/Admin → true
-  /// CR → false
   final bool showBatchSelector;
 
   const CreateNoticeScreen({
@@ -46,8 +41,6 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   @override
   void initState() {
     super.initState();
-
-    // 🔒 CR case: force batchIds
     if (widget.fixedBatchIds != null) {
       _selectedBatchIds.addAll(widget.fixedBatchIds!);
     }
@@ -60,9 +53,6 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
     super.dispose();
   }
 
-  // --------------------------------------------------
-  // Fetch ALL active batches (Faculty/Admin only)
-  // --------------------------------------------------
   Future<List<Map<String, String>>> _fetchBatches() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('batches')
@@ -71,16 +61,10 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
     return snapshot.docs.map((doc) {
       final data = doc.data();
-      return {
-        'id': doc.id,
-        'name': data['name'] as String,
-      };
+      return {'id': doc.id, 'name': data['name'] as String};
     }).toList();
   }
 
-  // --------------------------------------------------
-  // Pick attachment
-  // --------------------------------------------------
   Future<void> _pickAttachment() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -96,9 +80,6 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
     }
   }
 
-  // --------------------------------------------------
-  // Submit
-  // --------------------------------------------------
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -112,7 +93,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      const String departmentId = 'Instrumentation';
+      const departmentId = 'Instrumentation';
 
       final noticeId = await _noticeService.createNotice(
         title: _titleController.text,
@@ -134,8 +115,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
         );
       }
 
-      if (!mounted) return;
-      Navigator.pop(context, true);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -144,102 +124,232 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
     }
   }
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Notice')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _titleController,
-                maxLength: 100,
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
+      backgroundColor: UIColors.background,
+      body: Stack(
+        children: [
+          // ================= HEADER =================
+          Container(
+            height: 210,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
               ),
+            ),
+          ),
 
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _bodyController,
-                maxLines: 6,
-                decoration:
-                    const InputDecoration(labelText: 'Notice Content'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
-              ),
-
-              // =================================================
-              // BATCH SELECTOR (ONLY FACULTY / ADMIN)
-              // =================================================
-              if (widget.showBatchSelector) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Target Batches',
-                  style: Theme.of(context).textTheme.titleMedium,
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                // ================= APP BAR =================
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Text(
+                      'Create Notice',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
 
-                FutureBuilder<List<Map<String, String>>>(
-                  future: _fetchBatches(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const CircularProgressIndicator();
-                    }
+                const SizedBox(height: 24),
 
-                    return Column(
-                      children: snapshot.data!.map((batch) {
-                        final id = batch['id']!;
-                        final name = batch['name']!;
-                        final selected =
-                            _selectedBatchIds.contains(id);
+                // ================= FORM CARD =================
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: UIColors.primary.withOpacity(0.15),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SectionTitle('Notice Details'),
+                        const SizedBox(height: 16),
 
-                        return CheckboxListTile(
-                          title: Text(name),
-                          value: selected,
-                          onChanged: (v) {
-                            setState(() {
-                              v == true
-                                  ? _selectedBatchIds.add(id)
-                                  : _selectedBatchIds.remove(id);
-                            });
-                          },
-                        );
-                      }).toList(),
-                    );
-                  },
+                        TextFormField(
+                          controller: _titleController,
+                          maxLength: 100,
+                          decoration:
+                              const InputDecoration(labelText: 'Title'),
+                          validator: (v) =>
+                              v == null || v.trim().isEmpty ? 'Required' : null,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _bodyController,
+                          maxLines: 5,
+                          decoration: const InputDecoration(
+                            labelText: 'Notice Content',
+                          ),
+                          validator: (v) =>
+                              v == null || v.trim().isEmpty ? 'Required' : null,
+                        ),
+
+                        // ================= BATCH SELECTOR =================
+                        if (widget.showBatchSelector) ...[
+                          const SizedBox(height: 28),
+                          const _SectionTitle('Target Batches'),
+                          const SizedBox(height: 12),
+
+                          FutureBuilder<List<Map<String, String>>>(
+                            future: _fetchBatches(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+
+                              return Column(
+                                children: snapshot.data!.map((batch) {
+                                  final id = batch['id']!;
+                                  final name = batch['name']!;
+                                  final selected =
+                                      _selectedBatchIds.contains(id);
+
+                                  return CheckboxListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(name),
+                                    value: selected,
+                                    activeColor: UIColors.primary,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        v == true
+                                            ? _selectedBatchIds.add(id)
+                                            : _selectedBatchIds.remove(id);
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+                        ],
+
+                        const SizedBox(height: 24),
+
+                        // ================= ATTACHMENT =================
+                        OutlinedButton.icon(
+                          onPressed: _pickAttachment,
+                          icon: const Icon(Icons.attach_file),
+                          label: const Text('Add Attachment'),
+                        ),
+
+                        if (_fileName != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle,
+                                  size: 18, color: UIColors.success),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _fileName!,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ================= PUBLISH BUTTON =================
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: UIColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: UIColors.primary.withOpacity(0.3),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Publish Notice',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
                 ),
               ],
-
-              const SizedBox(height: 24),
-
-              OutlinedButton.icon(
-                onPressed: _pickAttachment,
-                icon: const Icon(Icons.attach_file),
-                label: const Text('Add Attachment'),
-              ),
-
-              if (_fileName != null) Text('Selected: $_fileName'),
-
-              const SizedBox(height: 32),
-
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: _isSubmitting
-                    ? const CircularProgressIndicator()
-                    : const Text('Publish Notice'),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+}
+
+// =======================================================
+// LOCAL WIDGET
+// =======================================================
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium,
     );
   }
 }

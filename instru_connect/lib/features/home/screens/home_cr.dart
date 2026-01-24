@@ -1,7 +1,8 @@
+// features/home/screens/home_cr.dart
+
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
-// import 'package:instru_connect/core/bootstrap/user_context.dart';
 import 'package:instru_connect/core/sessioin/current_user.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
@@ -17,157 +18,94 @@ class HomeCr extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String? batchId = CurrentUser.batchId;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CR Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => showLogoutDialog(context),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {
-              Navigator.pushNamed(context, Routes.profile);
-            },
-          ),
-        ],
-      ),
-
-      body: ListView(
-        padding: EdgeInsets.zero,
+      backgroundColor: UIColors.background,
+      body: Stack(
         children: [
-          // =================================================
-          // TOP IMAGE CAROUSEL
-          // =================================================
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: const HomeImageCarousel(),
+          // =========================
+          // HERO GRADIENT HEADER
+          // =========================
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
 
-          // =================================================
-          // CONTENT
-          // =================================================
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                // ---------------------------------------------
-                // CLASS ACTIONS
-                // ---------------------------------------------
-                const _SectionHeader(
-                  title: 'Class Actions',
-                  subtitle: 'Manage and represent your class',
-                ),
-                const SizedBox(height: 14),
-
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _ActionCard(
-  icon: Icons.campaign_outlined,
-  label: 'Create Class Notice',
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CreateNoticeScreen(
-          fixedBatchIds: [?batchId],   // 🔒 CR batch
-          showBatchSelector: false,   // ❌ no selector
-        ),
-      ),
-    );
-  },
-),
-                    _ActionCard(
-                      icon: Icons.campaign_outlined,
-                      label: 'View Notices',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const NoticeListScreen(),
+                // =========================
+                // TOP BAR
+                // =========================
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      if (Navigator.canPop(context))
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
                           ),
-                        );
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.report_problem_outlined,
-                      label: 'View Complaints',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ComplaintListScreen(
-                              stream: ComplaintService().fetchAllComplaints(),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CR Dashboard',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      },
-                    ),
-
-                    // 🆕 RAISE COMPLAINT (ADDED)
-                    _ActionCard(
-                      icon: Icons.add_circle_outline,
-                      label: 'Raise Complaint',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CreateComplaintScreen(),
+                          Text(
+                            'Batch: ${batchId ?? "Not Assigned"}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
                           ),
-                        );
-                      },
-                    ),
-
-                    _ActionCard(
-                      icon: Icons.schedule_outlined,
-                      label: 'Timetable',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Timetable coming soon'),
-                          ),
-                        );
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.menu_book_outlined,
-                      label: 'Study Resources',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Study resources coming soon'),
-                          ),
-                        );
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.event_outlined,
-                      label: 'Events',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Events coming soon')),
-                        );
-                      },
-                    ),
-                  ],
+                        ],
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                        ),
+                        onPressed: () =>
+                            Navigator.pushNamed(context, Routes.profile),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.logout_rounded,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => showLogoutDialog(context),
+                      ),
+                    ],
+                  ),
                 ),
 
-                const SizedBox(height: 36),
+                const SizedBox(height: 16),
+                const HomeImageCarousel(),
+                const SizedBox(height: 28),
 
-                // ---------------------------------------------
+                // =========================
                 // CLASS OVERVIEW
-                // ---------------------------------------------
+                // =========================
                 const _SectionHeader(
                   title: 'Class Overview',
-                  subtitle: 'Current class status',
+                  subtitle: 'Real-time batch metrics',
                 ),
                 const SizedBox(height: 14),
 
@@ -175,9 +113,10 @@ class HomeCr extends StatelessWidget {
                   children: const [
                     Expanded(
                       child: _StatCard(
-                        title: 'Pending Complaints',
+                        title: 'Pending',
                         value: '2',
-                        color: UIColors.skyBlue,
+                        icon: Icons.hourglass_top_rounded,
+                        gradient: UIColors.warningGradient,
                       ),
                     ),
                     SizedBox(width: 14),
@@ -185,11 +124,114 @@ class HomeCr extends StatelessWidget {
                       child: _StatCard(
                         title: 'Active Notices',
                         value: '4',
-                        color: UIColors.primaryBlue,
+                        icon: Icons.notifications_active_outlined,
+                        gradient: UIColors.primaryGradient,
                       ),
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 36),
+
+                // =========================
+                // CLASS ACTIONS
+                // =========================
+                const _SectionHeader(
+                  title: 'Class Actions',
+                  subtitle: 'Manage and represent your batch',
+                ),
+                const SizedBox(height: 16),
+
+                GridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.25,
+                  children: [
+                    _ActionCard(
+                      icon: Icons.add_comment_rounded,
+                      label: 'Create Notice',
+                      gradient: UIColors.primaryGradient,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateNoticeScreen(
+                            fixedBatchIds:
+                                batchId != null ? [batchId] : null,
+                            showBatchSelector: false,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.campaign_outlined,
+                      label: 'View Notices',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NoticeListScreen(),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.assignment_late_outlined,
+                      label: 'Complaints',
+                      gradient: UIColors.warningGradient,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ComplaintListScreen(
+                            stream: ComplaintService()
+                                .fetchAllComplaints(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.add_moderator_outlined,
+                      label: 'Raise Issue',
+                      gradient: UIColors.errorGradient,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const CreateComplaintScreen(),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Timetable',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Timetable coming soon'),
+                          ),
+                        );
+                      },
+                    ),
+                    _ActionCard(
+                      icon: Icons.folder_open_rounded,
+                      label: 'Resources',
+                      gradient: UIColors.primaryGradient,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Resources coming soon'),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 48),
               ],
             ),
           ),
@@ -199,73 +241,38 @@ class HomeCr extends StatelessWidget {
   }
 }
 
+// ===================================================================
+// UI COMPONENTS
+// ===================================================================
+
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-
-  const _SectionHeader({required this.title, required this.subtitle});
+  const _SectionHeader(
+      {required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-      ],
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 30,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13),
-              ),
-            ],
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: UIColors.textPrimary,
           ),
         ),
-      ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 13,
+            color: UIColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -273,34 +280,116 @@ class _ActionCard extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
-  final Color color;
+  final IconData icon;
+  final Gradient gradient;
 
   const _StatCard({
     required this.title,
     required this.value,
-    required this.color,
+    required this.icon,
+    required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text(title),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white, size: 26),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-          ],
+          ),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Gradient gradient;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
