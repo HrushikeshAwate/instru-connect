@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
@@ -33,15 +34,20 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     final snapshot = await FirebaseFirestore.instance
         .collection('notices')
         .get();
-
     return snapshot.docs.length;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Defined a consistent primary blue for the dashboard
+    final Color primaryBlue = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
+      backgroundColor: Colors.grey[50], // Soft background to make cards pop
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: const Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: false,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -56,19 +62,16 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
         ],
       ),
 
-      // 🔁 ROLE PREVIEW
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.swap_horiz),
-        label: const Text('Preview'),
+        backgroundColor: primaryBlue,
+        icon: const Icon(Icons.swap_horiz, color: Colors.white),
+        label: const Text('Preview', style: TextStyle(color: Colors.white)),
         onPressed: () => _openPreviewSwitcher(context),
       ),
 
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // =================================================
-          // HERO / CAROUSEL
-          // =================================================
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: const HomeImageCarousel(),
@@ -79,9 +82,6 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // =============================================
-                // SYSTEM OVERVIEW (FIRST)
-                // =============================================
                 const _SectionHeader(
                   title: 'System Overview',
                   subtitle: 'Current platform status',
@@ -92,57 +92,32 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   children: [
                     Expanded(
                       child: FutureBuilder<int>(
-                        future: AdminService().getTotalUsers().then(
-                          (value) => value ?? 0,
-                        ),
+                        future: AdminService().getTotalUsers().then((value) => value ?? 0),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const _MetricCard(
-                              title: 'Total Users',
-                              value: '—',
-                            );
-                          }
-
-                          if (snapshot.hasError) {
-                            return const _MetricCard(
-                              title: 'Total Users',
-                              value: 'Error',
-                            );
-                          }
-
                           return _MetricCard(
                             title: 'Total Users',
-                            value: snapshot.data.toString(),
+                            value: snapshot.connectionState == ConnectionState.waiting ? '—' : snapshot.data.toString(),
+                            icon: Icons.people_alt_rounded,
+                            accentColor: primaryBlue,
                           );
                         },
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('complaints')
-                            .snapshots(),
+                        stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const _MetricCard(
-                              title: 'Pending Complaints',
-                              value: '—',
-                            );
-                          }
-
-                          final docs = snapshot.data!.docs;
-
-                          final pendingCount = docs.where((doc) {
+                          final pendingCount = !snapshot.hasData ? '—' : snapshot.data!.docs.where((doc) {
                             final data = doc.data() as Map<String, dynamic>;
-                            final status = data['status'] ?? 'submitted';
-                            return status != 'resolved';
-                          }).length;
+                            return (data['status'] ?? 'submitted') != 'resolved';
+                          }).length.toString();
 
                           return _MetricCard(
                             title: 'Pending',
-                            value: pendingCount.toString(),
+                            value: pendingCount,
+                            icon: Icons.pending_actions_rounded,
+                            accentColor: Colors.orange[700]!, // Keeping functional colors for alerts
                           );
                         },
                       ),
@@ -150,7 +125,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
                 Row(
                   children: [
@@ -158,41 +133,26 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                       child: FutureBuilder<int>(
                         future: _fetchNoticeCount(),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const _MetricCard(
-                              title: 'Active Notices',
-                              value: '—',
-                            );
-                          }
-
                           return _MetricCard(
-                            title: 'Active Notices',
-                            value: snapshot.data!.toString(),
+                            title: 'Notices',
+                            value: !snapshot.hasData ? '—' : snapshot.data!.toString(),
+                            icon: Icons.campaign_rounded,
+                            accentColor: Colors.blue[800]!,
                           );
                         },
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: StreamBuilder<List<ComplaintModel>>(
                         stream: ComplaintService().fetchAllComplaints(),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const _MetricCard(
-                              title: 'Resolved',
-                              value: '—',
-                            );
-                          }
-
-                          final complaints = snapshot.data!;
-                          final resolvedCount = complaints.where((complaint) {
-                            final status = complaint.status;
-                            return status == 'resolved';
-                          }).length;
-
+                          final resolvedCount = !snapshot.hasData ? '—' : snapshot.data!.where((c) => c.status == 'resolved').length.toString();
                           return _MetricCard(
                             title: 'Resolved',
-                            value: resolvedCount.toString(),
+                            value: resolvedCount,
+                            icon: Icons.check_circle_rounded,
+                            accentColor: Colors.green[700]!,
                           );
                         },
                       ),
@@ -200,11 +160,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   ],
                 ),
 
-                const SizedBox(height: 40),
-
-                // =============================================
-                // QUICK ACTIONS
-                // =============================================
+                const SizedBox(height: 32),
                 const _SectionHeader(
                   title: 'Quick Actions',
                   subtitle: 'Administrative tasks',
@@ -213,30 +169,32 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
                 GridView.count(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.1,
                   children: [
                     _ActionCard(
-                      icon: Icons.campaign_outlined,
+                      icon: Icons.campaign_rounded,
                       label: 'Create Notice',
+                      color: primaryBlue,
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CreateNoticeScreen(
                               fixedBatchIds: null,
-                              showBatchSelector: true, // ✅ selector shown
+                              showBatchSelector: true,
                             ),
                           ),
                         );
                       },
                     ),
-
                     _ActionCard(
-                      icon: Icons.manage_accounts_outlined,
+                      icon: Icons.manage_accounts_rounded,
                       label: 'Manage Users',
+                      color: primaryBlue,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -247,15 +205,17 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                       },
                     ),
                     _ActionCard(
-                      icon: Icons.groups_outlined,
+                      icon: Icons.groups_rounded,
                       label: 'Manage Batches',
+                      color: primaryBlue,
                       onTap: () {
                         Navigator.pushNamed(context, Routes.manageBatches);
                       },
                     ),
                     _ActionCard(
-                      icon: Icons.report_problem_outlined,
+                      icon: Icons.report_problem_rounded,
                       label: 'View Complaints',
+                      color: primaryBlue,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -270,11 +230,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   ],
                 ),
 
-                const SizedBox(height: 40),
-
-                // =============================================
-                // ATTENTION REQUIRED
-                // =============================================
+                const SizedBox(height: 32),
                 const _SectionHeader(
                   title: 'Attention Required',
                   subtitle: 'Items needing review',
@@ -301,26 +257,30 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     );
   }
 
-  // =====================================================
-  // PREVIEW SWITCHER
-  // =====================================================
-
   void _openPreviewSwitcher(BuildContext context) async {
     final selected = await showModalBottomSheet<int>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
-        return ListView(
-          shrinkWrap: true,
-          children: List.generate(
-            _previewRoles.length,
-            (index) => ListTile(
-              title: Text(_previewRoles[index]),
-              trailing: index == _previewIndex ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.pop(context, index),
-            ),
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Role Preview', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.blue[900])),
+              const Divider(),
+              ...List.generate(
+                _previewRoles.length,
+                    (index) => ListTile(
+                  leading: Icon(Icons.person_pin_rounded, color: index == _previewIndex ? Colors.blue : Colors.grey),
+                  title: Text(_previewRoles[index], style: TextStyle(fontWeight: index == _previewIndex ? FontWeight.bold : FontWeight.normal)),
+                  trailing: index == _previewIndex ? const Icon(Icons.check_circle, color: Colors.blue) : null,
+                  onTap: () => Navigator.pop(context, index),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -334,57 +294,55 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
   void _navigateToPreview(BuildContext context, int index) {
     switch (index) {
-      case 1:
-        Navigator.pushNamed(context, Routes.homeStudent);
-        break;
-      case 2:
-        Navigator.pushNamed(context, Routes.homeCr);
-        break;
-      case 3:
-        Navigator.pushNamed(context, Routes.homeFaculty);
-        break;
-      case 4:
-        Navigator.pushNamed(context, Routes.homeStaff);
-        break;
-      default:
-        break;
+      case 1: Navigator.pushNamed(context, Routes.homeStudent); break;
+      case 2: Navigator.pushNamed(context, Routes.homeCr); break;
+      case 3: Navigator.pushNamed(context, Routes.homeFaculty); break;
+      case 4: Navigator.pushNamed(context, Routes.homeStaff); break;
+      default: break;
     }
   }
-
-  // Future<int> getTotalUsers() async {
-  //   final adminService = AdminService();
-  //   final totalUsers = await adminService.getTotalUsers();
-  //   return totalUsers ?? 0;
-  // }
 }
-
-// =======================================================
-// UI COMPONENTS
-// =======================================================
 
 class _MetricCard extends StatelessWidget {
   final String title;
   final String value;
+  final IconData icon;
+  final Color accentColor;
 
-  const _MetricCard({required this.title, required this.value});
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accentColor.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(color: accentColor.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+                Icon(icon, color: accentColor.withOpacity(0.5), size: 18),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
               value,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[900]),
             ),
           ],
         ),
@@ -397,45 +355,45 @@ class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
 
   const _ActionCard({
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 22),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 30,
-                color: Theme.of(context).colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 28, color: color),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.blue[900]),
               ),
             ],
           ),
@@ -456,9 +414,9 @@ class _SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+        Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue[900])),
+        const SizedBox(height: 2),
+        Text(subtitle, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
       ],
     );
   }
@@ -471,19 +429,24 @@ class _AttentionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: UIColors.iceBlue.withOpacity(0.45),
-          borderRadius: BorderRadius.circular(16),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue[900]!, Colors.blue[700]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: const ListTile(
-          title: Text('Pending Complaints'),
-          subtitle: Text('Tap to review and assign'),
-          trailing: Icon(Icons.chevron_right),
-        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        title: const Text('Pending Complaints', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        subtitle: const Text('Review and resolve issues', style: TextStyle(color: Colors.white70)),
+        trailing: const Icon(Icons.chevron_right, color: Colors.white),
       ),
     );
   }
