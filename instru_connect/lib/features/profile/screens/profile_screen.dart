@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
 import '../../../config/theme/ui_colors.dart';
 import '../services/profile_service.dart';
@@ -26,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _saving = false;
 
   late ProfileModel profile;
+  String? _batchName;
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final user = FirebaseAuth.instance.currentUser!;
+
     await _service.createProfileIfNotExists(
       uid: user.uid,
       name: user.displayName ?? '',
@@ -48,6 +51,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _coCurricularController.text = profile.coCurricular ?? '';
     _contactController.text = profile.contactNo ?? '';
     _parentContactController.text = profile.parentContactNo ?? '';
+
+    // ================= FETCH REAL BATCH NAME =================
+    if (profile.batchId != null) {
+      final batchDoc = await FirebaseFirestore.instance
+          .collection('batches')
+          .doc(profile.batchId)
+          .get();
+
+      if (batchDoc.exists) {
+        _batchName = batchDoc.data()?['name'];
+      } else {
+        _batchName = null;
+      }
+    } else {
+      _batchName = null;
+    }
 
     setState(() => _loading = false);
   }
@@ -130,20 +149,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ================= PROFILE HEADER CARD =================
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: UIColors.primary.withOpacity(0.12),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
+                    // ================= PROFILE HEADER =================
+                    _WhiteCard(
                       child: _ProfileHeader(
                         name: profile.name,
                         email: profile.email,
@@ -161,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           _readOnlyField('Name', profile.name),
                           _readOnlyField('Email', profile.email),
-                          _readOnlyField('Batch', profile.batchId ?? '-'),
+                          _readOnlyField('Batch', _batchName ?? '-'),
                         ],
                       ),
                     ),
@@ -212,7 +219,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         title: const Text('Certifications'),
                         subtitle: const Text(
-                            'Upload and manage your certificates'),
+                          'Upload and manage your certificates',
+                        ),
                         trailing:
                             const Icon(Icons.chevron_right_rounded),
                         onTap: () {
@@ -239,7 +247,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2),
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Save Changes'),
                       ),
@@ -318,15 +327,17 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium),
+              Text(
+                name,
+                style:
+                    Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
-              Text(email,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium),
+              Text(
+                email,
+                style:
+                    Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
           ),
         ),

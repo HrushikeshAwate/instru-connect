@@ -43,10 +43,7 @@ class HomeStaff extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (Navigator.canPop(context))
+                      if (Navigator.canPop(context))
                         IconButton(
                           icon: const Icon(
                             Icons.arrow_back_ios_new_rounded,
@@ -54,6 +51,9 @@ class HomeStaff extends StatelessWidget {
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           const Text(
                             'Staff Dashboard',
                             style: TextStyle(

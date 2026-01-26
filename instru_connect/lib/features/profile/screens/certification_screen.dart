@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:instru_connect/features/profile/services/certification_service.dart';
+import '../../../config/theme/ui_colors.dart';
 
 class CertificationsScreen extends StatelessWidget {
   const CertificationsScreen({super.key});
@@ -12,96 +13,112 @@ class CertificationsScreen extends StatelessWidget {
     final service = CertificationService();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Certifications'),
-      ),
+      backgroundColor: UIColors.background,
+
       floatingActionButton: FloatingActionButton(
+        backgroundColor: UIColors.primary,
         onPressed: () => _showAddDialog(context, service, uid),
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: service.fetchCertificates(uid),
-        builder: (context, snapshot) {
-          // ================= LOADING =================
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
 
-          // ================= ERROR =================
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('Failed to load certifications'),
-            );
-          }
-
-          final certs = snapshot.data ?? [];
-
-          // ================= EMPTY STATE =================
-          if (certs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(
-                    Icons.workspace_premium_outlined,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'No certificates yet',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Tap + to add your first certificate',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
+      body: Stack(
+        children: [
+          // ================= HEADER =================
+          Container(
+            height: 180,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
               ),
-            );
-          }
+            ),
+          ),
 
-          // ================= LIST =================
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            itemCount: certs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (_, i) {
-              final c = certs[i];
-              final fileType = c['fileType'];
-
-              return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ListTile(
-                  leading: Icon(
-                    fileType == 'pdf'
-                        ? Icons.picture_as_pdf
-                        : Icons.image,
+          SafeArea(
+            child: Column(
+              children: [
+                // ================= APP BAR =================
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Text(
+                        'Certifications',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  title: Text(c['title'] ?? 'Untitled'),
-                  subtitle: Text(c['issuer'] ?? ''),
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () {
-                    // Optional: open file using url_launcher
-                  },
                 ),
-              );
-            },
-          );
-        },
+
+                // ================= BODY =================
+                Expanded(
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: service.fetchCertificates(uid),
+                    builder: (context, snapshot) {
+                      // ---------- LOADING ----------
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      }
+
+                      // ---------- ERROR ----------
+                      if (snapshot.hasError) {
+                        return const Center(
+                          child: Text('Failed to load certifications'),
+                        );
+                      }
+
+                      final certs = snapshot.data ?? [];
+
+                      // ---------- EMPTY ----------
+                      if (certs.isEmpty) {
+                        return const _EmptyState();
+                      }
+
+                      // ---------- LIST ----------
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(
+                            16, 16, 16, 32),
+                        itemCount: certs.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 14),
+                        itemBuilder: (_, i) {
+                          final c = certs[i];
+                          final fileType = c['fileType'];
+
+                          return _CertificateCard(
+                            title: c['title'] ?? 'Untitled',
+                            issuer: c['issuer'] ?? '',
+                            fileType: fileType,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // =====================================================
-  // ADD CERTIFICATE DIALOG (NO VALIDATION)
+  // ADD CERTIFICATE DIALOG (UI POLISHED, LOGIC SAME)
   // =====================================================
 
   void _showAddDialog(
@@ -141,13 +158,13 @@ class CertificationsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // PICK FILE BUTTON
                   OutlinedButton.icon(
                     icon: const Icon(Icons.attach_file),
                     label: Text(
                       selectedFile == null
                           ? 'Pick PDF or Image'
                           : selectedFile!.name,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     onPressed: uploading
                         ? null
@@ -212,6 +229,140 @@ class CertificationsScreen extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+// =======================================================
+// CERTIFICATE CARD (MATCHES NOTICE / RESOURCE)
+// =======================================================
+
+class _CertificateCard extends StatelessWidget {
+  final String title;
+  final String issuer;
+  final String fileType;
+
+  const _CertificateCard({
+    required this.title,
+    required this.issuer,
+    required this.fileType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: UIColors.primary.withOpacity(0.10),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            // LEFT STRIP
+            Container(
+              width: 6,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: UIColors.primaryGradient,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            Icon(
+              fileType == 'pdf'
+                  ? Icons.picture_as_pdf_outlined
+                  : Icons.image_outlined,
+              color: UIColors.primary,
+            ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    issuer,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(
+                          color: UIColors.textSecondary,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(
+              Icons.open_in_new,
+              size: 16,
+              color: UIColors.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =======================================================
+// EMPTY STATE
+// =======================================================
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: UIColors.secondaryGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.workspace_premium_outlined,
+              size: 40,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No certificates yet',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap + to add your first certificate',
+            style: TextStyle(color: UIColors.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 }
