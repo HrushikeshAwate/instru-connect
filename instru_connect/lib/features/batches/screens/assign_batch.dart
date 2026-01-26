@@ -118,7 +118,7 @@ class _AssignBatchToStudentsScreenState
                                 snapshot.data!.docs;
 
                             return DropdownButtonFormField<String>(
-                              value: selectedBatchId,
+                              initialValue: selectedBatchId,
                               hint:
                                   const Text('Select Batch'),
                               isExpanded: true,

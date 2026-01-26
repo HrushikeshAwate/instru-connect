@@ -18,14 +18,10 @@ final ColorScheme academicColorScheme = const ColorScheme(
   error: Color(0xFFEF4444),             // Soft Red
   onError: Colors.white,
 
-  // ===== SURFACES =====
-  background: Color(0xFFF8FAFC),        // Soft neutral (lets colors pop)
-  onBackground: Color(0xFF0F172A),
-
   surface: Colors.white,
   onSurface: Color(0xFF0F172A),
 
-  surfaceVariant: Color(0xFFF1F5F9),
+  surfaceContainerHighest: Color(0xFFF1F5F9),
   onSurfaceVariant: Color(0xFF475569),
 
   // ===== OUTLINES & UTILITY =====

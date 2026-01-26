@@ -43,10 +43,18 @@ class HomeStaff extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          if (Navigator.canPop(context))
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                          const Text(
                             'Staff Dashboard',
                             style: TextStyle(
                               color: Colors.white,
@@ -54,7 +62,7 @@ class HomeStaff extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
+                          const Text(
                             'Departmental Support',
                             style: TextStyle(
                               color: Colors.white70,

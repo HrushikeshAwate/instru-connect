@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
 import 'package:instru_connect/features/resources/services/resource_service.dart';
-import 'package:instru_connect/features/resources/widgets/resource_tile.dart';
 import 'package:instru_connect/features/resources/widgets/empty_resource_view.dart';
 import '../../../config/theme/ui_colors.dart';
 

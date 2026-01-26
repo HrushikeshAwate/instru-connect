@@ -1,10 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:csv/csv.dart';
 import 'package:instru_connect/features/attendance/screens/attendance_history_screen.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../config/theme/ui_colors.dart';
 import '../../attendance/screens/mark_attendance_screen.dart';
 
