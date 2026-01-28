@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:instru_connect/features/profile/services/certification_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../config/theme/ui_colors.dart';
 
 class CertificationsScreen extends StatelessWidget {
   const CertificationsScreen({super.key});
+
+  Future<void> _openInBrowser(String url) async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +109,8 @@ class CertificationsScreen extends StatelessWidget {
                             title: c['title'] ?? 'Untitled',
                             issuer: c['issuer'] ?? '',
                             fileType: fileType,
+                            onTap: () =>
+                                _openInBrowser(c['fileUrl'] ?? ''),
                           );
                         },
                       );
@@ -241,82 +249,87 @@ class _CertificateCard extends StatelessWidget {
   final String title;
   final String issuer;
   final String fileType;
+  final VoidCallback? onTap;
 
   const _CertificateCard({
     required this.title,
     required this.issuer,
     required this.fileType,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: UIColors.primary.withOpacity(0.10),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            // LEFT STRIP
-            Container(
-              width: 6,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: UIColors.primaryGradient,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            Icon(
-              fileType == 'pdf'
-                  ? Icons.picture_as_pdf_outlined
-                  : Icons.image_outlined,
-              color: UIColors.primary,
-            ),
-
-            const SizedBox(width: 12),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    issuer,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                          color: UIColors.textSecondary,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Icon(
-              Icons.open_in_new,
-              size: 16,
-              color: UIColors.textMuted,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: UIColors.primary.withOpacity(0.10),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              // LEFT STRIP
+              Container(
+                width: 6,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: UIColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              Icon(
+                fileType == 'pdf'
+                    ? Icons.picture_as_pdf_outlined
+                    : Icons.image_outlined,
+                color: UIColors.primary,
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      issuer,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                            color: UIColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Icon(
+                Icons.open_in_new,
+                size: 16,
+                color: UIColors.textMuted,
+              ),
+            ],
+          ),
         ),
       ),
     );

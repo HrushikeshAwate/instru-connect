@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -40,59 +39,59 @@ class AuthService {
   // =====================================================
   // GOOGLE SIGN-IN (ADMIN ONLY)
   // =====================================================
-  Future<void> signInWithGoogleAdminOnly() async {
-  final GoogleSignIn googleSignIn = GoogleSignIn(
-    scopes: ['email'],
-  );
+//   Future<void> signInWithGoogleAdminOnly() async {
+//   final GoogleSignIn googleSignIn = GoogleSignIn(
+//     scopes: ['email'],
+//   );
 
-  // 1️⃣ Trigger Google account picker
-  final GoogleSignInAccount? googleUser =
-      await googleSignIn.signIn();
+//   // 1️⃣ Trigger Google account picker
+//   final GoogleSignInAccount? googleUser =
+//       await googleSignIn.signIn();
 
-  if (googleUser == null) {
-    throw Exception('Google sign-in cancelled');
-  }
+//   if (googleUser == null) {
+//     throw Exception('Google sign-in cancelled');
+//   }
 
-  // 2️⃣ Get auth details
-  final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
+//   // 2️⃣ Get auth details
+//   final GoogleSignInAuthentication googleAuth =
+//       await googleUser.authentication;
 
-  final credential = GoogleAuthProvider.credential(
-    accessToken: googleAuth.accessToken,
-    idToken: googleAuth.idToken,
-  );
+//   final credential = GoogleAuthProvider.credential(
+//     accessToken: googleAuth.accessToken,
+//     idToken: googleAuth.idToken,
+//   );
 
-  // 3️⃣ Firebase Auth
-  final userCredential =
-      await _auth.signInWithCredential(credential);
+//   // 3️⃣ Firebase Auth
+//   final userCredential =
+//       await _auth.signInWithCredential(credential);
 
-  final user = userCredential.user!;
-  final email = user.email!.toLowerCase();
+//   final user = userCredential.user!;
+//   final email = user.email!.toLowerCase();
 
-  // 4️⃣ Enforce admin-only Gmail
-  if (email != allowedAdminGmail.toLowerCase()) {
-    await _auth.signOut();
-    throw Exception('Access denied: Admin only');
-  }
+//   // 4️⃣ Enforce admin-only Gmail
+//   if (email != allowedAdminGmail.toLowerCase()) {
+//     await _auth.signOut();
+//     throw Exception('Access denied: Admin only');
+//   }
 
-  // 5️⃣ Firestore role bootstrap
-  final userRef = _db.collection('users').doc(user.uid);
-  final doc = await userRef.get();
+//   // 5️⃣ Firestore role bootstrap
+//   final userRef = _db.collection('users').doc(user.uid);
+//   final doc = await userRef.get();
 
-  if (!doc.exists) {
-    await userRef.set({
-      'email': email,
-      'role': 'admin',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    return;
-  }
+//   if (!doc.exists) {
+//     await userRef.set({
+//       'email': email,
+//       'role': 'admin',
+//       'createdAt': FieldValue.serverTimestamp(),
+//     });
+//     return;
+//   }
 
-  if (doc.data()?['role'] != 'admin') {
-    await _auth.signOut();
-    throw Exception('Access denied: Admin only');
-  }
-}
+//   if (doc.data()?['role'] != 'admin') {
+//     await _auth.signOut();
+//     throw Exception('Access denied: Admin only');
+//   }
+// }
 
   // =====================================================
   // SIGN OUT

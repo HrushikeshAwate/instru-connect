@@ -17,7 +17,7 @@ void main() async {
     persistenceEnabled: true,
     cacheSizeBytes: 15728640, // 15MB in bytes (15 * 1024 * 1024)
   );
-  // ----------------------------------------------
+  // ----------------------------------------------₹
 
   runApp(const App());
 }

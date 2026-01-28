@@ -30,14 +30,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _googleDummyAction() async {
     setState(() => _loading = true);
-  try {
-    await _authService.signInWithGoogleAdminOnly();
-  } catch (e) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(e.toString())));
-  } finally {
-    if (mounted) setState(() => _loading = false);
-  }
+    // try {
+    //   await _authService.signInWithGoogleAdminOnly();
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context)
+    //       .showSnackBar(SnackBar(content: Text(e.toString())));
+    // } finally {
+    //   if (mounted) setState(() => _loading = false);
+    // }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Sign in with Google option coming soon(only for admins)',
+        ),
+      ),
+    );
   }
 
   @override
