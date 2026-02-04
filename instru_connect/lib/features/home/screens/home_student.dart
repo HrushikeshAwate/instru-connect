@@ -8,7 +8,10 @@ import 'package:instru_connect/config/theme/ui_colors.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
+import 'package:instru_connect/features/notices/models/notice_model.dart';
+import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
+import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 
@@ -17,8 +20,7 @@ class HomeStudent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String currentUserId =
-        FirebaseAuth.instance.currentUser?.uid ?? '';
+    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
       backgroundColor: UIColors.background,
@@ -79,14 +81,18 @@ class HomeStudent extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.person_outline,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                        ),
                         onPressed: () =>
                             Navigator.pushNamed(context, Routes.profile),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.logout_rounded,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.logout_rounded,
+                          color: Colors.white,
+                        ),
                         onPressed: () => showLogoutDialog(context),
                       ),
                     ],
@@ -106,16 +112,13 @@ class HomeStudent extends StatelessWidget {
                       .doc(currentUserId)
                       .snapshots(),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData ||
-                        !snapshot.data!.exists) {
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
                       return const SizedBox.shrink();
                     }
 
-                    final data =
-                    snapshot.data!.data() as Map<String, dynamic>;
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
                     final int total = data['totalClasses'] ?? 0;
-                    final int attended =
-                        data['attendedClasses'] ?? 0;
+                    final int attended = data['attendedClasses'] ?? 0;
                     final double percentage = total == 0
                         ? 0
                         : (attended / total) * 100;
@@ -130,8 +133,7 @@ class HomeStudent extends StatelessWidget {
                         borderRadius: BorderRadius.circular(26),
                         boxShadow: [
                           BoxShadow(
-                            color:
-                            Colors.black.withOpacity(0.22),
+                            color: Colors.black.withOpacity(0.22),
                             blurRadius: 18,
                             offset: const Offset(0, 10),
                           ),
@@ -147,22 +149,19 @@ class HomeStudent extends StatelessWidget {
                                 child: CircularProgressIndicator(
                                   value: percentage / 100,
                                   strokeWidth: 6,
-                                  backgroundColor:
-                                  Colors.white24,
+                                  backgroundColor: Colors.white24,
                                   color: Colors.white,
                                 ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'My Attendance',
                                       style: TextStyle(
-                                        fontWeight:
-                                        FontWeight.bold,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                         color: Colors.white,
                                       ),
@@ -190,19 +189,15 @@ class HomeStudent extends StatelessWidget {
                           if (isLow) ...[
                             const SizedBox(height: 16),
                             Container(
-                              padding:
-                              const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white
-                                    .withOpacity(0.18),
-                                borderRadius:
-                                BorderRadius.circular(12),
+                                color: Colors.white.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Row(
                                 children: [
                                   Icon(
-                                    Icons
-                                        .warning_amber_rounded,
+                                    Icons.warning_amber_rounded,
                                     color: Colors.white,
                                     size: 20,
                                   ),
@@ -213,8 +208,7 @@ class HomeStudent extends StatelessWidget {
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,
-                                        fontWeight:
-                                        FontWeight.bold,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
@@ -244,8 +238,7 @@ class HomeStudent extends StatelessWidget {
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                   shrinkWrap: true,
-                  physics:
-                  const NeverScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   childAspectRatio: 1.3,
                   children: [
                     _ActionCard(
@@ -255,8 +248,7 @@ class HomeStudent extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                          const NoticeListScreen(),
+                          builder: (_) => const NoticeListScreen(),
                         ),
                       ),
                     ),
@@ -265,8 +257,7 @@ class HomeStudent extends StatelessWidget {
                       label: 'Resources',
                       gradient: UIColors.secondaryGradient,
                       onTap: () =>
-                          Navigator.pushNamed(
-                              context, Routes.resources),
+                          Navigator.pushNamed(context, Routes.resources),
                     ),
                     _ActionCard(
                       icon: Icons.schedule_outlined,
@@ -289,8 +280,7 @@ class HomeStudent extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                          const CreateComplaintScreen(),
+                          builder: (_) => const CreateComplaintScreen(),
                         ),
                       ),
                     ),
@@ -298,60 +288,98 @@ class HomeStudent extends StatelessWidget {
                       icon: Icons.calendar_month,
                       label: 'Event Calendar',
                       gradient: UIColors.primaryGradient,
-                      onTap: () => Navigator.pushNamed(
-                          context, Routes.eventCalendar),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 36),
 
-                const _SectionHeader(
-                  title: "Today's Schedule",
-                  subtitle: 'Instrumentation Dept.',
+                // =========================
+                // RECENT NOTICES
+                // =========================
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _SectionHeader(
+                      title: 'Recent Notices',
+                      subtitle: 'Latest announcements',
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NoticeListScreen(),
+                        ),
+                      ),
+                      child: const Text('View All'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // =========================
-                // TIMETABLE PREVIEW
-                // =========================
                 Container(
                   decoration: BoxDecoration(
                     color: UIColors.surface,
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                        Colors.black.withOpacity(0.06),
+                        color: Colors.black.withOpacity(0.06),
                         blurRadius: 18,
                         offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: const Column(
-                    children: [
-                      _TimetableTile(
-                        time: '10:00 AM',
-                        subject: 'Control Systems',
-                        room: 'Lab 101',
-                      ),
-                      Divider(height: 1),
-                      _TimetableTile(
-                        time: '11:15 AM',
-                        subject: 'Microprocessors',
-                        room: 'Class 204',
-                      ),
-                      Divider(height: 1),
-                      _TimetableTile(
-                        time: '02:00 PM',
-                        subject: 'Industrial Automation',
-                        room: 'Lab 103',
-                      ),
-                    ],
+                  child: FutureBuilder<List<Notice>>(
+                    future: NoticeService().fetchRecentNotices(limit: 3),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('No notices found'),
+                        );
+                      }
+
+                      return Column(
+                        children: snapshot.data!
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                          final isLast =
+                              entry.key == snapshot.data!.length - 1;
+                          return Column(
+                            children: [
+                              _NoticeTile(
+                                notice: entry.value,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => NoticeDetailScreen(
+                                      notice: entry.value,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (!isLast)
+                                const Divider(height: 1),
+                            ],
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
                 ),
-
-                const SizedBox(height: 48),
               ],
             ),
           ),
@@ -368,8 +396,7 @@ class HomeStudent extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _SectionHeader(
-      {required this.title, required this.subtitle});
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -387,10 +414,7 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(
-            fontSize: 13,
-            color: UIColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 13, color: UIColors.textSecondary),
         ),
       ],
     );
@@ -438,11 +462,7 @@ class _ActionCard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.25),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                child: Icon(icon, color: Colors.white, size: 28),
               ),
               const SizedBox(height: 12),
               Text(
@@ -466,19 +486,18 @@ class _TimetableTile extends StatelessWidget {
   final String time;
   final String subject;
   final String room;
-  const _TimetableTile(
-      {required this.time,
-        required this.subject,
-        required this.room});
+  const _TimetableTile({
+    required this.time,
+    required this.subject,
+    required this.room,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       leading: Container(
-        padding:
-        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: UIColors.primary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
@@ -494,18 +513,44 @@ class _TimetableTile extends StatelessWidget {
       ),
       title: Text(
         subject,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       ),
       subtitle: Text(
         room,
-        style: const TextStyle(
-          fontSize: 12,
-          color: UIColors.textSecondary,
-        ),
+        style: const TextStyle(fontSize: 12, color: UIColors.textSecondary),
       ),
+    );
+  }
+}
+
+
+class _NoticeTile extends StatelessWidget {
+  final Notice notice;
+  final VoidCallback onTap;
+
+  const _NoticeTile({
+    required this.notice,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding:
+      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      title: Text(
+        notice.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: const Text(
+        'Tap to view details',
+        style: TextStyle(fontSize: 12),
+      ),
+      trailing:
+      const Icon(Icons.arrow_forward_ios, size: 14),
+      onTap: onTap,
     );
   }
 }
