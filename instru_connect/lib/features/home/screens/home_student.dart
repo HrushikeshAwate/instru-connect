@@ -294,6 +294,13 @@ class HomeStudent extends StatelessWidget {
                         ),
                       ),
                     ),
+                    _ActionCard(
+                      icon: Icons.calendar_month,
+                      label: 'Event Calendar',
+                      gradient: UIColors.primaryGradient,
+                      onTap: () => Navigator.pushNamed(
+                          context, Routes.eventCalendar),
+                    ),
                   ],
                 ),
 

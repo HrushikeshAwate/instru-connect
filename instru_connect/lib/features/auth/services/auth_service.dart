@@ -12,15 +12,10 @@ class AuthService {
     final provider = OAuthProvider('microsoft.com');
 
     provider.setCustomParameters({
-    'tenant': 'b4c6b754-54e3-41e4-a8da-304355c62816', // 👈 IMPORTANT
-  });
+      'tenant': 'b4c6b754-54e3-41e4-a8da-304355c62816',
+    });
 
-    provider.setScopes([
-      'openid',
-      'profile',
-      'email',
-      'offline_access',
-    ]);
+    provider.setScopes(['openid', 'profile', 'email', 'offline_access']);
 
     return await _auth.signInWithProvider(provider);
   }

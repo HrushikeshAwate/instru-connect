@@ -23,4 +23,7 @@ class Routes {
 
   // Batches
   static const manageBatches = '/batches/manage';
+
+  // Events
+  static const eventCalendar = '/events/events_calendar';
 }

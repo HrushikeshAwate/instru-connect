@@ -178,6 +178,13 @@ class HomeFaculty extends StatelessWidget {
                       ),
                     ),
                     _ActionCard(
+                      icon: Icons.calendar_today_outlined,
+                      title: 'Event Calendar',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.eventCalendar),
+                    ),
+                    _ActionCard(
                       icon: Icons.library_books_outlined,
                       title: 'Resources',
                       gradient: UIColors.secondaryGradient,
