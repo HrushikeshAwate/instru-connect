@@ -1311,6 +1311,8 @@ PODS:
   - flutter_appauth (0.0.1):
     - AppAuth (= 2.0.0)
     - Flutter
+  - flutter_pdfview (1.0.2):
+    - Flutter
   - GoogleUtilities/AppDelegateSwizzler (8.1.0):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -1454,6 +1456,7 @@ DEPENDENCIES:
   - firebase_storage (from `.symlinks/plugins/firebase_storage/ios`)
   - Flutter (from `Flutter`)
   - flutter_appauth (from `.symlinks/plugins/flutter_appauth/ios`)
+  - flutter_pdfview (from `.symlinks/plugins/flutter_pdfview/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
@@ -1502,6 +1505,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_appauth:
     :path: ".symlinks/plugins/flutter_appauth/ios"
+  flutter_pdfview:
+    :path: ".symlinks/plugins/flutter_pdfview/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   path_provider_foundation:
@@ -1535,6 +1540,7 @@ SPEC CHECKSUMS:
   FirebaseStorage: 550349b1e8f7315834ea08308696e9469d77135d
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_appauth: d4abcf54856e5d8ba82ed7646ffc83245d4aa448
+  flutter_pdfview: 32bf27bda6fd85b9dd2c09628a824df5081246cf
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   "gRPC-C++": cc207623316fb041a7a3e774c252cf68a058b9e8
   gRPC-Core: 860978b7db482de8b4f5e10677216309b5ff6330
