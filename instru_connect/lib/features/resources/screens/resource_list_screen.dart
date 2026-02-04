@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
 import 'package:instru_connect/features/resources/services/resource_service.dart';
 import 'package:instru_connect/features/resources/widgets/empty_resource_view.dart';
@@ -59,11 +60,8 @@ class ResourceListScreen extends StatelessWidget {
                   child: FutureBuilder<List<ResourceModel>>(
                     future: resourceService.fetchResources(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
@@ -78,15 +76,11 @@ class ResourceListScreen extends StatelessWidget {
                       }
 
                       return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                            16, 16, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                         itemCount: resources.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
-                          return ResourceTile(
-                            resource: resources[index],
-                          );
+                          return ResourceTile(resource: resources[index]);
                         },
                       );
                     },
@@ -101,14 +95,10 @@ class ResourceListScreen extends StatelessWidget {
   }
 }
 
-
 class ResourceTile extends StatelessWidget {
   final ResourceModel resource;
 
-  const ResourceTile({
-    super.key,
-    required this.resource,
-  });
+  const ResourceTile({super.key, required this.resource});
 
   @override
   Widget build(BuildContext context) {
@@ -131,10 +121,11 @@ class ResourceTile extends StatelessWidget {
           onTap: () {
             Navigator.pushNamed(
               context,
-              '/resource-detail',
+              Routes.resourceDetail,
               arguments: resource,
             );
           },
+
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Row(
@@ -161,20 +152,16 @@ class ResourceTile extends StatelessWidget {
                         resource.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(height: 1.3),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(height: 1.3),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         resource.subject,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                              color: UIColors.textSecondary,
-                            ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: UIColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),

@@ -12,9 +12,7 @@ Future<void> showLogoutDialog(BuildContext context) async {
     barrierDismissible: false,
     builder: (dialogContext) {
       return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
         contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
         actionsPadding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -25,8 +23,9 @@ Future<void> showLogoutDialog(BuildContext context) async {
             const SizedBox(width: 8),
             Text(
               'Logout',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -68,23 +67,17 @@ Future<void> showLogoutDialog(BuildContext context) async {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) =>
-          const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      // Clear Firestore cache
-      await FirebaseFirestore.instance.terminate();
-      await FirebaseFirestore.instance.clearPersistence();
-
-      // Sign out
       await AuthService().signOut();
 
       if (context.mounted) {
         Navigator.pop(context); // remove loader
         Navigator.pushNamedAndRemoveUntil(
           context,
-          Routes.login,
+          Routes.splash, // 🔑 ALWAYS splash
           (_) => false,
         );
       }

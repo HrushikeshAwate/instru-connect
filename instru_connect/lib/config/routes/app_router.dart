@@ -52,7 +52,9 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => ProfileScreen());
 
       case Routes.createNotice:
-        return MaterialPageRoute(builder: (_) => CreateNoticeScreen(showBatchSelector: true,));
+        return MaterialPageRoute(
+          builder: (_) => CreateNoticeScreen(showBatchSelector: true),
+        );
 
       case Routes.eventCalendar:
         return MaterialPageRoute(builder: (_) => const EventCalendarScreen());
@@ -70,8 +72,8 @@ class AppRouter {
 
       case Routes.resourceDetail:
         return MaterialPageRoute(
-          builder: (_) => ResourceDetailScreen(),
-          settings: settings,
+          builder: (_) => const ResourceDetailScreen(),
+          settings: settings, // 🔥 REQUIRED (keeps arguments)
         );
 
       case Routes.addResource:
@@ -79,9 +81,7 @@ class AppRouter {
 
       // ─── BATCHES ─────────────────────────────
       case Routes.manageBatches:
-        return MaterialPageRoute(
-          builder: (_) => ManageBatchesScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => ManageBatchesScreen());
 
       // ─── FALLBACK ────────────────────────────
       default:

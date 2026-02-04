@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:http/http.dart' as http;
 import 'package:instru_connect/features/resources/models/resource_model.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ResourceDetailScreen extends StatelessWidget {
@@ -9,7 +14,7 @@ class ResourceDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments;
 
-    // 🛑 SAFETY CHECK (UNCHANGED)
+    // ================= SAFETY CHECK =================
     if (args == null || args is! ResourceModel) {
       return Scaffold(
         appBar: AppBar(title: const Text('Resource')),
@@ -78,7 +83,7 @@ class ResourceDetailScreen extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: SizedBox(
-                      width: double.infinity, // 🔥 KEY FIX
+                      width: double.infinity,
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -137,13 +142,58 @@ class ResourceDetailScreen extends StatelessWidget {
                                 icon: const Icon(Icons.open_in_new),
                                 label: const Text('Open / Download'),
                                 onPressed: () async {
-                                  final uri =
-                                      Uri.parse(resource.fileUrl);
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(
-                                      uri,
-                                      mode: LaunchMode.externalApplication,
-                                    );
+                                  // ---------- PDF ----------
+                                  if (resource.fileType
+                                      .toLowerCase()
+                                      .contains('pdf')) {
+                                    try {
+                                      final dir =
+                                          await getTemporaryDirectory();
+                                      final filePath =
+                                          '${dir.path}/${resource.fileName}';
+
+                                      final file = File(filePath);
+
+                                      if (!await file.exists()) {
+                                        final response = await http.get(
+                                          Uri.parse(resource.fileUrl),
+                                        );
+                                        await file.writeAsBytes(
+                                            response.bodyBytes);
+                                      }
+
+                                      if (context.mounted) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => _PdfViewerScreen(
+                                              filePath: filePath,
+                                              title: resource.title,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Failed to open PDF: $e'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  // ---------- NON-PDF ----------
+                                  else {
+                                    final uri =
+                                        Uri.parse(resource.fileUrl);
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(
+                                        uri,
+                                        mode: LaunchMode
+                                            .externalApplication,
+                                      );
+                                    }
                                   }
                                 },
                               ),
@@ -179,6 +229,39 @@ class _SectionTitle extends StatelessWidget {
           .textTheme
           .titleMedium
           ?.copyWith(fontWeight: FontWeight.bold),
+    );
+  }
+}
+
+// =======================================================
+// PDF VIEWER SCREEN (IN-APP)
+// =======================================================
+
+class _PdfViewerScreen extends StatelessWidget {
+  final String filePath;
+  final String title;
+
+  const _PdfViewerScreen({
+    required this.filePath,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: PDFView(
+        filePath: filePath,
+        enableSwipe: true,
+        swipeHorizontal: false,
+        autoSpacing: true,
+        pageFling: true,
+        onError: (error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('PDF error: $error')),
+          );
+        },
+      ),
     );
   }
 }

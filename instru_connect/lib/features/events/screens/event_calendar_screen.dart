@@ -40,21 +40,18 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Add Event",
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text("Add Event", style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               Text(
                 "Date: ${_selectedDay.day}-${_selectedDay.month}-${_selectedDay.year}",
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: UIColors.textSecondary),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: UIColors.textSecondary),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: controller,
-                decoration:
-                    const InputDecoration(labelText: "Event title"),
+                decoration: const InputDecoration(labelText: "Event title"),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -91,12 +88,17 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
         return Scaffold(
           backgroundColor: UIColors.background,
           appBar: AppBar(
-            title: const Text("Academic Calendar"),
+            title: const Text(
+              "Academic Calendar",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             centerTitle: true,
             flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: UIColors.heroGradient,
-              ),
+              decoration: const BoxDecoration(gradient: UIColors.heroGradient),
             ),
           ),
           floatingActionButton: FloatingActionButton(
@@ -117,8 +119,7 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2035, 12, 31),
                   focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) =>
-                      isSameDay(_selectedDay, day),
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                   eventLoader: _getEvents,
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
@@ -133,20 +134,15 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                     ? const Center(
                         child: Text(
                           "No events for this date",
-                          style:
-                              TextStyle(color: UIColors.textMuted),
+                          style: TextStyle(color: UIColors.textMuted),
                         ),
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount:
-                            _getEvents(_selectedDay).length,
+                        itemCount: _getEvents(_selectedDay).length,
                         itemBuilder: (_, index) {
-                          final event =
-                              _getEvents(_selectedDay)[index];
-                          return ListTile(
-                            title: Text(event.title),
-                          );
+                          final event = _getEvents(_selectedDay)[index];
+                          return ListTile(title: Text(event.title));
                         },
                       ),
               ),

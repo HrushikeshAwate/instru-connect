@@ -223,11 +223,7 @@ class HomeCr extends StatelessWidget {
                       label: 'Resources',
                       gradient: UIColors.primaryGradient,
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                            Text('Resources coming soon'),
-                          ),
+                        Navigator.pushNamed(context, Routes.resources 
                         );
                       },
                     ),

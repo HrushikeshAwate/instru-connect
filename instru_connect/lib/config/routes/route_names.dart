@@ -18,8 +18,8 @@ class Routes {
 
   // Resources
   static const resources = '/resources';
-  static const resourceDetail = '/resources/detail';
-  static const addResource = '/resources/add';
+  static const resourceDetail = '/resources-detail';
+  static const addResource = '/add-resource';
 
   // Batches
   static const manageBatches = '/batches/manage';
