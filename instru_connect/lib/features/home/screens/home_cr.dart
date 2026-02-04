@@ -11,6 +11,8 @@ import 'package:instru_connect/features/complaints/services/complaint_service.da
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
+// ADDED THIS IMPORT
+import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 
 class HomeCr extends StatelessWidget {
   const HomeCr({super.key});
@@ -159,7 +161,7 @@ class HomeCr extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => CreateNoticeScreen(
                             fixedBatchIds:
-                                batchId != null ? [batchId] : null,
+                            batchId != null ? [batchId] : null,
                             showBatchSelector: false,
                           ),
                         ),
@@ -198,19 +200,20 @@ class HomeCr extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              const CreateComplaintScreen(),
+                          const CreateComplaintScreen(),
                         ),
                       ),
                     ),
+                    // FIXED: UPDATED TIMETABLE ACTION
                     _ActionCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Timetable',
                       gradient: UIColors.secondaryGradient,
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Timetable coming soon'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TimetableScreen(),
                           ),
                         );
                       },
@@ -223,7 +226,7 @@ class HomeCr extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content:
-                                Text('Resources coming soon'),
+                            Text('Resources coming soon'),
                           ),
                         );
                       },

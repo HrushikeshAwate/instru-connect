@@ -11,6 +11,8 @@ import 'package:instru_connect/features/notices/screens/create_notice_screen.dar
 import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
 import 'package:instru_connect/features/notices/services/notice_service.dart';
+// ADDED THIS IMPORT
+import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 
 class HomeFaculty extends StatelessWidget {
   const HomeFaculty({super.key});
@@ -54,10 +56,10 @@ class HomeFaculty extends StatelessWidget {
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Faculty Portal',
                             style: TextStyle(
                               color: Colors.white,
@@ -65,7 +67,7 @@ class HomeFaculty extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Academic Session 2025–26',
                             style: TextStyle(
                               color: Colors.white70,
@@ -105,18 +107,18 @@ class HomeFaculty extends StatelessWidget {
                     final pending = !snapshot.hasData
                         ? '—'
                         : snapshot.data!.docs
-                            .where((d) =>
-                                (d.data() as Map)['status'] != 'resolved')
-                            .length
-                            .toString();
+                        .where((d) =>
+                    (d.data() as Map)['status'] != 'resolved')
+                        .length
+                        .toString();
 
                     final resolved = !snapshot.hasData
                         ? '—'
                         : snapshot.data!.docs
-                            .where((d) =>
-                                (d.data() as Map)['status'] == 'resolved')
-                            .length
-                            .toString();
+                        .where((d) =>
+                    (d.data() as Map)['status'] == 'resolved')
+                        .length
+                        .toString();
 
                     return Row(
                       children: [
@@ -182,12 +184,19 @@ class HomeFaculty extends StatelessWidget {
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
+                    // ADDED TIMETABLE CARD
                     _ActionCard(
-                      icon: Icons.upload_file_rounded,
-                      title: 'Add Resource',
-                      gradient: UIColors.primaryGradient,
-                      onTap: () =>
-                          Navigator.pushNamed(context, Routes.addResource),
+                      icon: Icons.calendar_month_outlined,
+                      title: 'Timetable',
+                      gradient: UIColors.warningGradient,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TimetableScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _ActionCard(
                       icon: Icons.group_work_outlined,
@@ -297,7 +306,7 @@ class HomeFaculty extends StatelessWidget {
 }
 
 // ===================================================================
-// UI COMPONENTS
+// UI COMPONENTS (No changes below this line)
 // ===================================================================
 
 class _SectionHeader extends StatelessWidget {
@@ -463,7 +472,7 @@ class _NoticeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       title: Text(
         notice.title,
         maxLines: 1,
@@ -475,7 +484,7 @@ class _NoticeTile extends StatelessWidget {
         style: TextStyle(fontSize: 12),
       ),
       trailing:
-          const Icon(Icons.arrow_forward_ios, size: 14),
+      const Icon(Icons.arrow_forward_ios, size: 14),
       onTap: onTap,
     );
   }

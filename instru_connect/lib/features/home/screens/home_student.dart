@@ -9,6 +9,8 @@ import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
+// ADDED THIS IMPORT
+import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 
 class HomeStudent extends StatelessWidget {
   const HomeStudent({super.key});
@@ -110,7 +112,7 @@ class HomeStudent extends StatelessWidget {
                     }
 
                     final data =
-                        snapshot.data!.data() as Map<String, dynamic>;
+                    snapshot.data!.data() as Map<String, dynamic>;
                     final int total = data['totalClasses'] ?? 0;
                     final int attended =
                         data['attendedClasses'] ?? 0;
@@ -129,7 +131,7 @@ class HomeStudent extends StatelessWidget {
                         boxShadow: [
                           BoxShadow(
                             color:
-                                Colors.black.withOpacity(0.22),
+                            Colors.black.withOpacity(0.22),
                             blurRadius: 18,
                             offset: const Offset(0, 10),
                           ),
@@ -146,7 +148,7 @@ class HomeStudent extends StatelessWidget {
                                   value: percentage / 100,
                                   strokeWidth: 6,
                                   backgroundColor:
-                                      Colors.white24,
+                                  Colors.white24,
                                   color: Colors.white,
                                 ),
                               ),
@@ -154,13 +156,13 @@ class HomeStudent extends StatelessWidget {
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'My Attendance',
                                       style: TextStyle(
                                         fontWeight:
-                                            FontWeight.bold,
+                                        FontWeight.bold,
                                         fontSize: 16,
                                         color: Colors.white,
                                       ),
@@ -189,12 +191,12 @@ class HomeStudent extends StatelessWidget {
                             const SizedBox(height: 16),
                             Container(
                               padding:
-                                  const EdgeInsets.all(12),
+                              const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: Colors.white
                                     .withOpacity(0.18),
                                 borderRadius:
-                                    BorderRadius.circular(12),
+                                BorderRadius.circular(12),
                               ),
                               child: const Row(
                                 children: [
@@ -212,7 +214,7 @@ class HomeStudent extends StatelessWidget {
                                         color: Colors.white,
                                         fontSize: 12,
                                         fontWeight:
-                                            FontWeight.bold,
+                                        FontWeight.bold,
                                       ),
                                     ),
                                   ),
@@ -243,7 +245,7 @@ class HomeStudent extends StatelessWidget {
                   crossAxisSpacing: 16,
                   shrinkWrap: true,
                   physics:
-                      const NeverScrollableScrollPhysics(),
+                  const NeverScrollableScrollPhysics(),
                   childAspectRatio: 1.3,
                   children: [
                     _ActionCard(
@@ -254,7 +256,7 @@ class HomeStudent extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              const NoticeListScreen(),
+                          const NoticeListScreen(),
                         ),
                       ),
                     ),
@@ -270,7 +272,15 @@ class HomeStudent extends StatelessWidget {
                       icon: Icons.schedule_outlined,
                       label: 'Timetable',
                       gradient: UIColors.secondaryGradient,
-                      onTap: () {},
+                      // FIXED: Added Navigation logic
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TimetableScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _ActionCard(
                       icon: Icons.report_problem_outlined,
@@ -280,7 +290,7 @@ class HomeStudent extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              const CreateComplaintScreen(),
+                          const CreateComplaintScreen(),
                         ),
                       ),
                     ),
@@ -305,7 +315,7 @@ class HomeStudent extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                         color:
-                            Colors.black.withOpacity(0.06),
+                        Colors.black.withOpacity(0.06),
                         blurRadius: 18,
                         offset: const Offset(0, 10),
                       ),
@@ -451,17 +461,17 @@ class _TimetableTile extends StatelessWidget {
   final String room;
   const _TimetableTile(
       {required this.time,
-      required this.subject,
-      required this.room});
+        required this.subject,
+        required this.room});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       leading: Container(
         padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: UIColors.primary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),

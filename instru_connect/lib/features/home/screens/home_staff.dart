@@ -8,6 +8,8 @@ import 'package:instru_connect/features/complaints/screens/complaint_list_screen
 import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
+// ADDED THIS IMPORT
+import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 
 class HomeStaff extends StatelessWidget {
   const HomeStaff({super.key});
@@ -51,10 +53,10 @@ class HomeStaff extends StatelessWidget {
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Staff Dashboard',
                             style: TextStyle(
                               color: Colors.white,
@@ -62,7 +64,7 @@ class HomeStaff extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Departmental Support',
                             style: TextStyle(
                               color: Colors.white70,
@@ -94,8 +96,8 @@ class HomeStaff extends StatelessWidget {
                 // =========================
                 // WORK OVERVIEW
                 // =========================
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Expanded(
                       child: _StatCard(
                         title: 'Pending',
@@ -160,15 +162,16 @@ class HomeStaff extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // FIXED: UPDATED TIMETABLE ACTION
                     _ActionCard(
-                      icon: Icons.event_note_outlined,
+                      icon: Icons.calendar_month_rounded,
                       label: 'Timetable',
                       gradient: UIColors.secondaryGradient,
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Timetable coming soon'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TimetableScreen(),
                           ),
                         );
                       },
@@ -177,7 +180,13 @@ class HomeStaff extends StatelessWidget {
                       icon: Icons.help_outline_rounded,
                       label: 'Support',
                       gradient: UIColors.primaryGradient,
-                      onTap: () {},
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Support ticketing coming soon'),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
