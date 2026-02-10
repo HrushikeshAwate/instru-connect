@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
+import 'package:instru_connect/core/services/notification_service.dart';
 
 class ResourceService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // ============================
   // READ (USED BY LIST SCREEN)
@@ -63,5 +65,17 @@ class ResourceService {
       'uploadedByUid': uid,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // Notify all students/CR
+    final uids = await _notificationService.fetchAllStudentCrUids();
+    await _notificationService.createNotificationsForUsers(
+      uids: uids,
+      title: 'New Resource',
+      body: title.trim(),
+      type: 'resource',
+      data: {
+        'subject': subject,
+      },
+    );
   }
 }

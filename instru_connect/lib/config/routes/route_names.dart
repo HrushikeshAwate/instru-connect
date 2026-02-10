@@ -15,6 +15,7 @@ class Routes {
   static const profile = '/profile';
   static const createNotice = '/createnotice';
   static const complaints = '/complaints';
+  static const notifications = '/notifications';
 
   // Resources
   static const resources = '/resources';

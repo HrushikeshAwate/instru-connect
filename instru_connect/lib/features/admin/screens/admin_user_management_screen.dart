@@ -268,7 +268,7 @@ Future<void> _showRoleDialog({
         ),
         title: const Text('Assign Role'),
         content: DropdownButtonFormField<String>(
-          value: selectedRole,
+          initialValue: selectedRole,
           isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Role',

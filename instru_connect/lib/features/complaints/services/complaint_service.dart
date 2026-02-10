@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/complaint_model.dart';
+import '../../../core/services/notification_service.dart';
 
 class ComplaintService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String _collection = 'complaints';
+  final NotificationService _notificationService = NotificationService();
 
   // =====================================================
   // PHASE 1 — CREATE COMPLAINT
@@ -22,6 +24,8 @@ class ComplaintService {
     required String departmentId,
   }) async {
     final docRef = _db.collection(_collection).doc();
+    final now = DateTime.now();
+    final deleteAt = Timestamp.fromDate(now.add(const Duration(days: 120)));
 
     await docRef.set({
       'title': title,
@@ -37,6 +41,7 @@ class ComplaintService {
       'mediaUrl': null,
       'mediaType': null,
       'createdAt': FieldValue.serverTimestamp(),
+      'deleteAt': deleteAt,
       'lastUpdatedAt': FieldValue.serverTimestamp(),
     });
 
@@ -168,10 +173,42 @@ class ComplaintService {
     required String status,
     String? progressNote,
   }) async {
-    await _db.collection(_collection).doc(complaintId).update({
+    final docRef = _db.collection(_collection).doc(complaintId);
+    final existing = await docRef.get();
+    final oldStatus = existing.data()?['status']?.toString();
+    final existingDeleteAt = existing.data()?['deleteAt'] as Timestamp?;
+
+    final Map<String, dynamic> updates = {
       'status': status,
       'progressNote': progressNote,
       'lastUpdatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (oldStatus != 'resolved' && status == 'resolved') {
+      final resolvedDeleteAt =
+          Timestamp.fromDate(DateTime.now().add(const Duration(days: 7)));
+      if (existingDeleteAt == null ||
+          resolvedDeleteAt.toDate().isBefore(existingDeleteAt.toDate())) {
+        updates['deleteAt'] = resolvedDeleteAt;
+      }
+    }
+
+    await docRef.update(updates);
+
+    if (oldStatus != 'resolved' && status == 'resolved') {
+      final createdBy = existing.data()?['createdBy']?.toString();
+      final title = existing.data()?['title']?.toString() ?? 'Complaint';
+      if (createdBy != null && createdBy.isNotEmpty) {
+        await _notificationService.createUserNotification(
+          uid: createdBy,
+          title: 'Complaint Resolved',
+          body: title,
+          type: 'complaint_resolved',
+          data: {
+            'complaintId': complaintId,
+          },
+        );
+      }
+    }
   }
 }

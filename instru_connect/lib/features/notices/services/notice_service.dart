@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import '../../../core/constants/firestore_collections.dart';
+import '../../../core/services/notification_service.dart';
 
 class NoticeService {
   // ✅ DEFINE FIRESTORE INSTANCE
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // ---------- READ (used by list screen) ----------
   Future<QuerySnapshot> fetchNoticesSnapshot({
@@ -39,10 +41,29 @@ class NoticeService {
           'departmentId': departmentId,
           'batchIds': batchIds,
           'createdAt': Timestamp.now(),
+          'deleteAt': Timestamp.fromDate(
+            DateTime.now().add(const Duration(days: 30)),
+          ),
           'attachments': [],
         });
 
-    return docRef.id;
+    final noticeId = docRef.id;
+
+    // Notify only students/CR in the selected batches
+    final uids =
+        await _notificationService.fetchStudentCrUidsByBatchIds(batchIds);
+    await _notificationService.createNotificationsForUsers(
+      uids: uids,
+      title: 'New Notice',
+      body: title.trim(),
+      type: 'notice',
+      data: {
+        'noticeId': noticeId,
+        'batchIds': batchIds,
+      },
+    );
+
+    return noticeId;
   }
 
   Future<List<Notice>> fetchRecentNotices({

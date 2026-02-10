@@ -10,6 +10,7 @@ import 'package:instru_connect/features/profile/screens/profile_screen.dart';
 import 'package:instru_connect/features/resources/screens/add_resource_screen.dart';
 import 'package:instru_connect/features/resources/screens/resource_detail_screen.dart';
 import 'package:instru_connect/features/resources/screens/resource_list_screen.dart';
+import 'package:instru_connect/features/notifications/screens/notifications_screen.dart';
 
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
@@ -65,6 +66,9 @@ class AppRouter {
             stream: ComplaintService().fetchAllComplaints(),
           ),
         );
+
+      case Routes.notifications:
+        return MaterialPageRoute(builder: (_) => const NotificationsScreen());
 
       // Resources routes can be added here
       case Routes.resources:

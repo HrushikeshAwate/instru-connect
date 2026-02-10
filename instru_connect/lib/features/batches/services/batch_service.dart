@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:instru_connect/core/services/notification_service.dart';
 
 class BatchService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // ==========================================
   // PRIVATE HELPER METHODS
@@ -153,6 +155,10 @@ class BatchService {
     }
 
     await writeBatch.commit();
+    await _checkLowAttendanceForUsers(
+      subject: normalizedSubject,
+      uids: allStudentUids,
+    );
     return currentSessionNumber;
   }
 
@@ -188,6 +194,10 @@ class BatchService {
       }
     }
     await writeBatch.commit();
+    await _checkLowAttendanceForUsers(
+      subject: normalizedSubject,
+      uids: allStudentUids,
+    );
   }
 
   Future<void> deleteAttendance(String batchId, String docId) async {
@@ -214,5 +224,64 @@ class BatchService {
 
     writeBatch.delete(docRef);
     await writeBatch.commit();
+    await _checkLowAttendanceForUsers(
+      subject: subject,
+      uids: allUids.cast<String>(),
+    );
+  }
+
+  // ==========================================
+  // LOW ATTENDANCE ALERTS (PER SUBJECT)
+  // ==========================================
+
+  Future<void> _checkLowAttendanceForUsers({
+    required String subject,
+    required List<String> uids,
+  }) async {
+    for (final uid in uids) {
+      final userRef = _db.collection('users').doc(uid);
+      final snap = await userRef.get();
+      if (!snap.exists) continue;
+
+      final data = snap.data() ?? {};
+      final subjects = (data['subjects'] ?? {}) as Map<String, dynamic>;
+      final subjectStats =
+          (subjects[subject] ?? {}) as Map<String, dynamic>;
+      final int total = (subjectStats['total'] ?? 0) as int;
+      final int attended = (subjectStats['attended'] ?? 0) as int;
+
+      if (total == 0) {
+        await userRef.update({
+          'attendanceAlerts.$subject': false,
+        });
+        continue;
+      }
+
+      final double percentage = (attended / total) * 100;
+      final alerts =
+          (data['attendanceAlerts'] ?? {}) as Map<String, dynamic>;
+      final bool alreadyAlerted =
+          (alerts[subject] ?? false) as bool;
+
+      if (percentage < 75 && !alreadyAlerted) {
+        await _notificationService.createUserNotification(
+          uid: uid,
+          title: 'Low Attendance',
+          body: '$subject is at ${percentage.toStringAsFixed(1)}%',
+          type: 'low_attendance',
+          data: {
+            'subject': subject,
+            'percentage': percentage,
+          },
+        );
+        await userRef.update({
+          'attendanceAlerts.$subject': true,
+        });
+      } else if (percentage >= 75 && alreadyAlerted) {
+        await userRef.update({
+          'attendanceAlerts.$subject': false,
+        });
+      }
+    }
   }
 }

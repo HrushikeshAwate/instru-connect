@@ -13,9 +13,26 @@ import 'package:instru_connect/features/notices/screens/notice_list_screen.dart'
 import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
+import 'package:instru_connect/features/profile/services/achievement_service.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:instru_connect/core/widgets/notification_bell.dart';
 
 class HomeFaculty extends StatelessWidget {
   const HomeFaculty({super.key});
+
+  Future<void> _exportAchievements(BuildContext context) async {
+    try {
+      final filePath = await AchievementService().exportAllAchievementsCsv();
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Achievements export',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +94,7 @@ class HomeFaculty extends StatelessWidget {
                         ],
                       ),
                       const Spacer(),
+                      const NotificationBell(),
                       IconButton(
                         icon: const Icon(Icons.person_outline,
                             color: Colors.white),
@@ -211,6 +229,12 @@ class HomeFaculty extends StatelessWidget {
                       gradient: UIColors.secondaryGradient,
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.manageBatches),
+                    ),
+                    _ActionCard(
+                      icon: Icons.file_download_outlined,
+                      title: 'Export Achievements',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: () => _exportAchievements(context),
                     ),
                   ],
                 ),

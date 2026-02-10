@@ -10,6 +10,7 @@ import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
+import 'package:instru_connect/core/widgets/notification_bell.dart';
 
 class HomeStaff extends StatelessWidget {
   const HomeStaff({super.key});
@@ -74,6 +75,7 @@ class HomeStaff extends StatelessWidget {
                         ],
                       ),
                       const Spacer(),
+                      const NotificationBell(),
                       IconButton(
                         icon: const Icon(Icons.person_outline,
                             color: Colors.white),

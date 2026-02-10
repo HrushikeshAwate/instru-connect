@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:csv/csv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 import '../../../config/theme/ui_colors.dart';
 import '../../batches/services/batch_service.dart';
 import 'mark_attendance_screen.dart';
@@ -23,6 +27,7 @@ class AttendanceHistoryScreen extends StatefulWidget {
 class _AttendanceHistoryScreenState
     extends State<AttendanceHistoryScreen> {
   String? _cachedRole;
+  bool _exporting = false;
 
   Future<String> _getUserRole() async {
     if (_cachedRole != null) return _cachedRole!;
@@ -79,6 +84,21 @@ class _AttendanceHistoryScreenState
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: _exporting
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.file_download_outlined,
+                                color: Colors.white),
+                        onPressed: _exporting ? null : _exportAttendance,
                       ),
                     ],
                   ),
@@ -166,6 +186,77 @@ class _AttendanceHistoryScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _exportAttendance() async {
+    setState(() => _exporting = true);
+    try {
+      final role = await _getUserRole();
+      if (role != 'faculty' && role != 'admin') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Not authorized')),
+          );
+        }
+        return;
+      }
+
+      final usersSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('batchId', isEqualTo: widget.batchId)
+          .where('role', whereIn: ['student', 'cr'])
+          .get();
+
+      final rows = <List<dynamic>>[
+        [
+          'Subject',
+          'Name',
+          'MIS No',
+          'Attended',
+          'Total',
+          'Percentage',
+        ]
+      ];
+
+      for (final doc in usersSnap.docs) {
+        final data = doc.data();
+        final name = (data['name'] ?? data['Name'] ?? '').toString();
+        final mis = (data['mis'] ?? data['MIS No'] ?? '').toString();
+        final subjects = (data['subjects'] ?? {}) as Map<String, dynamic>;
+        final stats =
+            (subjects[widget.subjectName] ?? {}) as Map<String, dynamic>;
+        final int total = (stats['total'] ?? 0) as int;
+        final int attended = (stats['attended'] ?? 0) as int;
+        final double percentage = total == 0 ? 0 : (attended / total) * 100;
+
+        rows.add([
+          widget.subjectName,
+          name,
+          mis,
+          attended,
+          total,
+          percentage.toStringAsFixed(1),
+        ]);
+      }
+
+      final csv = const ListToCsvConverter().convert(rows);
+      final dir = await getTemporaryDirectory();
+      final filePath =
+          '${dir.path}/attendance_${widget.subjectName}_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final file = File(filePath);
+      await file.writeAsString(csv);
+
+      await Share.shareXFiles([XFile(filePath)],
+          text: 'Attendance - ${widget.subjectName}');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   void _navigateToEdit(String docId, List<String> absentees) {

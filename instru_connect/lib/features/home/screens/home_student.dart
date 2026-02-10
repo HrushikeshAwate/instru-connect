@@ -14,6 +14,7 @@ import 'package:instru_connect/features/notices/screens/notice_list_screen.dart'
 import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
+import 'package:instru_connect/core/widgets/notification_bell.dart';
 
 class HomeStudent extends StatelessWidget {
   const HomeStudent({super.key});
@@ -80,6 +81,7 @@ class HomeStudent extends StatelessWidget {
                         ],
                       ),
                       const Spacer(),
+                      const NotificationBell(),
                       IconButton(
                         icon: const Icon(
                           Icons.person_outline,
@@ -217,6 +219,65 @@ class HomeStudent extends StatelessWidget {
                             ),
                           ],
                         ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // =========================
+                // SUBJECT ATTENDANCE
+                // =========================
+                const _SectionHeader(
+                  title: 'Subject Attendance',
+                  subtitle: 'Per-subject performance',
+                ),
+                const SizedBox(height: 12),
+
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(currentUserId)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final data =
+                        snapshot.data!.data() as Map<String, dynamic>;
+                    final subjects =
+                        (data['subjects'] ?? {}) as Map<String, dynamic>;
+                    final subjectEntries = subjects.entries.toList();
+
+                    if (subjectEntries.isEmpty) {
+                      return const _EmptySubjectAttendance();
+                    }
+
+                    return SizedBox(
+                      height: 150,
+                      child: PageView.builder(
+                        controller: PageController(viewportFraction: 0.86),
+                        itemCount: subjectEntries.length,
+                        itemBuilder: (context, index) {
+                          final entry = subjectEntries[index];
+                          final stats =
+                              (entry.value ?? {}) as Map<String, dynamic>;
+                          final int total = (stats['total'] ?? 0) as int;
+                          final int attended =
+                              (stats['attended'] ?? 0) as int;
+                          final double percentage = total == 0
+                              ? 0
+                              : (attended / total) * 100;
+
+                          return _SubjectAttendanceCard(
+                            subject: entry.key,
+                            attended: attended,
+                            total: total,
+                            percentage: percentage,
+                          );
+                        },
                       ),
                     );
                   },
@@ -477,6 +538,108 @@ class _ActionCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SubjectAttendanceCard extends StatelessWidget {
+  final String subject;
+  final int attended;
+  final int total;
+  final double percentage;
+
+  const _SubjectAttendanceCard({
+    required this.subject,
+    required this.attended,
+    required this.total,
+    required this.percentage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isLow = percentage < 75;
+    return Container(
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: isLow ? UIColors.errorGradient : UIColors.successGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            height: 50,
+            width: 50,
+            child: CircularProgressIndicator(
+              value: percentage / 100,
+              strokeWidth: 6,
+              backgroundColor: Colors.white24,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  subject,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '$attended / $total classes',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${percentage.toStringAsFixed(1)}%',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptySubjectAttendance extends StatelessWidget {
+  const _EmptySubjectAttendance();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: UIColors.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Text(
+        'No subject attendance yet',
+        style: TextStyle(color: UIColors.textSecondary),
       ),
     );
   }

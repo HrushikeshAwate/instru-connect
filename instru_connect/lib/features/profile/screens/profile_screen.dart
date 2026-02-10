@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
 import '../../../config/theme/ui_colors.dart';
 import '../services/profile_service.dart';
-import 'certification_screen.dart';
+import 'achievement_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -200,8 +200,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 32),
 
-                    // ================= CERTIFICATIONS =================
-                    const _SectionTitle('Professional'),
+                    // ================= ACHIEVEMENTS =================
+                    const _SectionTitle('Achievements'),
                     const SizedBox(height: 12),
 
                     _WhiteCard(
@@ -217,9 +217,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        title: const Text('Certifications'),
+                        title: const Text('Achievements'),
                         subtitle: const Text(
-                          'Upload and manage your certificates',
+                          'Upload and manage your achievements',
                         ),
                         trailing:
                             const Icon(Icons.chevron_right_rounded),
@@ -228,7 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  const CertificationsScreen(),
+                                  const AchievementsScreen(),
                             ),
                           );
                         },

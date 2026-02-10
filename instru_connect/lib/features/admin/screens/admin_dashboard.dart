@@ -12,6 +12,9 @@ import 'package:instru_connect/features/complaints/services/complaint_service.da
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/admin/services/admin_service.dart';
+import 'package:instru_connect/features/profile/services/achievement_service.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:instru_connect/core/widgets/notification_bell.dart';
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -22,6 +25,7 @@ class AdminDashboardView extends StatefulWidget {
 
 class _AdminDashboardViewState extends State<AdminDashboardView> {
   int _previewIndex = 0;
+  bool _exportingAchievements = false;
 
   final List<String> _previewRoles = [
     'Admin',
@@ -35,6 +39,28 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     final snapshot =
         await FirebaseFirestore.instance.collection('notices').get();
     return snapshot.docs.length;
+  }
+
+  Future<void> _exportAchievements() async {
+    if (_exportingAchievements) return;
+    setState(() => _exportingAchievements = true);
+
+    try {
+      final filePath = await AchievementService().exportAllAchievementsCsv();
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Achievements export',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _exportingAchievements = false);
+      }
+    }
   }
 
   @override
@@ -97,6 +123,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         ],
                       ),
                       const Spacer(),
+                      const NotificationBell(),
                       IconButton(
                         icon: const Icon(
                           Icons.person_outline,
@@ -298,6 +325,18 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                           ),
                         );
                       },
+                    ),
+                    _ActionCard(
+                      icon: _exportingAchievements
+                          ? Icons.hourglass_bottom_rounded
+                          : Icons.file_download_outlined,
+                      label: _exportingAchievements
+                          ? 'Exporting...'
+                          : 'Export Achievements',
+                      gradient: UIColors.secondaryGradient,
+                      onTap: _exportingAchievements
+                          ? () {}
+                          : () => _exportAchievements(),
                     ),
                   ],
                 ),
