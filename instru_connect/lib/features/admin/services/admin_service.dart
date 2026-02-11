@@ -3,13 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminService {
   final _db = FirebaseFirestore.instance;
 
-  Future<int?> getTotalUsers() async {
-    final snapshot = await _db
-        .collection('users')
-        .count()
-        .get();
-
-    return snapshot.count;
+  Future<int> getTotalUsers() async {
+    try {
+      final snapshot = await _db.collection('users').count().get();
+      final count = snapshot.count;
+      return count ?? 0;
+    } catch (_) {
+      final snapshot = await _db.collection('users').get();
+      return snapshot.size;
+    }
   }
 
   Stream<int> pendingComplaintsCount() {

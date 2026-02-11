@@ -12,9 +12,7 @@ class NotificationsScreen extends StatelessWidget {
     final service = NotificationService();
 
     if (uid == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please sign in')),
-      );
+      return const Scaffold(body: Center(child: Text('Please sign in')));
     }
 
     return Scaffold(
@@ -58,8 +56,10 @@ class NotificationsScreen extends StatelessWidget {
                         onPressed: () async {
                           await service.clearAllForUser(uid);
                         },
-                        icon: const Icon(Icons.delete_outline,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                        ),
                         label: const Text(
                           'Clear All',
                           style: TextStyle(color: Colors.white),
@@ -72,16 +72,15 @@ class NotificationsScreen extends StatelessWidget {
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                     stream: service.streamUserNotifications(uid),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
-                        return const Center(
-                          child: Text('Failed to load notifications'),
+                        return Center(
+                          child: Text(
+                            'Failed to load notifications: ${snapshot.error}',
+                          ),
                         );
                       }
 
@@ -111,8 +110,10 @@ class NotificationsScreen extends StatelessWidget {
                                 color: UIColors.error,
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Icon(Icons.delete,
-                                  color: Colors.white),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
                             ),
                             onDismissed: (_) async {
                               if (id.isNotEmpty) {
@@ -197,17 +198,15 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       title.isEmpty ? 'Notification' : title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight:
-                                isRead ? FontWeight.w500 : FontWeight.bold,
-                          ),
+                        fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       body,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: UIColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: UIColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -244,10 +243,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'No notifications',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
           const SizedBox(height: 4),
           Text(

@@ -19,10 +19,15 @@ class NotificationTokenService {
 
     try {
       final token = await _messaging.getToken();
+      // Debug print for verification
+      // ignore: avoid_print
+      print('FCM token: $token');
       if (token != null && token.isNotEmpty) {
         await _saveToken(uid, token);
       }
-    } catch (_) {
+    } catch (e) {
+      // ignore: avoid_print
+      print('FCM token error: $e');
       return;
     }
 

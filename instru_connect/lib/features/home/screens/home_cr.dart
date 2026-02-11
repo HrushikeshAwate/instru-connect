@@ -61,25 +61,31 @@ class HomeCr extends StatelessWidget {
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'CR Dashboard',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'CR Dashboard',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            'Batch: ${batchId ?? "Not Assigned"}',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
+                            Text(
+                              'Batch: ${batchId ?? "Not Assigned"}',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const Spacer(),
                       const NotificationBell(),
@@ -135,15 +141,22 @@ class HomeCr extends StatelessWidget {
                       return const _EmptySubjectAttendance();
                     }
 
+                    final cardWidth =
+                        MediaQuery.of(context).size.width * 0.84;
                     return SizedBox(
                       height: 150,
-                      child: PageView.builder(
-                        controller: PageController(viewportFraction: 0.86),
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 12),
                         itemCount: subjectEntries.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final entry = subjectEntries[index];
-                          final stats =
-                              (entry.value ?? {}) as Map<String, dynamic>;
+                          final raw = entry.value;
+                          final stats = raw is Map<String, dynamic>
+                              ? raw
+                              : <String, dynamic>{};
                           final int total = (stats['total'] ?? 0) as int;
                           final int attended =
                               (stats['attended'] ?? 0) as int;
@@ -151,11 +164,14 @@ class HomeCr extends StatelessWidget {
                               ? 0
                               : (attended / total) * 100;
 
-                          return _SubjectAttendanceCard(
-                            subject: entry.key,
-                            attended: attended,
-                            total: total,
-                            percentage: percentage,
+                          return SizedBox(
+                            width: cardWidth,
+                            child: _SubjectAttendanceCard(
+                              subject: entry.key,
+                              attended: attended,
+                              total: total,
+                              percentage: percentage,
+                            ),
                           );
                         },
                       ),

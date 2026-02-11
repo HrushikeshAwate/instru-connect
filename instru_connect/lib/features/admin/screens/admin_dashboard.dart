@@ -102,25 +102,31 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Admin Dashboard',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Admin Dashboard',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            'System Control Center',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
+                            Text(
+                              'System Control Center',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const Spacer(),
                       const NotificationBell(),
@@ -161,15 +167,16 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                     Expanded(
                       child: FutureBuilder<int>(
                         future: AdminService()
-                            .getTotalUsers()
-                            .then((v) => v ?? 0),
+                            .getTotalUsers(),
                         builder: (context, snapshot) {
                           return _MetricCard(
                             title: 'Total Users',
                             value: snapshot.connectionState ==
                                     ConnectionState.waiting
                                 ? '—'
-                                : snapshot.data.toString(),
+                                : snapshot.hasError
+                                    ? 'ERR'
+                                    : (snapshot.data ?? 0).toString(),
                             icon: Icons.people_outline_rounded,
                             gradient: UIColors.secondaryGradient,
                           );
