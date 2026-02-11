@@ -6,6 +6,7 @@ import 'package:instru_connect/core/services/role_service.dart';
 import 'package:instru_connect/core/sessioin/current_user.dart';
 import 'package:instru_connect/core/widgets/error_view.dart';
 import 'package:instru_connect/core/widgets/loading_view.dart';
+import 'package:instru_connect/core/services/notification_token_service.dart';
 import 'package:instru_connect/features/home/home_router.dart';
 
 class RoleLoadingScreen extends StatefulWidget {
@@ -40,6 +41,8 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
     CurrentUser.academicYear = userDoc['academicYear'];
     CurrentUser.email = userDoc['email'];
     CurrentUser.name = userDoc['name'];
+
+    await NotificationTokenService().registerToken(user.uid);
 
     if (!mounted) return;
 
