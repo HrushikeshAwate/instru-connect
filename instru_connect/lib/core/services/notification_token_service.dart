@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationTokenService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -11,7 +12,13 @@ class NotificationTokenService {
     await _messaging.requestPermission();
 
     if (Platform.isIOS) {
-      final apnsToken = await _messaging.getAPNSToken();
+      String? apnsToken = await _messaging.getAPNSToken();
+      var attempts = 0;
+      while (apnsToken == null && attempts < 5) {
+        await Future<void>.delayed(const Duration(seconds: 1));
+        apnsToken = await _messaging.getAPNSToken();
+        attempts++;
+      }
       if (apnsToken == null) {
         return;
       }
@@ -19,15 +26,16 @@ class NotificationTokenService {
 
     try {
       final token = await _messaging.getToken();
-      // Debug print for verification
-      // ignore: avoid_print
-      print('FCM token: $token');
+      if (kDebugMode) {
+        debugPrint('FCM token: $token');
+      }
       if (token != null && token.isNotEmpty) {
         await _saveToken(uid, token);
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('FCM token error: $e');
+      if (kDebugMode) {
+        debugPrint('FCM token error: $e');
+      }
       return;
     }
 

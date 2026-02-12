@@ -135,7 +135,7 @@ class HomeStudent extends StatelessWidget {
                         borderRadius: BorderRadius.circular(26),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.22),
+                            color: Colors.black.withValues(alpha: 0.22),
                             blurRadius: 18,
                             offset: const Offset(0, 10),
                           ),
@@ -193,7 +193,7 @@ class HomeStudent extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.18),
+                                color: Colors.white.withValues(alpha: 0.18),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Row(
@@ -241,15 +241,22 @@ class HomeStudent extends StatelessWidget {
                       .doc(currentUserId)
                       .snapshots(),
                   builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const _SubjectAttendanceError();
+                    }
+
                     if (!snapshot.hasData || !snapshot.data!.exists) {
                       return const SizedBox.shrink();
                     }
 
-                    final data =
-                        snapshot.data!.data() as Map<String, dynamic>;
+                    final rawData = snapshot.data!.data();
+                    if (rawData is! Map<String, dynamic>) {
+                      return const _SubjectAttendanceError();
+                    }
                     final subjects =
-                        (data['subjects'] ?? {}) as Map<String, dynamic>;
-                    final subjectEntries = subjects.entries.toList();
+                        _toStringDynamicMap(rawData['subjects']);
+                    final subjectEntries = subjects.entries.toList()
+                      ..sort((a, b) => a.key.compareTo(b.key));
 
                     if (subjectEntries.isEmpty) {
                       return const _EmptySubjectAttendance();
@@ -267,13 +274,9 @@ class HomeStudent extends StatelessWidget {
                             const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final entry = subjectEntries[index];
-                          final raw = entry.value;
-                          final stats = raw is Map<String, dynamic>
-                              ? raw
-                              : <String, dynamic>{};
-                          final int total = (stats['total'] ?? 0) as int;
-                          final int attended =
-                              (stats['attended'] ?? 0) as int;
+                          final stats = _toStringDynamicMap(entry.value);
+                          final int total = _asInt(stats['total']);
+                          final int attended = _asInt(stats['attended']);
                           final double percentage = total == 0
                               ? 0
                               : (attended / total) * 100;
@@ -396,7 +399,7 @@ class HomeStudent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withValues(alpha: 0.06),
                         blurRadius: 18,
                         offset: const Offset(0, 10),
                       ),
@@ -513,7 +516,7 @@ class _ActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
+            color: Colors.black.withValues(alpha: 0.22),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -530,7 +533,7 @@ class _ActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: Colors.white, size: 28),
@@ -577,7 +580,7 @@ class _SubjectAttendanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -655,48 +658,43 @@ class _EmptySubjectAttendance extends StatelessWidget {
   }
 }
 
-class _TimetableTile extends StatelessWidget {
-  final String time;
-  final String subject;
-  final String room;
-  const _TimetableTile({
-    required this.time,
-    required this.subject,
-    required this.room,
-  });
+class _SubjectAttendanceError extends StatelessWidget {
+  const _SubjectAttendanceError();
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      leading: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: UIColors.primary.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          time,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: UIColors.primary,
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: UIColors.surface,
+        borderRadius: BorderRadius.circular(20),
       ),
-      title: Text(
-        subject,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      ),
-      subtitle: Text(
-        room,
-        style: const TextStyle(fontSize: 12, color: UIColors.textSecondary),
+      child: const Text(
+        'Unable to load subject attendance',
+        style: TextStyle(color: UIColors.textSecondary),
       ),
     );
   }
 }
 
+Map<String, dynamic> _toStringDynamicMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return Map<String, dynamic>.fromEntries(
+      value.entries.map(
+        (e) => MapEntry(e.key.toString(), e.value),
+      ),
+    );
+  }
+  return <String, dynamic>{};
+}
 
+int _asInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
 class _NoticeTile extends StatelessWidget {
   final Notice notice;
   final VoidCallback onTap;

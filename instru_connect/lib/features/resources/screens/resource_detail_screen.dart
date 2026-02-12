@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -91,7 +92,7 @@ class ResourceDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 24,
                               offset: const Offset(0, 12),
                             ),

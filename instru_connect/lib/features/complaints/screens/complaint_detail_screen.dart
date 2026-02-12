@@ -87,7 +87,7 @@ class ComplaintDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withOpacity(0.12),
+                        color: UIColors.primary.withValues(alpha: 0.12),
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -301,7 +301,7 @@ class _GradientButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.3),
+            color: UIColors.primary.withValues(alpha: 0.3),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),

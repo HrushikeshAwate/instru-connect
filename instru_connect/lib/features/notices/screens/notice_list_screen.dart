@@ -189,7 +189,7 @@ class _NoticeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.12),
+            color: UIColors.primary.withValues(alpha: 0.12),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

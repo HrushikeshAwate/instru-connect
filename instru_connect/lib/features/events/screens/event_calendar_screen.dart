@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../config/theme/ui_colors.dart';

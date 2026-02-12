@@ -214,7 +214,7 @@ class _StudentAttendanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: accent.withOpacity(0.12),
+            color: accent.withValues(alpha: 0.12),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

@@ -1332,6 +1332,8 @@ PODS:
   - flutter_appauth (0.0.1):
     - AppAuth (= 2.0.0)
     - Flutter
+  - flutter_local_notifications (0.0.1):
+    - Flutter
   - flutter_pdfview (1.0.2):
     - Flutter
   - GoogleDataTransport (10.1.0):
@@ -1485,6 +1487,7 @@ DEPENDENCIES:
   - firebase_storage (from `.symlinks/plugins/firebase_storage/ios`)
   - Flutter (from `Flutter`)
   - flutter_appauth (from `.symlinks/plugins/flutter_appauth/ios`)
+  - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_pdfview (from `.symlinks/plugins/flutter_pdfview/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
@@ -1540,6 +1543,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_appauth:
     :path: ".symlinks/plugins/flutter_appauth/ios"
+  flutter_local_notifications:
+    :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_pdfview:
     :path: ".symlinks/plugins/flutter_pdfview/ios"
   image_picker_ios:
@@ -1578,6 +1583,7 @@ SPEC CHECKSUMS:
   FirebaseStorage: 550349b1e8f7315834ea08308696e9469d77135d
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_appauth: d4abcf54856e5d8ba82ed7646ffc83245d4aa448
+  flutter_local_notifications: ad39620c743ea4c15127860f4b5641649a988100
   flutter_pdfview: 32bf27bda6fd85b9dd2c09628a824df5081246cf
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1

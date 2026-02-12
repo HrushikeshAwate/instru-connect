@@ -246,8 +246,12 @@ class _AttendanceHistoryScreenState
       final file = File(filePath);
       await file.writeAsString(csv);
 
-      await Share.shareXFiles([XFile(filePath)],
-          text: 'Attendance - ${widget.subjectName}');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(filePath)],
+          text: 'Attendance - ${widget.subjectName}',
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -332,7 +336,7 @@ class _AttendanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.10),
+            color: UIColors.primary.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

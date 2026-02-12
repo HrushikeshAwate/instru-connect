@@ -23,11 +23,14 @@ class HomeFaculty extends StatelessWidget {
   Future<void> _exportAchievements(BuildContext context) async {
     try {
       final filePath = await AchievementService().exportAllAchievementsCsv();
-      await Share.shareXFiles(
-        [XFile(filePath)],
-        text: 'Achievements export',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(filePath)],
+          text: 'Achievements export',
+        ),
       );
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
       );
@@ -270,7 +273,7 @@ class HomeFaculty extends StatelessWidget {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withValues(alpha: 0.06),
                         blurRadius: 18,
                         offset: const Offset(0, 10),
                       ),
@@ -393,7 +396,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -446,7 +449,7 @@ class _ActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
+            color: Colors.black.withValues(alpha: 0.22),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -463,7 +466,7 @@ class _ActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

@@ -127,7 +127,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withOpacity(0.12),
+                        color: UIColors.primary.withValues(alpha: 0.12),
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -233,7 +233,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withOpacity(0.3),
+                        color: UIColors.primary.withValues(alpha: 0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
                       ),

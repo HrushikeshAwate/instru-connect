@@ -58,7 +58,12 @@ class _TimetableViewScreenState extends State<TimetableViewScreen> {
             icon: const Icon(Icons.share_rounded),
             onPressed: () async {
               if (localPath != null) {
-                await Share.shareXFiles([XFile(localPath!)], text: 'My Timetable');
+                await SharePlus.instance.share(
+                  ShareParams(
+                    files: [XFile(localPath!)],
+                    text: 'My Timetable',
+                  ),
+                );
               }
             },
           ),

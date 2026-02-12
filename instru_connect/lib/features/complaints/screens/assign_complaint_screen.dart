@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import '../services/complaint_service.dart';
 import '../../../config/theme/ui_colors.dart';
@@ -104,7 +105,7 @@ class _AssignComplaintScreenState
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: UIColors.primary.withOpacity(0.08),
+                                    color: UIColors.primary.withValues(alpha: 0.08),
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
                                   ),
@@ -181,7 +182,7 @@ class _AssignComplaintScreenState
                                 boxShadow: [
                                   BoxShadow(
                                     color:
-                                        UIColors.primary.withOpacity(0.25),
+                                        UIColors.primary.withValues(alpha: 0.25),
                                     blurRadius: 16,
                                     offset: const Offset(0, 8),
                                   ),

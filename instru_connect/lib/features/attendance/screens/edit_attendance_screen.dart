@@ -84,7 +84,7 @@ class _EditAttendanceScreenState
                   margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: UIColors.warning.withOpacity(0.1),
+                    color: UIColors.warning.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Row(
@@ -281,7 +281,7 @@ class _StudentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -297,7 +297,7 @@ class _StudentCard extends StatelessWidget {
               CircleAvatar(
                 radius: 20,
                 backgroundColor:
-                    color.withOpacity(0.15),
+                    color.withValues(alpha: 0.15),
                 child: Icon(
                   isAbsent
                       ? Icons.person_off

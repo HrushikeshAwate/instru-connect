@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -159,7 +160,7 @@ class _AddResourceScreenState
                           boxShadow: [
                             BoxShadow(
                               color:
-                                  Colors.black.withOpacity(0.08),
+                                  Colors.black.withValues(alpha: 0.08),
                               blurRadius: 24,
                               offset: const Offset(0, 12),
                             ),

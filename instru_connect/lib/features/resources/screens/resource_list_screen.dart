@@ -108,7 +108,7 @@ class ResourceTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.10),
+            color: UIColors.primary.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

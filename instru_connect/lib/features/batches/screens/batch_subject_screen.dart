@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../config/theme/ui_colors.dart';
@@ -226,7 +227,7 @@ class _SubjectCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.10),
+            color: UIColors.primary.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

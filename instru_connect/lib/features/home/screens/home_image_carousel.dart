@@ -70,7 +70,7 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
+                        color: Colors.black.withValues(alpha: 0.25),
                         blurRadius: 24,
                         offset: const Offset(0, 14),
                       ),
@@ -105,9 +105,9 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                UIColors.deepTeal.withOpacity(0.25),
+                                UIColors.deepTeal.withValues(alpha: 0.25),
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.45),
+                                Colors.black.withValues(alpha: 0.45),
                               ],
                             ),
                           ),
@@ -153,7 +153,7 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                     : null,
                 color: active
                     ? null
-                    : UIColors.deepTeal.withOpacity(0.25),
+                    : UIColors.deepTeal.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(6),
               ),
             );

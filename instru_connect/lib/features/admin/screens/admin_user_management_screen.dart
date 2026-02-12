@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:instru_connect/core/services/firestore/batch_services.dart';
@@ -134,7 +135,7 @@ class _UserCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.10),
+            color: UIColors.primary.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -209,7 +210,7 @@ class _UserCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color:
-                              UIColors.primary.withOpacity(0.08),
+                              UIColors.primary.withValues(alpha: 0.08),
                           borderRadius:
                               BorderRadius.circular(12),
                         ),

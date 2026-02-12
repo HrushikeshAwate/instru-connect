@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -175,7 +176,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withOpacity(0.15),
+                        color: UIColors.primary.withValues(alpha: 0.15),
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -293,7 +294,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withOpacity(0.3),
+                        color: UIColors.primary.withValues(alpha: 0.3),
                         blurRadius: 18,
                         offset: const Offset(0, 8),
                       ),

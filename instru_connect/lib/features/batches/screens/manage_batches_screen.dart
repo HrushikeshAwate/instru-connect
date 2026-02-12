@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/features/batches/screens/assign_batch.dart';
@@ -261,7 +262,7 @@ class _BatchCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withOpacity(0.10),
+            color: UIColors.primary.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -337,7 +338,7 @@ class _YearChip extends StatelessWidget {
       padding:
           const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: UIColors.primary.withOpacity(0.1),
+        color: UIColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

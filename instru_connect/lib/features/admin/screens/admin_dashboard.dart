@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 // features/admin/screens/admin_dashboard_view.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -47,9 +48,11 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
     try {
       final filePath = await AchievementService().exportAllAchievementsCsv();
-      await Share.shareXFiles(
-        [XFile(filePath)],
-        text: 'Achievements export',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(filePath)],
+          text: 'Achievements export',
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -442,6 +445,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     );
 
     if (selected != null) {
+      if (!mounted) return;
       setState(() => _previewIndex = selected);
       _navigateToPreview(context, selected);
     }
@@ -525,7 +529,7 @@ class _MetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -579,7 +583,7 @@ class _ActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -596,7 +600,7 @@ class _ActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -635,7 +639,7 @@ class _AttentionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 16,
             offset: const Offset(0, 10),
           ),

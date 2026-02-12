@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
 import 'package:instru_connect/core/widgets/loading_view.dart';
@@ -84,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: UIColors.primary.withOpacity(0.12),
+                          color: UIColors.primary.withValues(alpha: 0.12),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
@@ -200,7 +201,7 @@ class _AppLogo extends StatelessWidget {
         shape: BoxShape.circle,
         color: UIColors.background,
         boxShadow: [
-          BoxShadow(color: UIColors.primary.withOpacity(0.15), blurRadius: 16),
+          BoxShadow(color: UIColors.primary.withValues(alpha: 0.15), blurRadius: 16),
         ],
       ),
       child: Image.asset(
