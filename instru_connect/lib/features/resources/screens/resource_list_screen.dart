@@ -1,19 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/services/firestore/role_service.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
 import 'package:instru_connect/features/resources/services/resource_service.dart';
 import 'package:instru_connect/features/resources/widgets/empty_resource_view.dart';
 import '../../../config/theme/ui_colors.dart';
 
-class ResourceListScreen extends StatelessWidget {
+class ResourceListScreen extends StatefulWidget {
   const ResourceListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final ResourceService resourceService = ResourceService();
+  State<ResourceListScreen> createState() => _ResourceListScreenState();
+}
 
+class _ResourceListScreenState extends State<ResourceListScreen> {
+  final ResourceService _resourceService = ResourceService();
+  final RoleService _roleService = RoleService();
+  late Future<List<ResourceModel>> _resourcesFuture;
+  late Future<bool> _canAddResourceFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _resourcesFuture = _resourceService.fetchResources();
+    _canAddResourceFuture = _resolveCanAddResource();
+  }
+
+  Future<bool> _resolveCanAddResource() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      final role = await _roleService.fetchUserRole(user.uid);
+      return role == 'faculty' || role == 'admin';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _openAddResource() async {
+    await Navigator.pushNamed(context, Routes.addResource);
+    if (!mounted) return;
+    setState(() {
+      _resourcesFuture = _resourceService.fetchResources();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: UIColors.background,
+      floatingActionButton: FutureBuilder<bool>(
+        future: _canAddResourceFuture,
+        builder: (context, snapshot) {
+          if (snapshot.data != true) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            onPressed: _openAddResource,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Resource'),
+          );
+        },
+      ),
       body: Stack(
         children: [
           // ================= HEADER =================
@@ -58,7 +106,7 @@ class ResourceListScreen extends StatelessWidget {
                 // ================= BODY =================
                 Expanded(
                   child: FutureBuilder<List<ResourceModel>>(
-                    future: resourceService.fetchResources(),
+                    future: _resourcesFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
