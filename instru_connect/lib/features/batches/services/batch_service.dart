@@ -27,6 +27,18 @@ class BatchService {
     });
   }
 
+  Map<String, dynamic> _asStringDynamicMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return Map<String, dynamic>.fromEntries(
+        value.entries.map(
+          (entry) => MapEntry(entry.key.toString(), entry.value),
+        ),
+      );
+    }
+    return <String, dynamic>{};
+  }
+
   // ==========================================
   // BATCH & STUDENT MANAGEMENT
   // ==========================================
@@ -243,12 +255,11 @@ class BatchService {
       final snap = await userRef.get();
       if (!snap.exists) continue;
 
-      final data = snap.data() ?? {};
-      final subjects = (data['subjects'] ?? {}) as Map<String, dynamic>;
-      final subjectStats =
-          (subjects[subject] ?? {}) as Map<String, dynamic>;
-      final int total = (subjectStats['total'] ?? 0) as int;
-      final int attended = (subjectStats['attended'] ?? 0) as int;
+      final data = _asStringDynamicMap(snap.data());
+      final subjects = _asStringDynamicMap(data['subjects']);
+      final subjectStats = _asStringDynamicMap(subjects[subject]);
+      final int total = (subjectStats['total'] as num?)?.toInt() ?? 0;
+      final int attended = (subjectStats['attended'] as num?)?.toInt() ?? 0;
 
       if (total == 0) {
         await userRef.update({
@@ -258,10 +269,8 @@ class BatchService {
       }
 
       final double percentage = (attended / total) * 100;
-      final alerts =
-          (data['attendanceAlerts'] ?? {}) as Map<String, dynamic>;
-      final bool alreadyAlerted =
-          (alerts[subject] ?? false) as bool;
+      final alerts = _asStringDynamicMap(data['attendanceAlerts']);
+      final bool alreadyAlerted = alerts[subject] == true;
 
       if (percentage < 75 && !alreadyAlerted) {
         await _notificationService.createUserNotification(
