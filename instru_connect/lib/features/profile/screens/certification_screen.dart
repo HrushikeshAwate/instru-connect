@@ -20,7 +20,7 @@ class CertificationsScreen extends StatelessWidget {
     final service = CertificationService();
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: UIColors.primary,
@@ -75,10 +75,8 @@ class CertificationsScreen extends StatelessWidget {
                     stream: service.fetchCertificates(uid),
                     builder: (context, snapshot) {
                       // ---------- LOADING ----------
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       // ---------- ERROR ----------
@@ -97,11 +95,9 @@ class CertificationsScreen extends StatelessWidget {
 
                       // ---------- LIST ----------
                       return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                            16, 16, 16, 32),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                         itemCount: certs.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (_, i) {
                           final c = certs[i];
                           final fileType = c['fileType'];
@@ -110,8 +106,7 @@ class CertificationsScreen extends StatelessWidget {
                             title: c['title'] ?? 'Untitled',
                             issuer: c['issuer'] ?? '',
                             fileType: fileType,
-                            onTap: () =>
-                                _openInBrowser(c['fileUrl'] ?? ''),
+                            onTap: () => _openInBrowser(c['fileUrl'] ?? ''),
                           );
                         },
                       );
@@ -156,14 +151,12 @@ class CertificationsScreen extends StatelessWidget {
                 children: [
                   TextField(
                     controller: titleCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Title'),
+                    decoration: const InputDecoration(labelText: 'Title'),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: issuerCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Issuer'),
+                    decoration: const InputDecoration(labelText: 'Issuer'),
                   ),
                   const SizedBox(height: 16),
 
@@ -178,8 +171,7 @@ class CertificationsScreen extends StatelessWidget {
                     onPressed: uploading
                         ? null
                         : () async {
-                            final file =
-                                await service.pickCertificateFile();
+                            final file = await service.pickCertificateFile();
                             if (file != null) {
                               setState(() => selectedFile = file);
                             }
@@ -189,8 +181,7 @@ class CertificationsScreen extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed:
-                      uploading ? null : () => Navigator.pop(context),
+                  onPressed: uploading ? null : () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -211,8 +202,7 @@ class CertificationsScreen extends StatelessWidget {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content:
-                                      Text('Certificate uploaded'),
+                                  content: Text('Certificate uploaded'),
                                 ),
                               );
                             }
@@ -227,9 +217,7 @@ class CertificationsScreen extends StatelessWidget {
                       ? const SizedBox(
                           height: 18,
                           width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Upload'),
                 ),
@@ -301,24 +289,15 @@ class _CertificateCard extends StatelessWidget {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium,
-                    ),
+                    Text(title, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 4),
                     Text(
                       issuer,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(
-                            color: UIColors.textSecondary,
-                          ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
                   ],
                 ),
@@ -365,15 +344,14 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'No certificates yet',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
           const SizedBox(height: 4),
           Text(
             'Tap + to add your first certificate',
-            style: TextStyle(color: UIColors.textSecondary),
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
           ),
         ],
       ),

@@ -11,7 +11,7 @@ class AdminUserManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= HEADER =================
@@ -60,30 +60,23 @@ class AdminUserManagementScreen extends StatelessWidget {
                         .collection('users')
                         .snapshots(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
-                      if (!snapshot.hasData ||
-                          snapshot.data!.docs.isEmpty) {
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return const _EmptyState();
                       }
 
                       final users = snapshot.data!.docs;
 
                       return ListView.separated(
-                        padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                         itemCount: users.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
                           final doc = users[index];
-                          final data =
-                              doc.data() as Map<String, dynamic>;
+                          final data = doc.data() as Map<String, dynamic>;
 
                           return _UserCard(
                             userId: doc.id,
@@ -131,7 +124,7 @@ class _UserCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -172,17 +165,14 @@ class _UserCard extends StatelessWidget {
                 // CONTENT
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // NAME
                       Text(
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
 
                       const SizedBox(height: 4),
@@ -192,12 +182,9 @@ class _UserCard extends StatelessWidget {
                         email,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                              color: UIColors.textSecondary,
-                            ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
 
                       const SizedBox(height: 8),
@@ -209,16 +196,12 @@ class _UserCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              UIColors.primary.withValues(alpha: 0.08),
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          color: UIColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           role.toUpperCase(),
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
+                          style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 color: UIColors.primary,
                                 fontWeight: FontWeight.w600,
@@ -229,11 +212,7 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
 
-                const Icon(
-                  Icons.edit,
-                  size: 18,
-                  color: UIColors.textMuted,
-                ),
+                const Icon(Icons.edit, size: 18, color: UIColors.textMuted),
               ],
             ),
           ),
@@ -264,9 +243,7 @@ Future<void> _showRoleDialog({
     context: context,
     builder: (_) {
       return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Assign Role'),
         content: DropdownButtonFormField<String>(
           initialValue: selectedRole,
@@ -296,10 +273,7 @@ Future<void> _showRoleDialog({
                   if (batchId == null) {
                     throw Exception('User has no batch');
                   }
-                  await batchService.assignCR(
-                    userId: userId,
-                    batchId: batchId,
-                  );
+                  await batchService.assignCR(userId: userId, batchId: batchId);
                 } else if (selectedRole == 'faculty') {
                   await roleService.assignFaculty(userId);
                 } else if (selectedRole == 'staff') {
@@ -310,9 +284,9 @@ Future<void> _showRoleDialog({
 
                 Navigator.pop(context);
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(e.toString())),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(e.toString())));
               }
             },
             child: const Text('Assign'),
@@ -353,10 +327,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'No users found',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ],
       ),

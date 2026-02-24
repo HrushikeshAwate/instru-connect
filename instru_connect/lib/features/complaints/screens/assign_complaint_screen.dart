@@ -6,18 +6,13 @@ import '../../../config/theme/ui_colors.dart';
 class AssignComplaintScreen extends StatefulWidget {
   final String complaintId;
 
-  const AssignComplaintScreen({
-    super.key,
-    required this.complaintId,
-  });
+  const AssignComplaintScreen({super.key, required this.complaintId});
 
   @override
-  State<AssignComplaintScreen> createState() =>
-      _AssignComplaintScreenState();
+  State<AssignComplaintScreen> createState() => _AssignComplaintScreenState();
 }
 
-class _AssignComplaintScreenState
-    extends State<AssignComplaintScreen> {
+class _AssignComplaintScreenState extends State<AssignComplaintScreen> {
   final _service = ComplaintService();
 
   String? _selectedUserId;
@@ -27,7 +22,7 @@ class _AssignComplaintScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ---------------------------------------------
@@ -51,8 +46,10 @@ class _AssignComplaintScreenState
                 // CUSTOM APP BAR
                 // ---------------------------------------------
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
@@ -83,9 +80,7 @@ class _AssignComplaintScreenState
                     future: _service.fetchAssignableUsers(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       final users = snapshot.data!;
@@ -105,7 +100,9 @@ class _AssignComplaintScreenState
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: UIColors.primary.withValues(alpha: 0.08),
+                                    color: UIColors.primary.withValues(
+                                      alpha: 0.08,
+                                    ),
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
                                   ),
@@ -114,12 +111,14 @@ class _AssignComplaintScreenState
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Assign To',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: UIColors.textPrimary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -127,7 +126,9 @@ class _AssignComplaintScreenState
                                     'Select a staff or faculty member responsible for resolving this complaint.',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: UIColors.textSecondary,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium?.color,
                                     ),
                                   ),
                                   const SizedBox(height: 20),
@@ -181,8 +182,9 @@ class _AssignComplaintScreenState
                                 borderRadius: BorderRadius.circular(18),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        UIColors.primary.withValues(alpha: 0.25),
+                                    color: UIColors.primary.withValues(
+                                      alpha: 0.25,
+                                    ),
                                     blurRadius: 16,
                                     offset: const Offset(0, 8),
                                   ),
@@ -192,14 +194,14 @@ class _AssignComplaintScreenState
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.transparent,
                                   shadowColor: Colors.transparent,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                 ),
-                                onPressed: _loading ||
-                                        _selectedUserId == null
+                                onPressed: _loading || _selectedUserId == null
                                     ? null
                                     : () async {
                                         setState(() => _loading = true);

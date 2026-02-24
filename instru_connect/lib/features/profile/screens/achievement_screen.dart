@@ -21,7 +21,7 @@ class AchievementsScreen extends StatelessWidget {
     final service = AchievementService();
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(
         backgroundColor: UIColors.primary,
         onPressed: () => _showAddDialog(context, service, uid),
@@ -72,9 +72,7 @@ class AchievementsScreen extends StatelessWidget {
                     stream: service.fetchAchievements(uid),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
@@ -103,7 +101,8 @@ class AchievementsScreen extends StatelessWidget {
                             rank: a['rank'] ?? '',
                             score: a['score'] ?? '',
                             fileType: fileType,
-                            onTap: () => _openInBrowser(a['certificateUrl'] ?? ''),
+                            onTap: () =>
+                                _openInBrowser(a['certificateUrl'] ?? ''),
                           );
                         },
                       );
@@ -197,8 +196,7 @@ class AchievementsScreen extends StatelessWidget {
                       onPressed: uploading
                           ? null
                           : () async {
-                              final file =
-                                  await service.pickAchievementFile();
+                              final file = await service.pickAchievementFile();
                               if (file != null) {
                                 setState(() => selectedFile = file);
                               }
@@ -324,27 +322,21 @@ class _AchievementCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    Text(title, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 4),
                     if (event.isNotEmpty)
                       Text(
                         event,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: UIColors.textSecondary),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
                     if (meta.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           meta,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: UIColors.textMuted),
                         ),
                       ),
@@ -392,15 +384,14 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'No achievements yet',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
           const SizedBox(height: 4),
           Text(
             'Tap + to add your first achievement',
-            style: TextStyle(color: UIColors.textSecondary),
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
           ),
         ],
       ),

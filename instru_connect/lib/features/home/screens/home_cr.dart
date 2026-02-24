@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
 import 'package:instru_connect/core/sessioin/current_user.dart';
-import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
-import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
@@ -16,16 +14,28 @@ import 'package:instru_connect/features/timetable/screens/timetable_screen.dart'
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
+import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
 class HomeCr extends StatelessWidget {
   const HomeCr({super.key});
+
+  Future<String> _resolveBatchName(String? batchId) async {
+    if (batchId == null || batchId.trim().isEmpty) return 'CR';
+    final batchDoc = await FirebaseFirestore.instance
+        .collection('batches')
+        .doc(batchId)
+        .get();
+    final batchName = (batchDoc.data()?['name'] ?? '').toString().trim();
+    if (batchName.isEmpty) return 'CR';
+    return batchName;
+  }
 
   @override
   Widget build(BuildContext context) {
     final String? batchId = CurrentUser.batchId;
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // =========================
@@ -53,20 +63,12 @@ class HomeCr extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      if (Navigator.canPop(context))
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'CR Dashboard',
+                              'InstruConnect',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
@@ -75,19 +77,23 @@ class HomeCr extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            Text(
-                              'Batch: ${batchId ?? "Not Assigned"}',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            FutureBuilder<String>(
+                              future: _resolveBatchName(batchId),
+                              builder: (context, snapshot) {
+                                return Text(
+                                  snapshot.data ?? 'CR',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              },
                             ),
                           ],
                         ),
                       ),
-                      const Spacer(),
                       const NotificationBell(),
                       IconButton(
                         icon: const Icon(
@@ -96,13 +102,6 @@ class HomeCr extends StatelessWidget {
                         ),
                         onPressed: () =>
                             Navigator.pushNamed(context, Routes.profile),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.logout_rounded,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => showLogoutDialog(context),
                       ),
                     ],
                   ),
@@ -139,8 +138,7 @@ class HomeCr extends StatelessWidget {
                     if (rawData is! Map<String, dynamic>) {
                       return const _SubjectAttendanceError();
                     }
-                    final subjects =
-                        _toStringDynamicMap(rawData['subjects']);
+                    final subjects = _toStringDynamicMap(rawData['subjects']);
                     final subjectEntries = subjects.entries.toList()
                       ..sort((a, b) => a.key.compareTo(b.key));
 
@@ -148,16 +146,14 @@ class HomeCr extends StatelessWidget {
                       return const _EmptySubjectAttendance();
                     }
 
-                    final cardWidth =
-                        MediaQuery.of(context).size.width * 0.84;
+                    final cardWidth = MediaQuery.of(context).size.width * 0.84;
                     return SizedBox(
                       height: 150,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 12),
                         itemCount: subjectEntries.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 12),
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final entry = subjectEntries[index];
                           final stats = _toStringDynamicMap(entry.value);
@@ -184,37 +180,6 @@ class HomeCr extends StatelessWidget {
 
                 const SizedBox(height: 28),
 
-                // =========================
-                // CLASS OVERVIEW
-                // =========================
-                const _SectionHeader(
-                  title: 'Class Overview',
-                  subtitle: 'Real-time batch metrics',
-                ),
-                const SizedBox(height: 14),
-
-                Row(
-                  children: const [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Pending',
-                        value: '2',
-                        icon: Icons.hourglass_top_rounded,
-                        gradient: UIColors.warningGradient,
-                      ),
-                    ),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Active Notices',
-                        value: '4',
-                        icon: Icons.notifications_active_outlined,
-                        gradient: UIColors.primaryGradient,
-                      ),
-                    ),
-                  ],
-                ),
-
                 const SizedBox(height: 36),
 
                 // =========================
@@ -237,13 +202,12 @@ class HomeCr extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.add_comment_rounded,
                       label: 'Create Notice',
-                      gradient: UIColors.primaryGradient,
+                      gradient: UIColors.tileGradient(0),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => CreateNoticeScreen(
-                            fixedBatchIds:
-                            batchId != null ? [batchId] : null,
+                            fixedBatchIds: batchId != null ? [batchId] : null,
                             showBatchSelector: false,
                           ),
                         ),
@@ -252,7 +216,7 @@ class HomeCr extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.campaign_outlined,
                       label: 'View Notices',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(1),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -262,35 +226,29 @@ class HomeCr extends StatelessWidget {
                     ),
                     _ActionCard(
                       icon: Icons.assignment_late_outlined,
-                      label: 'Complaints',
-                      gradient: UIColors.warningGradient,
+                      label: 'View Complaints',
+                      gradient: UIColors.tileGradient(2),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ComplaintListScreen(
-                            stream: ComplaintService()
-                                .fetchAllComplaints(),
+                            stream: ComplaintService().fetchAllComplaints(),
                           ),
                         ),
                       ),
                     ),
                     _ActionCard(
-                      icon: Icons.add_moderator_outlined,
-                      label: 'Raise Issue',
-                      gradient: UIColors.errorGradient,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                          const CreateComplaintScreen(),
-                        ),
-                      ),
+                      icon: Icons.calendar_month_outlined,
+                      label: 'Event Calendar',
+                      gradient: UIColors.tileGradient(3),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
                     // FIXED: UPDATED TIMETABLE ACTION
                     _ActionCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Timetable',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(4),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -303,10 +261,9 @@ class HomeCr extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.folder_open_rounded,
                       label: 'Resources',
-                      gradient: UIColors.primaryGradient,
+                      gradient: UIColors.tileGradient(5),
                       onTap: () {
-                        Navigator.pushNamed(context, Routes.resources 
-                        );
+                        Navigator.pushNamed(context, Routes.resources);
                       },
                     ),
                   ],
@@ -329,8 +286,7 @@ class HomeCr extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _SectionHeader(
-      {required this.title, required this.subtitle});
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -339,75 +295,21 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: UIColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: UIColors.textSecondary,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Gradient gradient;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.gradient,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 26),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -427,49 +329,49 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: gradient,
           borderRadius: BorderRadius.circular(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -493,68 +395,71 @@ class _SubjectAttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isLow = percentage < 75;
-    return Container(
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: isLow ? UIColors.errorGradient : UIColors.successGradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            height: 50,
-            width: 50,
-            child: CircularProgressIndicator(
-              value: percentage / 100,
-              strokeWidth: 6,
-              backgroundColor: Colors.white24,
-              color: Colors.white,
+    final delay = Duration(
+      milliseconds: 80 + (subject.hashCode.abs() % 7) * 40,
+    );
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: isLow ? UIColors.errorGradient : UIColors.successGradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  subject,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          ],
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              height: 50,
+              width: 50,
+              child: CircularProgressIndicator(
+                value: percentage / 100,
+                strokeWidth: 6,
+                backgroundColor: Colors.white24,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    subject,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '$attended / $total classes',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
+                  const SizedBox(height: 6),
+                  Text(
+                    '$attended / $total classes',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Text(
-            '${percentage.toStringAsFixed(1)}%',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            Text(
+              '${percentage.toStringAsFixed(1)}%',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -568,12 +473,12 @@ class _EmptySubjectAttendance extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: UIColors.surface,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
+      child: Text(
         'No subject attendance yet',
-        style: TextStyle(color: UIColors.textSecondary),
+        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
       ),
     );
   }
@@ -587,12 +492,12 @@ class _SubjectAttendanceError extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: UIColors.surface,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
+      child: Text(
         'Unable to load subject attendance',
-        style: TextStyle(color: UIColors.textSecondary),
+        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
       ),
     );
   }
@@ -602,9 +507,7 @@ Map<String, dynamic> _toStringDynamicMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) {
     return Map<String, dynamic>.fromEntries(
-      value.entries.map(
-        (e) => MapEntry(e.key.toString(), e.value),
-      ),
+      value.entries.map((e) => MapEntry(e.key.toString(), e.value)),
     );
   }
   return <String, dynamic>{};

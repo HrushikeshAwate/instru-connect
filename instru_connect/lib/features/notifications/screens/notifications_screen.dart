@@ -16,7 +16,7 @@ class NotificationsScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           Container(
@@ -205,7 +205,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       body,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: UIColors.textSecondary,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                   ],
@@ -248,7 +248,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'You are all caught up',
-            style: TextStyle(color: UIColors.textSecondary),
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
           ),
         ],
       ),

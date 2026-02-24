@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
-import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
@@ -15,16 +14,35 @@ import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
+import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
 class HomeStudent extends StatelessWidget {
   const HomeStudent({super.key});
+
+  Future<String> _fetchBatchName(String uid) async {
+    if (uid.isEmpty) return 'Student';
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    final batchId = (userDoc.data()?['batchId'] ?? '').toString();
+    if (batchId.isEmpty) return 'Student';
+
+    final batchDoc = await FirebaseFirestore.instance
+        .collection('batches')
+        .doc(batchId)
+        .get();
+    final batchName = (batchDoc.data()?['name'] ?? '').toString().trim();
+    if (batchName.isEmpty) return 'Student';
+    return batchName;
+  }
 
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // =========================
@@ -52,31 +70,29 @@ class HomeStudent extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      if (Navigator.canPop(context))
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Student Portal',
+                            'InstruConnect',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
-                            'Instrumentation & Control',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                            ),
+                          FutureBuilder<String>(
+                            future: _fetchBatchName(currentUserId),
+                            builder: (context, snapshot) {
+                              final batch = snapshot.data ?? 'Student';
+                              return Text(
+                                batch,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -89,13 +105,6 @@ class HomeStudent extends StatelessWidget {
                         ),
                         onPressed: () =>
                             Navigator.pushNamed(context, Routes.profile),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.logout_rounded,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => showLogoutDialog(context),
                       ),
                     ],
                   ),
@@ -253,8 +262,7 @@ class HomeStudent extends StatelessWidget {
                     if (rawData is! Map<String, dynamic>) {
                       return const _SubjectAttendanceError();
                     }
-                    final subjects =
-                        _toStringDynamicMap(rawData['subjects']);
+                    final subjects = _toStringDynamicMap(rawData['subjects']);
                     final subjectEntries = subjects.entries.toList()
                       ..sort((a, b) => a.key.compareTo(b.key));
 
@@ -262,16 +270,14 @@ class HomeStudent extends StatelessWidget {
                       return const _EmptySubjectAttendance();
                     }
 
-                    final cardWidth =
-                        MediaQuery.of(context).size.width * 0.84;
+                    final cardWidth = MediaQuery.of(context).size.width * 0.84;
                     return SizedBox(
                       height: 150,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 12),
                         itemCount: subjectEntries.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 12),
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final entry = subjectEntries[index];
                           final stats = _toStringDynamicMap(entry.value);
@@ -318,7 +324,7 @@ class HomeStudent extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.campaign_outlined,
                       label: 'Notices',
-                      gradient: UIColors.primaryGradient,
+                      gradient: UIColors.tileGradient(0),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -329,14 +335,14 @@ class HomeStudent extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.menu_book_outlined,
                       label: 'Resources',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(1),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
                     _ActionCard(
                       icon: Icons.schedule_outlined,
                       label: 'Timetable',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(2),
                       // FIXED: Added Navigation logic
                       onTap: () {
                         Navigator.push(
@@ -349,8 +355,8 @@ class HomeStudent extends StatelessWidget {
                     ),
                     _ActionCard(
                       icon: Icons.report_problem_outlined,
-                      label: 'Support',
-                      gradient: UIColors.warningGradient,
+                      label: 'Raise Complaint',
+                      gradient: UIColors.tileGradient(3),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -361,7 +367,7 @@ class HomeStudent extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_month,
                       label: 'Event Calendar',
-                      gradient: UIColors.primaryGradient,
+                      gradient: UIColors.tileGradient(4),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
@@ -395,7 +401,7 @@ class HomeStudent extends StatelessWidget {
 
                 Container(
                   decoration: BoxDecoration(
-                    color: UIColors.surface,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
@@ -408,13 +414,10 @@ class HomeStudent extends StatelessWidget {
                   child: FutureBuilder<List<Notice>>(
                     future: NoticeService().fetchRecentNotices(limit: 3),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Padding(
                           padding: EdgeInsets.all(24),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         );
                       }
 
@@ -426,12 +429,8 @@ class HomeStudent extends StatelessWidget {
                       }
 
                       return Column(
-                        children: snapshot.data!
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                          final isLast =
-                              entry.key == snapshot.data!.length - 1;
+                        children: snapshot.data!.asMap().entries.map((entry) {
+                          final isLast = entry.key == snapshot.data!.length - 1;
                           return Column(
                             children: [
                               _NoticeTile(
@@ -439,14 +438,12 @@ class HomeStudent extends StatelessWidget {
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => NoticeDetailScreen(
-                                      notice: entry.value,
-                                    ),
+                                    builder: (_) =>
+                                        NoticeDetailScreen(notice: entry.value),
                                   ),
                                 ),
                               ),
-                              if (!isLast)
-                                const Divider(height: 1),
+                              if (!isLast) const Divider(height: 1),
                             ],
                           );
                         }).toList(),
@@ -479,16 +476,19 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: UIColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(fontSize: 13, color: UIColors.textSecondary),
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
         ),
       ],
     );
@@ -510,45 +510,49 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: gradient,
           borderRadius: BorderRadius.circular(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
                 ),
-                child: Icon(icon, color: Colors.white, size: 28),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.white,
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -572,68 +576,71 @@ class _SubjectAttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isLow = percentage < 75;
-    return Container(
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: isLow ? UIColors.errorGradient : UIColors.successGradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            height: 50,
-            width: 50,
-            child: CircularProgressIndicator(
-              value: percentage / 100,
-              strokeWidth: 6,
-              backgroundColor: Colors.white24,
-              color: Colors.white,
+    final delay = Duration(
+      milliseconds: 80 + (subject.hashCode.abs() % 7) * 40,
+    );
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: isLow ? UIColors.errorGradient : UIColors.successGradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  subject,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          ],
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              height: 50,
+              width: 50,
+              child: CircularProgressIndicator(
+                value: percentage / 100,
+                strokeWidth: 6,
+                backgroundColor: Colors.white24,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    subject,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '$attended / $total classes',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
+                  const SizedBox(height: 6),
+                  Text(
+                    '$attended / $total classes',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Text(
-            '${percentage.toStringAsFixed(1)}%',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            Text(
+              '${percentage.toStringAsFixed(1)}%',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -647,12 +654,12 @@ class _EmptySubjectAttendance extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: UIColors.surface,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
+      child: Text(
         'No subject attendance yet',
-        style: TextStyle(color: UIColors.textSecondary),
+        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
       ),
     );
   }
@@ -666,12 +673,12 @@ class _SubjectAttendanceError extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: UIColors.surface,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
+      child: Text(
         'Unable to load subject attendance',
-        style: TextStyle(color: UIColors.textSecondary),
+        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
       ),
     );
   }
@@ -681,9 +688,7 @@ Map<String, dynamic> _toStringDynamicMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) {
     return Map<String, dynamic>.fromEntries(
-      value.entries.map(
-        (e) => MapEntry(e.key.toString(), e.value),
-      ),
+      value.entries.map((e) => MapEntry(e.key.toString(), e.value)),
     );
   }
   return <String, dynamic>{};
@@ -695,20 +700,17 @@ int _asInt(dynamic value) {
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
 }
+
 class _NoticeTile extends StatelessWidget {
   final Notice notice;
   final VoidCallback onTap;
 
-  const _NoticeTile({
-    required this.notice,
-    required this.onTap,
-  });
+  const _NoticeTile({required this.notice, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       title: Text(
         notice.title,
         maxLines: 1,
@@ -719,8 +721,7 @@ class _NoticeTile extends StatelessWidget {
         'Tap to view details',
         style: TextStyle(fontSize: 12),
       ),
-      trailing:
-      const Icon(Icons.arrow_forward_ios, size: 14),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
       onTap: onTap,
     );
   }

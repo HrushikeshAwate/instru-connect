@@ -10,8 +10,7 @@ class CreateComplaintScreen extends StatefulWidget {
   const CreateComplaintScreen({super.key});
 
   @override
-  State<CreateComplaintScreen> createState() =>
-      _CreateComplaintScreenState();
+  State<CreateComplaintScreen> createState() => _CreateComplaintScreenState();
 }
 
 class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
@@ -77,7 +76,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= HEADER GRADIENT =================
@@ -141,9 +140,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
 
                       TextField(
                         controller: _title,
-                        decoration: const InputDecoration(
-                          labelText: 'Title',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Title'),
                       ),
                       const SizedBox(height: 16),
 
@@ -152,21 +149,21 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Category',
                         ),
-                        items: const [
-                          'Technical',
-                          'Teaching Faculty',
-                          'Non-Teaching Faculty',
-                          'Others',
-                        ]
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(e),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _category = v!),
+                        items:
+                            const [
+                                  'Technical',
+                                  'Teaching Faculty',
+                                  'Non-Teaching Faculty',
+                                  'Others',
+                                ]
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) => setState(() => _category = v!),
                       ),
 
                       const SizedBox(height: 16),
@@ -213,9 +210,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                             const SizedBox(width: 8),
                             Text(
                               '${_mediaType!.toUpperCase()} attached',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
                         ),
@@ -243,8 +238,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
@@ -288,10 +282,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(title, style: Theme.of(context).textTheme.titleMedium);
   }
 }
 

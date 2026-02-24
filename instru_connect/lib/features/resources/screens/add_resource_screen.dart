@@ -11,12 +11,10 @@ class AddResourceScreen extends StatefulWidget {
   const AddResourceScreen({super.key});
 
   @override
-  State<AddResourceScreen> createState() =>
-      _AddResourceScreenState();
+  State<AddResourceScreen> createState() => _AddResourceScreenState();
 }
 
-class _AddResourceScreenState
-    extends State<AddResourceScreen> {
+class _AddResourceScreenState extends State<AddResourceScreen> {
   final _titleCtrl = TextEditingController();
   final _subjectCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -54,9 +52,7 @@ class _AddResourceScreenState
         _titleCtrl.text.trim().isEmpty ||
         _subjectCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields'),
-        ),
+        const SnackBar(content: Text('Please fill all required fields')),
       );
       return;
     }
@@ -67,8 +63,7 @@ class _AddResourceScreenState
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      final role =
-          await RoleService().fetchUserRole(user.uid);
+      final role = await RoleService().fetchUserRole(user.uid);
 
       if (role.isEmpty) throw Exception('User role not found');
 
@@ -83,9 +78,9 @@ class _AddResourceScreenState
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -123,7 +118,9 @@ class _AddResourceScreenState
                 // ---------- APP BAR ----------
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 8),
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
@@ -148,30 +145,26 @@ class _AddResourceScreenState
                 // ---------- BODY CARD ----------
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        16, 16, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: SizedBox(
                       width: double.infinity, // 🔥 KEY FIX
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
                             BoxShadow(
-                              color:
-                                  Colors.black.withValues(alpha: 0.08),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 24,
                               offset: const Offset(0, 12),
                             ),
                           ],
                         ),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const _SectionTitle(
-                                'Resource Details'),
+                            const _SectionTitle('Resource Details'),
                             const SizedBox(height: 16),
 
                             TextField(
@@ -204,27 +197,25 @@ class _AddResourceScreenState
                             const SizedBox(height: 10),
 
                             OutlinedButton.icon(
-                              icon: const Icon(
-                                  Icons.attach_file_outlined),
+                              icon: const Icon(Icons.attach_file_outlined),
                               label: Text(
                                 _selectedFile == null
                                     ? 'Pick file'
-                                    : _selectedFile!.path
-                                        .split('/')
-                                        .last,
+                                    : _selectedFile!.path.split('/').last,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              onPressed:
-                                  _loading ? null : _pickFile,
+                              onPressed: _loading ? null : _pickFile,
                             ),
 
                             if (_selectedFile != null) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: const [
-                                  Icon(Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 18),
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 6),
                                   Text('File selected'),
                                 ],
@@ -236,19 +227,16 @@ class _AddResourceScreenState
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed:
-                                    _loading ? null : _submit,
+                                onPressed: _loading ? null : _submit,
                                 child: _loading
                                     ? const SizedBox(
                                         height: 20,
                                         width: 20,
-                                        child:
-                                            CircularProgressIndicator(
+                                        child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text(
-                                        'Upload Resource'),
+                                    : const Text('Upload Resource'),
                               ),
                             ),
                           ],
@@ -278,10 +266,9 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(fontWeight: FontWeight.bold),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 }

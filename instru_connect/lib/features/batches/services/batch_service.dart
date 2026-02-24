@@ -15,7 +15,7 @@ class BatchService {
     required WriteBatch batch,
     required String uid,
     required String subject,
-    required int totalDelta,    // 1 to add, -1 to remove, 0 to stay same
+    required int totalDelta, // 1 to add, -1 to remove, 0 to stay same
     required int attendedDelta, // 1 to add, -1 to remove, 0 to stay same
   }) {
     final userRef = _db.collection('users').doc(uid);
@@ -54,8 +54,10 @@ class BatchService {
     }
 
     final Map<int, int> promotionMap = {1: 2, 2: 3, 3: 4, 4: 0};
-    final usersSnapshot = await _db.collection('users')
-        .where('role', whereIn: ['student', 'cr']).get();
+    final usersSnapshot = await _db
+        .collection('users')
+        .where('role', whereIn: ['student', 'cr'])
+        .get();
 
     if (usersSnapshot.docs.isEmpty) return;
     final batch = _db.batch();
@@ -65,7 +67,7 @@ class BatchService {
       if (currentBatchId == null) continue;
 
       final currentBatchEntry = yearToBatchId.entries.firstWhere(
-            (e) => e.value == currentBatchId,
+        (e) => e.value == currentBatchId,
         orElse: () => const MapEntry(-1, ''),
       );
 
@@ -134,19 +136,23 @@ class BatchService {
     final normalizedSubject = subjectName.trim();
     final String dateKey = DateTime.now().toIso8601String().split('T')[0];
 
-    final existingSnapshot = await _db.collection('batches').doc(batchId)
+    final existingSnapshot = await _db
         .collection('attendance')
+        .where('batchId', isEqualTo: batchId)
         .where('date', isEqualTo: dateKey)
-        .where('subject', isEqualTo: normalizedSubject).get();
+        .where('subject', isEqualTo: normalizedSubject)
+        .get();
 
     int currentSessionNumber = existingSnapshot.docs.length + 1;
     final writeBatch = _db.batch();
     final String uniqueId = DateTime.now().millisecondsSinceEpoch.toString();
-    final attendanceDocId = "${dateKey}_${normalizedSubject}_S${currentSessionNumber}_$uniqueId";
+    final attendanceDocId =
+        "${dateKey}_${normalizedSubject}_S${currentSessionNumber}_$uniqueId";
 
-    final attendanceRef = _db.collection('batches').doc(batchId).collection('attendance').doc(attendanceDocId);
+    final attendanceRef = _db.collection('attendance').doc(attendanceDocId);
 
     writeBatch.set(attendanceRef, {
+      'batchId': batchId,
       'timestamp': FieldValue.serverTimestamp(),
       'subject': normalizedSubject,
       'absentUids': absentStudentUids,
@@ -182,12 +188,18 @@ class BatchService {
     required List<String> allStudentUids,
   }) async {
     final normalizedSubject = subjectName.trim();
-    final docRef = _db.collection('batches').doc(batchId).collection('attendance').doc(docId);
+    final docRef = _db.collection('attendance').doc(docId);
     final snap = await docRef.get();
 
     if (!snap.exists) throw Exception("Record not found");
+    final recordBatchId = (snap.data()?['batchId'] ?? '').toString();
+    if (recordBatchId.isNotEmpty && recordBatchId != batchId) {
+      throw Exception('Attendance record does not belong to this batch');
+    }
 
-    final List oldAbsentUids = List<String>.from(snap.data()?['absentUids'] ?? []);
+    final List oldAbsentUids = List<String>.from(
+      snap.data()?['absentUids'] ?? [],
+    );
     final writeBatch = _db.batch();
 
     writeBatch.update(docRef, {
@@ -200,9 +212,21 @@ class BatchService {
       bool isNowAbsent = newAbsentUids.contains(uid);
 
       if (wasAbsent && !isNowAbsent) {
-        _updateStudentStats(batch: writeBatch, uid: uid, subject: normalizedSubject, totalDelta: 0, attendedDelta: 1);
+        _updateStudentStats(
+          batch: writeBatch,
+          uid: uid,
+          subject: normalizedSubject,
+          totalDelta: 0,
+          attendedDelta: 1,
+        );
       } else if (!wasAbsent && isNowAbsent) {
-        _updateStudentStats(batch: writeBatch, uid: uid, subject: normalizedSubject, totalDelta: 0, attendedDelta: -1);
+        _updateStudentStats(
+          batch: writeBatch,
+          uid: uid,
+          subject: normalizedSubject,
+          totalDelta: 0,
+          attendedDelta: -1,
+        );
       }
     }
     await writeBatch.commit();
@@ -213,9 +237,13 @@ class BatchService {
   }
 
   Future<void> deleteAttendance(String batchId, String docId) async {
-    final docRef = _db.collection('batches').doc(batchId).collection('attendance').doc(docId);
+    final docRef = _db.collection('attendance').doc(docId);
     final snap = await docRef.get();
     if (!snap.exists) return;
+    final recordBatchId = (snap.data()?['batchId'] ?? '').toString();
+    if (recordBatchId.isNotEmpty && recordBatchId != batchId) {
+      throw Exception('Attendance record does not belong to this batch');
+    }
 
     final data = snap.data()!;
     final String subject = (data['subject'] as String).trim();
@@ -262,9 +290,7 @@ class BatchService {
       final int attended = (subjectStats['attended'] as num?)?.toInt() ?? 0;
 
       if (total == 0) {
-        await userRef.update({
-          'attendanceAlerts.$subject': false,
-        });
+        await userRef.update({'attendanceAlerts.$subject': false});
         continue;
       }
 
@@ -278,18 +304,11 @@ class BatchService {
           title: 'Low Attendance',
           body: '$subject is at ${percentage.toStringAsFixed(1)}%',
           type: 'low_attendance',
-          data: {
-            'subject': subject,
-            'percentage': percentage,
-          },
+          data: {'subject': subject, 'percentage': percentage},
         );
-        await userRef.update({
-          'attendanceAlerts.$subject': true,
-        });
+        await userRef.update({'attendanceAlerts.$subject': true});
       } else if (percentage >= 75 && alreadyAlerted) {
-        await userRef.update({
-          'attendanceAlerts.$subject': false,
-        });
+        await userRef.update({'attendanceAlerts.$subject': false});
       }
     }
   }

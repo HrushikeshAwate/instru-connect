@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
+import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
+import 'package:instru_connect/core/services/theme_controller.dart';
 import '../../../config/theme/ui_colors.dart';
 import '../services/profile_service.dart';
 import 'achievement_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool forceCompletion;
+  final String? completionRoute;
+
+  const ProfileScreen({
+    super.key,
+    this.forceCompletion = false,
+    this.completionRoute,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -28,6 +37,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   late ProfileModel profile;
   String? _batchName;
+  String _role = '';
+
+  bool get _isStudentOrCr => _role == 'student' || _role == 'cr';
 
   @override
   void initState() {
@@ -37,6 +49,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final user = FirebaseAuth.instance.currentUser!;
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    _role = (userDoc.data()?['role'] ?? '').toString().toLowerCase();
 
     await _service.createProfileIfNotExists(
       uid: user.uid,
@@ -53,10 +70,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _parentContactController.text = profile.parentContactNo ?? '';
 
     // ================= FETCH REAL BATCH NAME =================
-    if (profile.batchId != null) {
+    final fallbackBatchId = (userDoc.data()?['batchId'] ?? '').toString();
+    final selectedBatchId = (profile.batchId ?? '').trim().isNotEmpty
+        ? profile.batchId!
+        : fallbackBatchId;
+
+    if (selectedBatchId.isNotEmpty) {
       final batchDoc = await FirebaseFirestore.instance
           .collection('batches')
-          .doc(profile.batchId)
+          .doc(selectedBatchId)
           .get();
 
       if (batchDoc.exists) {
@@ -78,32 +100,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await _service.updateProfile(
       uid: profile.uid,
-      misNo: _misController.text.trim(),
+      misNo: _isStudentOrCr ? _misController.text.trim() : null,
       department: _deptController.text.trim(),
       coCurricular: _coCurricularController.text.trim(),
       contactNo: _contactController.text.trim(),
-      parentContactNo: _parentContactController.text.trim(),
+      parentContactNo: _isStudentOrCr
+          ? _parentContactController.text.trim()
+          : null,
     );
 
     setState(() => _saving = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated')),
-      );
+      if (widget.forceCompletion && widget.completionRoute != null) {
+        Navigator.pushReplacementNamed(context, widget.completionRoute!);
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= GRADIENT HEADER =================
@@ -134,7 +160,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Icons.arrow_back_ios_new_rounded,
                             color: Colors.white,
                           ),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: widget.forceCompletion
+                              ? null
+                              : () => Navigator.pop(context),
                         ),
                         const Text(
                           'Profile',
@@ -166,9 +194,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _WhiteCard(
                       child: Column(
                         children: [
-                          _readOnlyField('Name', profile.name),
-                          _readOnlyField('Email', profile.email),
-                          _readOnlyField('Batch', _batchName ?? '-'),
+                          _basicInfoRow(
+                            icon: Icons.person_outline_rounded,
+                            label: 'Name',
+                            value: profile.name,
+                          ),
+                          _basicInfoRow(
+                            icon: Icons.email_outlined,
+                            label: 'Email',
+                            value: profile.email,
+                          ),
+                          _basicInfoRow(
+                            icon: Icons.groups_2_outlined,
+                            label: 'Batch',
+                            value: _batchName ?? '-',
+                            showDivider: false,
+                          ),
                         ],
                       ),
                     ),
@@ -182,18 +223,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _WhiteCard(
                       child: Column(
                         children: [
-                          _editableField('MIS No', _misController),
-                          _editableField('Department', _deptController),
+                          if (_isStudentOrCr)
+                            _editableField(
+                              'MIS No',
+                              _misController,
+                              required: true,
+                            ),
+                          _editableField(
+                            'Department',
+                            _deptController,
+                            required: true,
+                          ),
                           _editableField(
                             'Co-curricular Activities',
                             _coCurricularController,
                             maxLines: 3,
+                            required: true,
                           ),
-                          _editableField('Contact No', _contactController),
                           _editableField(
-                            'Parent Contact No',
-                            _parentContactController,
+                            'Contact No',
+                            _contactController,
+                            required: true,
                           ),
+                          if (_isStudentOrCr)
+                            _editableField(
+                              'Parent Contact No',
+                              _parentContactController,
+                              required: true,
+                            ),
                         ],
                       ),
                     ),
@@ -201,39 +258,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 32),
 
                     // ================= ACHIEVEMENTS =================
-                    const _SectionTitle('Achievements'),
-                    const SizedBox(height: 12),
+                    if (!widget.forceCompletion) ...[
+                      const _SectionTitle('Achievements'),
+                      const SizedBox(height: 12),
 
-                    _WhiteCard(
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: UIColors.secondaryGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.workspace_premium_outlined,
-                            color: Colors.white,
-                          ),
-                        ),
-                        title: const Text('Achievements'),
-                        subtitle: const Text(
-                          'Upload and manage your achievements',
-                        ),
-                        trailing:
-                            const Icon(Icons.chevron_right_rounded),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const AchievementsScreen(),
+                      _WhiteCard(
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: UIColors.secondaryGradient,
+                              shape: BoxShape.circle,
                             ),
-                          );
-                        },
+                            child: const Icon(
+                              Icons.workspace_premium_outlined,
+                              color: Colors.white,
+                            ),
+                          ),
+                          title: const Text('Achievements'),
+                          subtitle: const Text(
+                            'Upload and manage your achievements',
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AchievementsScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                    ],
 
                     const SizedBox(height: 32),
 
@@ -250,9 +307,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Save Changes'),
+                            : Text(
+                                widget.forceCompletion
+                                    ? 'Continue'
+                                    : 'Save Changes',
+                              ),
                       ),
                     ),
+
+                    const SizedBox(height: 12),
+
+                    if (!widget.forceCompletion)
+                      _WhiteCard(
+                        child: SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Dark Mode'),
+                          subtitle: const Text('Use darker app appearance'),
+                          value: ThemeController.instance.isDarkMode,
+                          onChanged: (enabled) {
+                            ThemeController.instance.setDarkMode(enabled);
+                            setState(() {});
+                          },
+                        ),
+                      ),
+
+                    if (!widget.forceCompletion) const SizedBox(height: 12),
+
+                    // ================= LOGOUT =================
+                    if (!widget.forceCompletion)
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => showLogoutDialog(context),
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Log Out'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: UIColors.error,
+                            side: const BorderSide(color: UIColors.error),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -265,14 +359,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ================= FIELD WIDGETS =================
 
-  Widget _readOnlyField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        initialValue: value,
-        enabled: false,
-        decoration: InputDecoration(labelText: label),
-      ),
+  Widget _basicInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool showDivider = true,
+  }) {
+    final textSecondary = Theme.of(context).textTheme.bodyMedium?.color;
+    final textPrimary = Theme.of(context).colorScheme.onSurface;
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: UIColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 18, color: UIColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (showDivider) const SizedBox(height: 12),
+        if (showDivider) Divider(color: textSecondary?.withValues(alpha: 0.25)),
+        if (showDivider) const SizedBox(height: 12),
+      ],
     );
   }
 
@@ -280,12 +420,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String label,
     TextEditingController controller, {
     int maxLines = 1,
+    bool required = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        validator: required
+            ? (value) {
+                if ((value ?? '').trim().isEmpty) {
+                  return '$label is required';
+                }
+                return null;
+              }
+            : null,
         decoration: InputDecoration(labelText: label),
       ),
     );
@@ -298,10 +447,7 @@ class _ProfileHeader extends StatelessWidget {
   final String name;
   final String email;
 
-  const _ProfileHeader({
-    required this.name,
-    required this.email,
-  });
+  const _ProfileHeader({required this.name, required this.email});
 
   @override
   Widget build(BuildContext context) {
@@ -327,17 +473,9 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                name,
-                style:
-                    Theme.of(context).textTheme.titleMedium,
-              ),
+              Text(name, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
-              Text(
-                email,
-                style:
-                    Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text(email, style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -357,7 +495,7 @@ class _WhiteCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -380,9 +518,6 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(title, style: Theme.of(context).textTheme.titleMedium);
   }
 }

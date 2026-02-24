@@ -18,12 +18,10 @@ class EditAttendanceScreen extends StatefulWidget {
   });
 
   @override
-  State<EditAttendanceScreen> createState() =>
-      _EditAttendanceScreenState();
+  State<EditAttendanceScreen> createState() => _EditAttendanceScreenState();
 }
 
-class _EditAttendanceScreenState
-    extends State<EditAttendanceScreen> {
+class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
   late Set<String> selectedAbsentIds;
   bool _isUpdating = false;
 
@@ -36,7 +34,7 @@ class _EditAttendanceScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Stack(
         children: [
@@ -89,14 +87,12 @@ class _EditAttendanceScreenState
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.edit,
-                          color: UIColors.warning),
+                      Icon(Icons.edit, color: UIColors.warning),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Mark students who were ABSENT',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -108,50 +104,34 @@ class _EditAttendanceScreenState
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
-                        .where('batchId',
-                            isEqualTo: widget.batchId)
-                        .where('role',
-                            whereIn: ['student', 'cr'])
+                        .where('batchId', isEqualTo: widget.batchId)
+                        .where('role', whereIn: ['student', 'cr'])
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
-                        return Center(
-                            child: Text(
-                                'Error: ${snapshot.error}'));
+                        return Center(child: Text('Error: ${snapshot.error}'));
                       }
 
                       if (!snapshot.hasData) {
-                        return const Center(
-                            child:
-                                CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
-                      final students =
-                          snapshot.data!.docs;
+                      final students = snapshot.data!.docs;
 
                       return ListView.builder(
-                        padding:
-                            const EdgeInsets.fromLTRB(
-                                16, 8, 16, 100),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                         itemCount: students.length,
                         itemBuilder: (context, index) {
                           final doc = students[index];
-                          final data = doc.data()
-                              as Map<String, dynamic>;
+                          final data = doc.data() as Map<String, dynamic>;
                           final uid = doc.id;
 
-                          final name = data['Name'] ??
-                              data['name'] ??
-                              'Unknown';
-                          final mis =
-                              (data['MIS No'] ??
-                                      data['mis'] ??
-                                      'N/A')
-                                  .toString();
+                          final name =
+                              data['Name'] ?? data['name'] ?? 'Unknown';
+                          final mis = (data['MIS No'] ?? data['mis'] ?? 'N/A')
+                              .toString();
 
-                          final isAbsent =
-                              selectedAbsentIds
-                                  .contains(uid);
+                          final isAbsent = selectedAbsentIds.contains(uid);
 
                           return _StudentCard(
                             name: name,
@@ -160,10 +140,8 @@ class _EditAttendanceScreenState
                             onTap: () {
                               setState(() {
                                 isAbsent
-                                    ? selectedAbsentIds
-                                        .remove(uid)
-                                    : selectedAbsentIds
-                                        .add(uid);
+                                    ? selectedAbsentIds.remove(uid)
+                                    : selectedAbsentIds.add(uid);
                               });
                             },
                           );
@@ -192,8 +170,7 @@ class _EditAttendanceScreenState
             ),
             onPressed: _isUpdating ? null : _saveChanges,
             child: _isUpdating
-                ? const CircularProgressIndicator(
-                    color: Colors.white)
+                ? const CircularProgressIndicator(color: Colors.white)
                 : const Text(
                     'SAVE CHANGES',
                     style: TextStyle(
@@ -221,8 +198,7 @@ class _EditAttendanceScreenState
           .where('role', whereIn: ['student', 'cr'])
           .get();
 
-      final allUids =
-          studentQuery.docs.map((e) => e.id).toList();
+      final allUids = studentQuery.docs.map((e) => e.id).toList();
 
       await BatchService().updateAttendance(
         batchId: widget.batchId,
@@ -234,17 +210,15 @@ class _EditAttendanceScreenState
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Attendance updated successfully')),
+          const SnackBar(content: Text('Attendance updated successfully')),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Update Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isUpdating = false);
@@ -271,8 +245,7 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        isAbsent ? UIColors.error : UIColors.success;
+    final color = isAbsent ? UIColors.error : UIColors.success;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -296,44 +269,30 @@ class _StudentCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor:
-                    color.withValues(alpha: 0.15),
+                backgroundColor: color.withValues(alpha: 0.15),
                 child: Icon(
-                  isAbsent
-                      ? Icons.person_off
-                      : Icons.person,
+                  isAbsent ? Icons.person_off : Icons.person,
                   color: color,
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium,
-                    ),
+                    Text(name, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 4),
                     Text(
                       'MIS: $mis',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(
-                              color: UIColors
-                                  .textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
                   ],
                 ),
               ),
               Icon(
-                isAbsent
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
+                isAbsent ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: color,
               ),
             ],

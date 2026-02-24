@@ -11,10 +11,7 @@ import 'update_complaint_progress.dart';
 class ComplaintDetailScreen extends StatelessWidget {
   final ComplaintModel complaint;
 
-  const ComplaintDetailScreen({
-    super.key,
-    required this.complaint,
-  });
+  const ComplaintDetailScreen({super.key, required this.complaint});
 
   // =======================================================
   // FETCH CURRENT USER ROLE
@@ -23,8 +20,10 @@ class ComplaintDetailScreen extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
 
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     return doc.data()?['role'] as String?;
   }
 
@@ -39,7 +38,7 @@ class ComplaintDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= HEADER GRADIENT =================
@@ -62,8 +61,10 @@ class ComplaintDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     const Text(
@@ -83,7 +84,7 @@ class ComplaintDetailScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
@@ -194,7 +195,8 @@ class ComplaintDetailScreen extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                                'You are not allowed to assign complaints'),
+                              'You are not allowed to assign complaints',
+                            ),
                           ),
                         );
                       }
@@ -239,10 +241,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(title, style: Theme.of(context).textTheme.titleMedium);
   }
 }
 
@@ -312,14 +311,17 @@ class _GradientButton extends StatelessWidget {
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
         icon: Icon(icon, color: Colors.white),
         label: Text(
           label,
           style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         onPressed: onTap,
       ),

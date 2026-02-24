@@ -50,7 +50,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FutureBuilder<bool>(
         future: _canAddResourceFuture,
         builder: (context, snapshot) {
@@ -152,7 +152,7 @@ class ResourceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, // ✅ WHITE like notice
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -208,7 +208,7 @@ class ResourceTile extends StatelessWidget {
                       Text(
                         resource.subject,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: UIColors.textSecondary,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
                       ),
                     ],

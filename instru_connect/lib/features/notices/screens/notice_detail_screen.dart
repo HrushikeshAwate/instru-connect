@@ -7,10 +7,7 @@ import '../../../core/utils/date_utils.dart';
 class NoticeDetailScreen extends StatelessWidget {
   final Notice notice;
 
-  const NoticeDetailScreen({
-    super.key,
-    required this.notice,
-  });
+  const NoticeDetailScreen({super.key, required this.notice});
 
   @override
   Widget build(BuildContext context) {
@@ -43,12 +40,17 @@ class NoticeDetailScreen extends StatelessWidget {
               children: [
                 // ---------------- APP BAR ----------------
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
@@ -72,7 +74,7 @@ class NoticeDetailScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
                             BoxShadow(
@@ -89,9 +91,7 @@ class NoticeDetailScreen extends StatelessWidget {
                               // TITLE
                               Text(
                                 notice.title,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
+                                style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
 
@@ -100,7 +100,9 @@ class NoticeDetailScreen extends StatelessWidget {
                               // DATE CHIP
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 6),
+                                  horizontal: 14,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(20),
@@ -120,10 +122,9 @@ class NoticeDetailScreen extends StatelessWidget {
                               // BODY
                               Text(
                                 notice.body,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(height: 1.6),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(height: 1.6),
                               ),
 
                               // ATTACHMENTS
@@ -131,19 +132,14 @@ class NoticeDetailScreen extends StatelessWidget {
                                 const SizedBox(height: 32),
                                 Text(
                                   'Attachments',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 12),
-                                ...notice.attachments.map((url) {
-                                  final isPdf =
-                                      url.toLowerCase().endsWith('.pdf');
-                                  return _AttachmentTile(
-                                    url: url,
-                                    isPdf: isPdf,
-                                  );
-                                }),
+                                ...notice.attachments.map(
+                                  (url) => _AttachmentTile(url: url),
+                                ),
                               ],
                             ],
                           ),
@@ -167,15 +163,73 @@ class NoticeDetailScreen extends StatelessWidget {
 
 class _AttachmentTile extends StatelessWidget {
   final String url;
-  final bool isPdf;
 
-  const _AttachmentTile({
-    required this.url,
-    required this.isPdf,
-  });
+  const _AttachmentTile({required this.url});
+
+  bool get _isPdf => url.toLowerCase().contains('.pdf');
+  bool get _isImage {
+    final lower = url.toLowerCase();
+    return lower.contains('.png') ||
+        lower.contains('.jpg') ||
+        lower.contains('.jpeg') ||
+        lower.contains('.webp');
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isImage) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxHeight: 420),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).cardColor,
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const SizedBox(
+                      height: 220,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => const SizedBox(
+                    height: 220,
+                    child: Center(
+                      child: Icon(Icons.broken_image_outlined, size: 42),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () async {
+                final uri = Uri.parse(url);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Open image externally'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -183,31 +237,26 @@ class _AttachmentTile extends StatelessWidget {
         onTap: () async {
           final uri = Uri.parse(url);
           if (await canLaunchUrl(uri)) {
-            await launchUrl(
-              uri,
-              mode: LaunchMode.externalApplication,
-            );
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
           }
         },
         child: Ink(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            color: const Color(0xFFF8FAFC),
+            color: Theme.of(context).cardColor,
             border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
           child: Row(
             children: [
               Icon(
-                isPdf
-                    ? Icons.picture_as_pdf_outlined
-                    : Icons.image_outlined,
+                _isPdf ? Icons.picture_as_pdf_outlined : Icons.attach_file,
                 color: const Color(0xFF2563EB),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  isPdf ? 'View PDF Attachment' : 'View Image Attachment',
+                  _isPdf ? 'Open PDF Attachment' : 'Open Attachment',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),

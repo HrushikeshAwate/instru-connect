@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= HEADER =================
@@ -109,7 +109,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'Instrumentation Department',
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: UIColors.textSecondary),
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.color,
+                              ),
                         ),
 
                         const SizedBox(height: 32),
@@ -201,7 +205,10 @@ class _AppLogo extends StatelessWidget {
         shape: BoxShape.circle,
         color: UIColors.background,
         boxShadow: [
-          BoxShadow(color: UIColors.primary.withValues(alpha: 0.15), blurRadius: 16),
+          BoxShadow(
+            color: UIColors.primary.withValues(alpha: 0.15),
+            blurRadius: 16,
+          ),
         ],
       ),
       child: Image.asset(

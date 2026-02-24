@@ -7,15 +7,12 @@ import 'subject_detail_screen.dart';
 class BatchSubjectsScreen extends StatelessWidget {
   final String batchId;
 
-  const BatchSubjectsScreen({
-    super.key,
-    required this.batchId,
-  });
+  const BatchSubjectsScreen({super.key, required this.batchId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ================= FAB =================
       floatingActionButton: FloatingActionButton(
@@ -78,23 +75,17 @@ class BatchSubjectsScreen extends StatelessWidget {
                         return Center(
                           child: Text(
                             'Error loading subjects',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium,
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         );
                       }
 
                       // LOADING
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
-                      final subjects =
-                          snapshot.data?.docs ?? [];
+                      final subjects = snapshot.data?.docs ?? [];
 
                       // EMPTY
                       if (subjects.isEmpty) {
@@ -102,13 +93,11 @@ class BatchSubjectsScreen extends StatelessWidget {
                       }
 
                       return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(
-                            16, 16, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                         itemCount: subjects.length,
                         itemBuilder: (context, index) {
                           final doc = subjects[index];
-                          final data =
-                              doc.data() as Map<String, dynamic>;
+                          final data = doc.data() as Map<String, dynamic>;
 
                           return _SubjectCard(
                             name: data['name'],
@@ -117,14 +106,18 @@ class BatchSubjectsScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      SubjectDetailScreen(
+                                  builder: (_) => SubjectDetailScreen(
                                     subjectName: data['name'],
                                     batchId: batchId,
                                   ),
                                 ),
                               );
                             },
+                            onDelete: () => _confirmDeleteSubject(
+                              context,
+                              subjectId: doc.id,
+                              subjectName: (data['name'] ?? '').toString(),
+                            ),
                           );
                         },
                       );
@@ -142,8 +135,7 @@ class BatchSubjectsScreen extends StatelessWidget {
   // ===============================
   // CREATE SUBJECT DIALOG
   // ===============================
-  Future<void> _showCreateSubjectDialog(
-      BuildContext context) async {
+  Future<void> _showCreateSubjectDialog(BuildContext context) async {
     final nameController = TextEditingController();
     final codeController = TextEditingController();
 
@@ -157,16 +149,12 @@ class BatchSubjectsScreen extends StatelessWidget {
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject Name',
-                ),
+                decoration: const InputDecoration(labelText: 'Subject Name'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject Code',
-                ),
+                decoration: const InputDecoration(labelText: 'Subject Code'),
               ),
             ],
           ),
@@ -183,14 +171,11 @@ class BatchSubjectsScreen extends StatelessWidget {
                   return;
                 }
 
-                await FirebaseFirestore.instance
-                    .collection('subjects')
-                    .add({
+                await FirebaseFirestore.instance.collection('subjects').add({
                   'name': nameController.text.trim(),
                   'code': codeController.text.trim(),
                   'batchId': batchId,
-                  'createdAt':
-                      FieldValue.serverTimestamp(),
+                  'createdAt': FieldValue.serverTimestamp(),
                 });
 
                 Navigator.pop(context);
@@ -200,6 +185,49 @@ class BatchSubjectsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteSubject(
+    BuildContext context, {
+    required String subjectId,
+    required String subjectName,
+  }) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Subject'),
+        content: Text('Delete "$subjectName"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: UIColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc(subjectId)
+          .delete();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Subject deleted')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete subject: $e')));
+    }
   }
 }
 
@@ -211,11 +239,13 @@ class _SubjectCard extends StatelessWidget {
   final String name;
   final String code;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   const _SubjectCard({
     required this.name,
     required this.code,
     required this.onTap,
+    required this.onDelete,
   });
 
   @override
@@ -223,7 +253,7 @@ class _SubjectCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -256,34 +286,46 @@ class _SubjectCard extends StatelessWidget {
                 // TEXT
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         code,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                              color:
-                                  UIColors.textSecondary,
-                            ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
                     ],
                   ),
                 ),
 
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: UIColors.textMuted,
+                Column(
+                  children: [
+                    PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: UIColors.textMuted,
+                      ),
+                      onSelected: (value) {
+                        if (value == 'delete') onDelete();
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Text('Delete Subject'),
+                        ),
+                      ],
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: UIColors.textMuted,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -322,10 +364,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'No subjects created',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ],
       ),

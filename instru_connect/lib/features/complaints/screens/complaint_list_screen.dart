@@ -7,15 +7,12 @@ import 'complaint_detail_screen.dart';
 class ComplaintListScreen extends StatelessWidget {
   final Stream<List<ComplaintModel>> stream;
 
-  const ComplaintListScreen({
-    super.key,
-    required this.stream,
-  });
+  const ComplaintListScreen({super.key, required this.stream});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= HEADER GRADIENT =================
@@ -35,13 +32,17 @@ class ComplaintListScreen extends StatelessWidget {
               children: [
                 // ================= CUSTOM APP BAR =================
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
@@ -62,9 +63,7 @@ class ComplaintListScreen extends StatelessWidget {
                     stream: stream,
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       final complaints = snapshot.data!;
@@ -76,12 +75,9 @@ class ComplaintListScreen extends StatelessWidget {
                       return ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
                         itemCount: complaints.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
-                          return _ComplaintCard(
-                            complaint: complaints[index],
-                          );
+                          return _ComplaintCard(complaint: complaints[index]);
                         },
                       );
                     },
@@ -123,7 +119,7 @@ class _ComplaintCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -157,10 +153,9 @@ class _ComplaintCard extends StatelessWidget {
                     complaint.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _StatusChip(status: complaint.status),
@@ -168,8 +163,7 @@ class _ComplaintCard extends StatelessWidget {
               ),
             ),
 
-            const Icon(Icons.chevron_right_rounded,
-                color: UIColors.textMuted),
+            const Icon(Icons.chevron_right_rounded, color: UIColors.textMuted),
           ],
         ),
       ),
@@ -234,12 +228,12 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No complaints found',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: UIColors.textSecondary,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
             ),
           ),
         ],

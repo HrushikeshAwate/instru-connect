@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
-import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
@@ -14,8 +13,8 @@ import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:instru_connect/features/profile/services/achievement_service.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
+import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
 class HomeFaculty extends StatelessWidget {
   const HomeFaculty({super.key});
@@ -23,24 +22,22 @@ class HomeFaculty extends StatelessWidget {
   Future<void> _exportAchievements(BuildContext context) async {
     try {
       final filePath = await AchievementService().exportAllAchievementsCsv();
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(filePath)],
-          text: 'Achievements export',
-        ),
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export downloaded to: $filePath')),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // =========================
@@ -68,19 +65,11 @@ class HomeFaculty extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      if (Navigator.canPop(context))
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Faculty Portal',
+                            'InstruConnect',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -88,7 +77,7 @@ class HomeFaculty extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Academic Session 2025–26',
+                            'Faculty',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
@@ -99,15 +88,12 @@ class HomeFaculty extends StatelessWidget {
                       const Spacer(),
                       const NotificationBell(),
                       IconButton(
-                        icon: const Icon(Icons.person_outline,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                        ),
                         onPressed: () =>
                             Navigator.pushNamed(context, Routes.profile),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.logout_rounded,
-                            color: Colors.white),
-                        onPressed: () => showLogoutDialog(context),
                       ),
                     ],
                   ),
@@ -128,18 +114,22 @@ class HomeFaculty extends StatelessWidget {
                     final pending = !snapshot.hasData
                         ? '—'
                         : snapshot.data!.docs
-                        .where((d) =>
-                    (d.data() as Map)['status'] != 'resolved')
-                        .length
-                        .toString();
+                              .where(
+                                (d) =>
+                                    (d.data() as Map)['status'] != 'resolved',
+                              )
+                              .length
+                              .toString();
 
                     final resolved = !snapshot.hasData
                         ? '—'
                         : snapshot.data!.docs
-                        .where((d) =>
-                    (d.data() as Map)['status'] == 'resolved')
-                        .length
-                        .toString();
+                              .where(
+                                (d) =>
+                                    (d.data() as Map)['status'] == 'resolved',
+                              )
+                              .length
+                              .toString();
 
                     return Row(
                       children: [
@@ -148,7 +138,7 @@ class HomeFaculty extends StatelessWidget {
                             label: 'Pending',
                             value: pending,
                             icon: Icons.pending_outlined,
-                            gradient: UIColors.warningGradient,
+                            gradient: UIColors.tileGradient(3),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -187,7 +177,7 @@ class HomeFaculty extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.add_alert_outlined,
                       title: 'Create Notice',
-                      gradient: UIColors.primaryGradient,
+                      gradient: UIColors.tileGradient(0),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -201,14 +191,14 @@ class HomeFaculty extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_today_outlined,
                       title: 'Event Calendar',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(1),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
                     _ActionCard(
                       icon: Icons.library_books_outlined,
                       title: 'Resources',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(2),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
@@ -216,7 +206,7 @@ class HomeFaculty extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_month_outlined,
                       title: 'Timetable',
-                      gradient: UIColors.warningGradient,
+                      gradient: UIColors.tileGradient(3),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -229,14 +219,14 @@ class HomeFaculty extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.group_work_outlined,
                       title: 'Manage Batches',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(4),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.manageBatches),
                     ),
                     _ActionCard(
                       icon: Icons.file_download_outlined,
                       title: 'Export Achievements',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(5),
                       onTap: () => _exportAchievements(context),
                     ),
                   ],
@@ -269,7 +259,7 @@ class HomeFaculty extends StatelessWidget {
 
                 Container(
                   decoration: BoxDecoration(
-                    color: UIColors.surface,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
@@ -282,13 +272,10 @@ class HomeFaculty extends StatelessWidget {
                   child: FutureBuilder<List<Notice>>(
                     future: NoticeService().fetchRecentNotices(limit: 3),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Padding(
                           padding: EdgeInsets.all(24),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         );
                       }
 
@@ -300,12 +287,8 @@ class HomeFaculty extends StatelessWidget {
                       }
 
                       return Column(
-                        children: snapshot.data!
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                          final isLast =
-                              entry.key == snapshot.data!.length - 1;
+                        children: snapshot.data!.asMap().entries.map((entry) {
+                          final isLast = entry.key == snapshot.data!.length - 1;
                           return Column(
                             children: [
                               _NoticeTile(
@@ -313,14 +296,12 @@ class HomeFaculty extends StatelessWidget {
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => NoticeDetailScreen(
-                                      notice: entry.value,
-                                    ),
+                                    builder: (_) =>
+                                        NoticeDetailScreen(notice: entry.value),
                                   ),
                                 ),
                               ),
-                              if (!isLast)
-                                const Divider(height: 1),
+                              if (!isLast) const Divider(height: 1),
                             ],
                           );
                         }).toList(),
@@ -355,18 +336,18 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: UIColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: UIColors.textSecondary,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],
@@ -389,40 +370,44 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 26),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+    final delay = Duration(milliseconds: 70 + (label.hashCode.abs() % 5) * 55);
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 26),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -443,49 +428,49 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    final delay = Duration(milliseconds: 120 + (title.hashCode.abs() % 6) * 45);
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: gradient,
           borderRadius: BorderRadius.circular(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -497,16 +482,12 @@ class _NoticeTile extends StatelessWidget {
   final Notice notice;
   final VoidCallback onTap;
 
-  const _NoticeTile({
-    required this.notice,
-    required this.onTap,
-  });
+  const _NoticeTile({required this.notice, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       title: Text(
         notice.title,
         maxLines: 1,
@@ -517,8 +498,7 @@ class _NoticeTile extends StatelessWidget {
         'Tap to view details',
         style: TextStyle(fontSize: 12),
       ),
-      trailing:
-      const Icon(Icons.arrow_forward_ios, size: 14),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
       onTap: onTap,
     );
   }

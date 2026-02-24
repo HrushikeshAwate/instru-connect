@@ -23,9 +23,7 @@ class AchievementService {
         .where('uid', isEqualTo: uid)
         .orderBy('createdAtClient', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
-        );
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
   // =====================================================
@@ -127,7 +125,7 @@ class AchievementService {
         'Score',
         'Description',
         'Certificate URL',
-      ]
+      ],
     ];
 
     for (final doc in achievementsSnap.docs) {
@@ -188,13 +186,42 @@ class AchievementService {
     }
 
     final csv = const ListToCsvConverter().convert(rows);
-    final dir = await getTemporaryDirectory();
+    final dir = await _resolveExportDirectory();
     final filePath =
         '${dir.path}/achievements_${DateTime.now().millisecondsSinceEpoch}.csv';
     final file = File(filePath);
     await file.writeAsString(csv);
 
     return filePath;
+  }
+
+  Future<Directory> _resolveExportDirectory() async {
+    if (Platform.isAndroid) {
+      final dirs = await getExternalStorageDirectories(
+        type: StorageDirectory.downloads,
+      );
+      if (dirs != null && dirs.isNotEmpty) {
+        final dir = dirs.first;
+        await dir.create(recursive: true);
+        return dir;
+      }
+
+      final fallback = await getExternalStorageDirectory();
+      if (fallback != null) {
+        await fallback.create(recursive: true);
+        return fallback;
+      }
+    }
+
+    final downloads = await getDownloadsDirectory();
+    if (downloads != null) {
+      await downloads.create(recursive: true);
+      return downloads;
+    }
+
+    final appDocs = await getApplicationDocumentsDirectory();
+    await appDocs.create(recursive: true);
+    return appDocs;
   }
 
   // =====================================================

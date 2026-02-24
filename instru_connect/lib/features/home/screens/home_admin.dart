@@ -18,22 +18,14 @@ class HomeAdmin extends StatefulWidget {
 class _HomeAdminState extends State<HomeAdmin> {
   int _selectedIndex = 0;
 
-  final List<String> _roles = [
-    'Admin',
-    'Student',
-    'CR',
-    'Faculty',
-    'Staff',
-  ];
+  final List<String> _roles = ['Admin', 'Student', 'CR', 'Faculty', 'Staff'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       // 🔑 AppBar ONLY for Admin view
       appBar: _selectedIndex == 0
-          ? AppBar(
-              title: const Text('Admin Dashboard'),
-            )
+          ? AppBar(title: const Text('Admin Dashboard'))
           : null,
 
       body: Stack(
@@ -55,13 +47,20 @@ class _HomeAdminState extends State<HomeAdmin> {
           // ===============================
           // PREVIEW MODE BANNER
           // ===============================
-          // if (_selectedIndex != 0)
-          //   Positioned(
-          //     top: MediaQuery.of(context).padding.top + 8,
-          //     left: 16,
-          //     right: 16,
-          //     child: _PreviewBanner(role: _roles[_selectedIndex]),
-          //   ),
+          if (_selectedIndex != 0)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              right: 16,
+              child: _PreviewBanner(
+                role: _roles[_selectedIndex],
+                onExit: () {
+                  setState(() {
+                    _selectedIndex = 0;
+                  });
+                },
+              ),
+            ),
         ],
       ),
 
@@ -81,57 +80,48 @@ class _HomeAdminState extends State<HomeAdmin> {
   }
 }
 
-
-
 // =======================================================
 // FLOATING ROLE SWITCHER
 // =======================================================
-
 
 // =======================================================
 // PREVIEW MODE BANNER
 // =======================================================
 
-// class _PreviewBanner extends StatelessWidget {
-//   final String role;
+class _PreviewBanner extends StatelessWidget {
+  final String role;
+  final VoidCallback onExit;
 
-//   const _PreviewBanner({required this.role});
+  const _PreviewBanner({required this.role, required this.onExit});
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Material(
-//       elevation: 4,
-//       borderRadius: BorderRadius.circular(12),
-//       color: Colors.black.withValues(alpha: 0.75),
-//       child: Padding(
-//         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-//         child: Row(
-//           children: [
-//             const Icon(Icons.visibility, color: Colors.white, size: 18),
-//             const SizedBox(width: 8),
-//             Expanded(
-//               child: Text(
-//                 'Previewing as $role',
-//                 style: const TextStyle(color: Colors.white),
-//               ),
-//             ),
-//             TextButton(
-//               onPressed: () {
-//                 Navigator.of(context).findAncestorStateOfType<_HomeAdminState>()!
-//                     .setState(() {
-//                   Navigator.of(context)
-//                       .findAncestorStateOfType<_HomeAdminState>()!
-//                       ._selectedIndex = 0;
-//                 });
-//               },
-//               child: const Text(
-//                 'EXIT',
-//                 style: TextStyle(color: Colors.white),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(12),
+      color: Colors.black.withValues(alpha: 0.75),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.visibility, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Previewing as $role',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: onExit,
+              child: const Text(
+                'Back to Admin',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -17,7 +17,7 @@ class SubjectDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Stack(
         children: [
@@ -42,8 +42,10 @@ class SubjectDetailScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -59,14 +61,12 @@ class SubjectDetailScreen extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.history,
-                            color: Colors.white),
+                        icon: const Icon(Icons.history, color: Colors.white),
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  AttendanceHistoryScreen(
+                              builder: (_) => AttendanceHistoryScreen(
                                 batchId: batchId,
                                 subjectName: subjectName,
                               ),
@@ -87,60 +87,43 @@ class SubjectDetailScreen extends StatelessWidget {
                         .where('batchId', isEqualTo: batchId)
                         .snapshots(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
-                      if (!snapshot.hasData ||
-                          snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                            child: Text('No students found'));
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text('No students found'));
                       }
 
                       final students = snapshot.data!.docs;
 
                       return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                            16, 16, 16, 100),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                         itemCount: students.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
-                          final data = students[index].data()
-                                  as Map<String, dynamic>? ??
+                          final data =
+                              students[index].data() as Map<String, dynamic>? ??
                               {};
 
                           final String name =
-                              data['Name'] ??
-                                  data['name'] ??
-                                  'Unnamed Student';
+                              data['Name'] ?? data['name'] ?? 'Unnamed Student';
                           final String mis =
-                              (data['MIS No'] ??
-                                      data['mis'] ??
-                                      'N/A')
+                              (data['MIS No'] ?? data['mis'] ?? 'N/A')
                                   .toString();
 
-                          final Map<String, dynamic>
-                              subjectsMap =
+                          final Map<String, dynamic> subjectsMap =
                               data['subjects'] ?? {};
-                          final Map<String, dynamic>
-                              stats =
-                              subjectsMap[subjectName] ??
-                                  {};
+                          final Map<String, dynamic> stats =
+                              subjectsMap[subjectName] ?? {};
 
-                          final int total =
-                              stats['total'] ?? 0;
-                          final int attended =
-                              stats['attended'] ?? 0;
-                          final double percentage =
-                              total == 0
-                                  ? 0
-                                  : (attended / total) * 100;
+                          final int total = stats['total'] ?? 0;
+                          final int attended = stats['attended'] ?? 0;
+                          final double percentage = total == 0
+                              ? 0
+                              : (attended / total) * 100;
 
-                          final bool low =
-                              percentage < 75 && total > 0;
+                          final bool low = percentage < 75 && total > 0;
 
                           return _StudentAttendanceCard(
                             name: name,
@@ -205,12 +188,11 @@ class _StudentAttendanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color accent =
-        isLow ? UIColors.error : UIColors.success;
+    final Color accent = isLow ? UIColors.error : UIColors.success;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -238,30 +220,20 @@ class _StudentAttendanceCard extends StatelessWidget {
             // INFO
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium,
-                  ),
+                  Text(name, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 6),
                   Text(
                     'MIS: $mis',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                            color: UIColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '$attended / $total classes attended',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   if (isLow)
                     const Padding(

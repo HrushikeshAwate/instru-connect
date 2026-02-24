@@ -11,11 +11,9 @@ class EventService {
 
   /// 🔥 REAL-TIME STREAM FOR CALENDAR
   Stream<Map<DateTime, List<EventModel>>> streamEvents() {
-    return _firestore
-        .collection('events')
-        .orderBy('date')
-        .snapshots()
-        .map((snapshot) {
+    return _firestore.collection('events').orderBy('date').snapshots().map((
+      snapshot,
+    ) {
       final Map<DateTime, List<EventModel>> map = {};
 
       for (final doc in snapshot.docs) {
@@ -33,13 +31,42 @@ class EventService {
   /// ➕ ADD EVENT (Faculty/Admin only – rules enforce this)
   Future<void> addEvent({
     required String title,
+    required String details,
     required DateTime date,
   }) async {
     await _firestore.collection('events').add({
       'title': title,
+      'details': details,
       'date': Timestamp.fromDate(_normalize(date)),
       'createdBy': _auth.currentUser!.uid,
       'createdAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> updateEvent({
+    required String eventId,
+    required String title,
+    required String details,
+    required DateTime date,
+  }) async {
+    await _firestore.collection('events').doc(eventId).update({
+      'title': title,
+      'details': details,
+      'date': Timestamp.fromDate(_normalize(date)),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> shiftEventDate({required EventModel event, required int days}) {
+    return updateEvent(
+      eventId: event.id,
+      title: event.title,
+      details: event.details,
+      date: event.date.add(Duration(days: days)),
+    );
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    await _firestore.collection('events').doc(eventId).delete();
   }
 }

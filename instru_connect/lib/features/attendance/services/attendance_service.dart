@@ -11,16 +11,13 @@ class AttendanceService {
   }) async {
     final writeBatch = _db.batch();
     final String dateKey = DateTime.now().toIso8601String().split('T')[0];
-    final attendanceDocId = "${dateKey}_${subjectName}_${DateTime.now().millisecondsSinceEpoch}";
+    final attendanceDocId =
+        "${dateKey}_${subjectName}_${DateTime.now().millisecondsSinceEpoch}";
 
-    // Target Path: batches -> {batchId} -> attendance -> {docId}
-    final attendanceRef = _db
-        .collection('batches')
-        .doc(batchId)
-        .collection('attendance')
-        .doc(attendanceDocId);
+    final attendanceRef = _db.collection('attendance').doc(attendanceDocId);
 
     writeBatch.set(attendanceRef, {
+      'batchId': batchId,
       'timestamp': FieldValue.serverTimestamp(),
       'subject': subjectName,
       'absentUids': absentStudentUids,
@@ -36,9 +33,11 @@ class AttendanceService {
         'subjects': {
           subjectName: {
             'total': FieldValue.increment(1),
-            'attended': isAbsent ? FieldValue.increment(0) : FieldValue.increment(1),
-          }
-        }
+            'attended': isAbsent
+                ? FieldValue.increment(0)
+                : FieldValue.increment(1),
+          },
+        },
       }, SetOptions(merge: true));
     }
     await writeBatch.commit();

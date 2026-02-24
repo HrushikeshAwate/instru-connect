@@ -76,10 +76,9 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ================= HEADER =================
           Container(
             height: 180,
             decoration: const BoxDecoration(
@@ -90,18 +89,18 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
               ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
-                // ================= APP BAR =================
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
@@ -115,8 +114,6 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                     ],
                   ),
                 ),
-
-                // ================= BODY =================
                 Expanded(child: _buildBody()),
               ],
             ),
@@ -143,9 +140,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
         if (index == _notices.length) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         }
 
@@ -167,25 +162,33 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   }
 }
 
-// =======================================================
-// NOTICE CARD
-// =======================================================
-
 class _NoticeCard extends StatelessWidget {
   final Notice notice;
   final VoidCallback onTap;
 
-  const _NoticeCard({
-    required this.notice,
-    required this.onTap,
-  });
+  const _NoticeCard({required this.notice, required this.onTap});
+
+  String? get _firstImageAttachment {
+    for (final url in notice.attachments) {
+      final lower = url.toLowerCase();
+      final isImage =
+          lower.contains('.png') ||
+          lower.contains('.jpg') ||
+          lower.contains('.jpeg') ||
+          lower.contains('.webp');
+      if (isImage) return url;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final previewUrl = _firstImageAttachment;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -202,49 +205,74 @@ class _NoticeCard extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // LEFT GRADIENT STRIP
-                Container(
-                  width: 6,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: UIColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-
-                const SizedBox(width: 14),
-
-                // CONTENT
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notice.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(height: 1.3),
+                if (previewUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      color: Theme.of(context).cardColor,
+                      child: Image.network(
+                        previewUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const SizedBox(
+                          height: 120,
+                          child: Center(
+                            child: Icon(Icons.broken_image_outlined, size: 26),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Tap to view details',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: UIColors.textSecondary),
-                      ),
-                    ],
+                    ),
                   ),
+                  const SizedBox(height: 14),
+                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: UIColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            notice.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(height: 1.3),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tap to view details',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: UIColors.textMuted,
+                    ),
+                  ],
                 ),
-
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    size: 14, color: UIColors.textMuted),
               ],
             ),
           ),
@@ -253,10 +281,6 @@ class _NoticeCard extends StatelessWidget {
     );
   }
 }
-
-// =======================================================
-// EMPTY STATE
-// =======================================================
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -282,10 +306,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'No notices available',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ],
       ),

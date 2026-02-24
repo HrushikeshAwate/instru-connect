@@ -45,10 +45,12 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
         SizedBox(
-          height: 210,
+          height: 230,
           child: PageView.builder(
             controller: _controller,
             itemCount: images.length,
@@ -70,9 +72,11 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 24,
-                        offset: const Offset(0, 14),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.40 : 0.20,
+                        ),
+                        blurRadius: 26,
+                        offset: const Offset(0, 16),
                       ),
                     ],
                   ),
@@ -86,14 +90,40 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                           fit: BoxFit.cover,
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
-                            return Container(color: Colors.grey.shade300);
+                            return Container(
+                              color: Theme.of(context).cardColor,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: UIColors.primary.withValues(
+                                    alpha: 0.9,
+                                  ),
+                                ),
+                              ),
+                            );
                           },
                           errorBuilder: (_, __, ___) => Container(
-                            color: Colors.grey.shade300,
-                            child: const Icon(
-                              Icons.broken_image_rounded,
-                              size: 40,
-                              color: Colors.grey,
+                            color: Theme.of(context).cardColor,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_rounded,
+                                  size: 40,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unable to load image',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -115,17 +145,18 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
 
                         // Subtle color wash
                         Container(
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                Colors.black54,
+                                Colors.black.withValues(alpha: 0.65),
                               ],
                             ),
                           ),
                         ),
+
                       ],
                     ),
                   ),
@@ -145,15 +176,15 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
             return AnimatedContainer(
               duration: const Duration(milliseconds: 350),
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              height: 6,
-              width: active ? 22 : 6,
+              height: 7,
+              width: active ? 24 : 8,
               decoration: BoxDecoration(
-                gradient: active
-                    ? UIColors.primaryGradient
-                    : null,
+                gradient: active ? UIColors.primaryGradient : null,
                 color: active
                     ? null
-                    : UIColors.deepTeal.withValues(alpha: 0.25),
+                    : Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(6),
               ),
             );

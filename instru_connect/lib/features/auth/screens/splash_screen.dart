@@ -21,7 +21,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: StreamBuilder<User?>(
         stream: AuthService().authStateChanges(),
         builder: (context, snapshot) {
@@ -75,20 +75,18 @@ class _SplashUI extends StatelessWidget {
           // ================= TITLE =================
           Text(
             'InstruConnect',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 6),
 
           Text(
             'Instrumentation Department',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: UIColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
           ),
 
           const SizedBox(height: 32),

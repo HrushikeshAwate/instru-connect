@@ -19,9 +19,7 @@ class ResourceDetailScreen extends StatelessWidget {
     if (args == null || args is! ResourceModel) {
       return Scaffold(
         appBar: AppBar(title: const Text('Resource')),
-        body: const Center(
-          child: Text('Resource data not available'),
-        ),
+        body: const Center(child: Text('Resource data not available')),
       );
     }
 
@@ -56,8 +54,10 @@ class ResourceDetailScreen extends StatelessWidget {
               children: [
                 // ---------- APP BAR ----------
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
@@ -88,7 +88,7 @@ class ResourceDetailScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
                             BoxShadow(
@@ -104,9 +104,7 @@ class ResourceDetailScreen extends StatelessWidget {
                             // ================= TITLE =================
                             Text(
                               resource.title,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
+                              style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
 
@@ -115,9 +113,7 @@ class ResourceDetailScreen extends StatelessWidget {
                             // ================= SUBJECT =================
                             Text(
                               resource.subject,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: Colors.grey[600]),
                             ),
 
@@ -129,8 +125,7 @@ class ResourceDetailScreen extends StatelessWidget {
                               const SizedBox(height: 8),
                               Text(
                                 resource.description,
-                                style:
-                                    Theme.of(context).textTheme.bodyMedium,
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
 
@@ -144,12 +139,11 @@ class ResourceDetailScreen extends StatelessWidget {
                                 label: const Text('Open / Download'),
                                 onPressed: () async {
                                   // ---------- PDF ----------
-                                  if (resource.fileType
-                                      .toLowerCase()
-                                      .contains('pdf')) {
+                                  if (resource.fileType.toLowerCase().contains(
+                                    'pdf',
+                                  )) {
                                     try {
-                                      final dir =
-                                          await getTemporaryDirectory();
+                                      final dir = await getTemporaryDirectory();
                                       final filePath =
                                           '${dir.path}/${resource.fileName}';
 
@@ -160,7 +154,8 @@ class ResourceDetailScreen extends StatelessWidget {
                                           Uri.parse(resource.fileUrl),
                                         );
                                         await file.writeAsBytes(
-                                            response.bodyBytes);
+                                          response.bodyBytes,
+                                        );
                                       }
 
                                       if (context.mounted) {
@@ -175,24 +170,24 @@ class ResourceDetailScreen extends StatelessWidget {
                                         );
                                       }
                                     } catch (e) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                              'Failed to open PDF: $e'),
+                                            'Failed to open PDF: $e',
+                                          ),
                                         ),
                                       );
                                     }
                                   }
                                   // ---------- NON-PDF ----------
                                   else {
-                                    final uri =
-                                        Uri.parse(resource.fileUrl);
+                                    final uri = Uri.parse(resource.fileUrl);
                                     if (await canLaunchUrl(uri)) {
                                       await launchUrl(
                                         uri,
-                                        mode: LaunchMode
-                                            .externalApplication,
+                                        mode: LaunchMode.externalApplication,
                                       );
                                     }
                                   }
@@ -226,10 +221,9 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(fontWeight: FontWeight.bold),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 }
@@ -242,10 +236,7 @@ class _PdfViewerScreen extends StatelessWidget {
   final String filePath;
   final String title;
 
-  const _PdfViewerScreen({
-    required this.filePath,
-    required this.title,
-  });
+  const _PdfViewerScreen({required this.filePath, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -258,9 +249,9 @@ class _PdfViewerScreen extends StatelessWidget {
         autoSpacing: true,
         pageFling: true,
         onError: (error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('PDF error: $error')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('PDF error: $error')));
         },
       ),
     );

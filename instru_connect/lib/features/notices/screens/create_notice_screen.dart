@@ -85,9 +85,9 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedBatchIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No target batch selected')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No target batch selected')));
       return;
     }
 
@@ -119,16 +119,16 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // ================= HEADER =================
@@ -151,8 +151,10 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     const Text(
@@ -193,8 +195,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                         TextFormField(
                           controller: _titleController,
                           maxLength: 100,
-                          decoration:
-                              const InputDecoration(labelText: 'Title'),
+                          decoration: const InputDecoration(labelText: 'Title'),
                           validator: (v) =>
                               v == null || v.trim().isEmpty ? 'Required' : null,
                         ),
@@ -231,8 +232,9 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                                 children: snapshot.data!.map((batch) {
                                   final id = batch['id']!;
                                   final name = batch['name']!;
-                                  final selected =
-                                      _selectedBatchIds.contains(id);
+                                  final selected = _selectedBatchIds.contains(
+                                    id,
+                                  );
 
                                   return CheckboxListTile(
                                     contentPadding: EdgeInsets.zero,
@@ -266,15 +268,16 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              const Icon(Icons.check_circle,
-                                  size: 18, color: UIColors.success),
+                              const Icon(
+                                Icons.check_circle,
+                                size: 18,
+                                color: UIColors.success,
+                              ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   _fileName!,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ),
                             ],
@@ -348,9 +351,6 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(title, style: Theme.of(context).textTheme.titleMedium);
   }
 }

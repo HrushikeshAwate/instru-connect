@@ -25,8 +25,7 @@ class ManageBatchesScreen extends StatelessWidget {
           children: [
             TextField(
               controller: nameController,
-              decoration:
-                  const InputDecoration(labelText: 'Batch Name'),
+              decoration: const InputDecoration(labelText: 'Batch Name'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
@@ -39,8 +38,7 @@ class ManageBatchesScreen extends StatelessWidget {
                 DropdownMenuItem(value: 0, child: Text('Alumni')),
               ],
               onChanged: (v) => currentYear = v!,
-              decoration:
-                  const InputDecoration(labelText: 'Current Year'),
+              decoration: const InputDecoration(labelText: 'Current Year'),
             ),
           ],
         ),
@@ -53,9 +51,7 @@ class ManageBatchesScreen extends StatelessWidget {
             onPressed: () async {
               if (nameController.text.trim().isEmpty) return;
 
-              await FirebaseFirestore.instance
-                  .collection('batches')
-                  .add({
+              await FirebaseFirestore.instance.collection('batches').add({
                 'name': nameController.text.trim(),
                 'department': 'Instrumentation',
                 'currentYear': currentYear,
@@ -67,8 +63,7 @@ class ManageBatchesScreen extends StatelessWidget {
               Navigator.pop(context);
 
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Batch created successfully')),
+                const SnackBar(content: Text('Batch created successfully')),
               );
             },
             child: const Text('Create'),
@@ -97,8 +92,8 @@ class ManageBatchesScreen extends StatelessWidget {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content:
-                        Text('All students promoted successfully')),
+                  content: Text('All students promoted successfully'),
+                ),
               );
             },
             child: const Text('Promote All'),
@@ -114,7 +109,7 @@ class ManageBatchesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: UIColors.primary,
@@ -161,10 +156,11 @@ class ManageBatchesScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.trending_up,
-                            color: Colors.white),
-                        onPressed: () =>
-                            _showPromoteAllDialog(context),
+                        icon: const Icon(
+                          Icons.trending_up,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => _showPromoteAllDialog(context),
                       ),
                       IconButton(
                         icon: const Icon(
@@ -193,29 +189,23 @@ class ManageBatchesScreen extends StatelessWidget {
                         .orderBy('currentYear')
                         .snapshots(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
-                      if (!snapshot.hasData ||
-                          snapshot.data!.docs.isEmpty) {
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return const _EmptyState();
                       }
 
                       final batches = snapshot.data!.docs;
 
                       return ListView.separated(
-                        padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
                         itemCount: batches.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
                           final doc = batches[index];
-                          final data =
-                              doc.data() as Map<String, dynamic>;
+                          final data = doc.data() as Map<String, dynamic>;
 
                           return _BatchCard(
                             batchId: doc.id,
@@ -258,7 +248,7 @@ class _BatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -274,8 +264,7 @@ class _BatchCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  BatchSubjectsScreen(batchId: batchId),
+              builder: (_) => BatchSubjectsScreen(batchId: batchId),
             ),
           );
         },
@@ -294,20 +283,15 @@ class _BatchCard extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium),
+                    Text(name, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 6),
                     _YearChip(year: currentYear),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right,
-                  color: UIColors.textMuted),
+              const Icon(Icons.chevron_right, color: UIColors.textMuted),
             ],
           ),
         ),
@@ -335,18 +319,14 @@ class _YearChip extends StatelessWidget {
     };
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: UIColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 12,
-          color: UIColors.primary,
-        ),
+        style: TextStyle(fontSize: 12, color: UIColors.primary),
       ),
     );
   }
@@ -371,14 +351,16 @@ class _EmptyState extends StatelessWidget {
               gradient: UIColors.secondaryGradient,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.groups_outlined,
-                size: 40, color: Colors.white),
+            child: const Icon(
+              Icons.groups_outlined,
+              size: 40,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
             'No batches created yet',
-            style:
-                TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ],
       ),

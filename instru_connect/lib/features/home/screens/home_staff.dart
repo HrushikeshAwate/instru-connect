@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
-import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
@@ -11,6 +10,7 @@ import 'package:instru_connect/features/notices/screens/notice_list_screen.dart'
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
+import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
 class HomeStaff extends StatelessWidget {
   const HomeStaff({super.key});
@@ -18,7 +18,7 @@ class HomeStaff extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // =========================
@@ -46,19 +46,11 @@ class HomeStaff extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      if (Navigator.canPop(context))
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Staff Dashboard',
+                            'InstruConnect',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -66,7 +58,7 @@ class HomeStaff extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Departmental Support',
+                            'Staff',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
@@ -77,15 +69,12 @@ class HomeStaff extends StatelessWidget {
                       const Spacer(),
                       const NotificationBell(),
                       IconButton(
-                        icon: const Icon(Icons.person_outline,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                        ),
                         onPressed: () =>
                             Navigator.pushNamed(context, Routes.profile),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.logout_rounded,
-                            color: Colors.white),
-                        onPressed: () => showLogoutDialog(context),
                       ),
                     ],
                   ),
@@ -94,31 +83,6 @@ class HomeStaff extends StatelessWidget {
                 const SizedBox(height: 16),
                 const HomeImageCarousel(),
                 const SizedBox(height: 28),
-
-                // =========================
-                // WORK OVERVIEW
-                // =========================
-                const Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Pending',
-                        value: '5',
-                        icon: Icons.assignment_late_outlined,
-                        gradient: UIColors.warningGradient,
-                      ),
-                    ),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: _StatCard(
-                        title: 'Resolved',
-                        value: '18',
-                        icon: Icons.task_alt_rounded,
-                        gradient: UIColors.successGradient,
-                      ),
-                    ),
-                  ],
-                ),
 
                 const SizedBox(height: 36),
 
@@ -142,13 +106,12 @@ class HomeStaff extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.build_circle_outlined,
                       label: 'Complaints',
-                      gradient: UIColors.primaryGradient,
+                      gradient: UIColors.tileGradient(0),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ComplaintListScreen(
-                            stream: ComplaintService()
-                                .fetchAllComplaints(),
+                            stream: ComplaintService().fetchAllComplaints(),
                           ),
                         ),
                       ),
@@ -156,7 +119,7 @@ class HomeStaff extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.campaign_outlined,
                       label: 'Notices',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(1),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -168,7 +131,7 @@ class HomeStaff extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_month_rounded,
                       label: 'Timetable',
-                      gradient: UIColors.secondaryGradient,
+                      gradient: UIColors.tileGradient(2),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -179,16 +142,18 @@ class HomeStaff extends StatelessWidget {
                       },
                     ),
                     _ActionCard(
-                      icon: Icons.help_outline_rounded,
-                      label: 'Support',
-                      gradient: UIColors.primaryGradient,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Support ticketing coming soon'),
-                          ),
-                        );
-                      },
+                      icon: Icons.folder_open_rounded,
+                      label: 'Resources',
+                      gradient: UIColors.tileGradient(3),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.resources),
+                    ),
+                    _ActionCard(
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Event Calendar',
+                      gradient: UIColors.tileGradient(4),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
                   ],
                 ),
@@ -210,8 +175,7 @@ class HomeStaff extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _SectionHeader(
-      {required this.title, required this.subtitle});
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -220,75 +184,21 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: UIColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: UIColors.textSecondary,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Gradient gradient;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.gradient,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 26),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -308,49 +218,49 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
+    return FadeSlideIn(
+      delay: delay,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: gradient,
           borderRadius: BorderRadius.circular(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -24,8 +24,7 @@ class AttendanceHistoryScreen extends StatefulWidget {
       _AttendanceHistoryScreenState();
 }
 
-class _AttendanceHistoryScreenState
-    extends State<AttendanceHistoryScreen> {
+class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   String? _cachedRole;
   bool _exporting = false;
 
@@ -46,7 +45,7 @@ class _AttendanceHistoryScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Stack(
         children: [
@@ -96,8 +95,10 @@ class _AttendanceHistoryScreenState
                                   color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.file_download_outlined,
-                                color: Colors.white),
+                            : const Icon(
+                                Icons.file_download_outlined,
+                                color: Colors.white,
+                              ),
                         onPressed: _exporting ? null : _exportAttendance,
                       ),
                     ],
@@ -110,35 +111,32 @@ class _AttendanceHistoryScreenState
                     future: _getUserRole(),
                     builder: (context, roleSnapshot) {
                       if (!roleSnapshot.hasData) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       final userRole = roleSnapshot.data!;
 
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
-                            .collection('batches')
-                            .doc(widget.batchId)
                             .collection('attendance')
-                            .where('subject',
-                                isEqualTo:
-                                    widget.subjectName.trim())
-                            .orderBy('timestamp',
-                                descending: true)
+                            .where('batchId', isEqualTo: widget.batchId)
+                            .where(
+                              'subject',
+                              isEqualTo: widget.subjectName.trim(),
+                            )
+                            .orderBy('timestamp', descending: true)
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
                             return Center(
-                              child: Text(
-                                  'Error: ${snapshot.error}'),
+                              child: Text('Error: ${snapshot.error}'),
                             );
                           }
 
                           if (!snapshot.hasData) {
                             return const Center(
-                                child:
-                                    CircularProgressIndicator());
+                              child: CircularProgressIndicator(),
+                            );
                           }
 
                           final docs = snapshot.data!.docs;
@@ -148,29 +146,22 @@ class _AttendanceHistoryScreenState
                           }
 
                           return ListView.builder(
-                            padding:
-                                const EdgeInsets.fromLTRB(
-                                    16, 16, 16, 24),
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             itemCount: docs.length,
                             itemBuilder: (context, index) {
                               final doc = docs[index];
-                              final data = doc.data()
-                                  as Map<String, dynamic>;
-                              final List<String> absentees =
-                                  List<String>.from(
-                                      data['absentUids'] ??
-                                          []);
+                              final data = doc.data() as Map<String, dynamic>;
+                              final List<String> absentees = List<String>.from(
+                                data['absentUids'] ?? [],
+                              );
 
                               return _AttendanceCard(
                                 date: data['date'] ?? 'N/A',
                                 absentCount: absentees.length,
-                                onEdit: () => _navigateToEdit(
-                                  doc.id,
-                                  absentees,
-                                ),
+                                onEdit: () =>
+                                    _navigateToEdit(doc.id, absentees),
                                 onDelete: userRole != 'cr'
-                                    ? () =>
-                                        _confirmDelete(doc.id)
+                                    ? () => _confirmDelete(doc.id)
                                     : null,
                               );
                             },
@@ -194,9 +185,9 @@ class _AttendanceHistoryScreenState
       final role = await _getUserRole();
       if (role != 'faculty' && role != 'admin') {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Not authorized')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Not authorized')));
         }
         return;
       }
@@ -208,14 +199,7 @@ class _AttendanceHistoryScreenState
           .get();
 
       final rows = <List<dynamic>>[
-        [
-          'Subject',
-          'Name',
-          'MIS No',
-          'Attended',
-          'Total',
-          'Percentage',
-        ]
+        ['Subject', 'Name', 'MIS No', 'Attended', 'Total', 'Percentage'],
       ];
 
       for (final doc in usersSnap.docs) {
@@ -254,9 +238,9 @@ class _AttendanceHistoryScreenState
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -292,17 +276,12 @@ class _AttendanceHistoryScreenState
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              await BatchService()
-                  .deleteAttendance(widget.batchId, docId);
+              await BatchService().deleteAttendance(widget.batchId, docId);
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -362,36 +341,26 @@ class _AttendanceCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    date,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium,
-                  ),
+                  Text(date, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 6),
                   Text(
                     '$absentCount students absent',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                            color:
-                                UIColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
             ),
 
             IconButton(
-              icon: const Icon(Icons.edit,
-                  color: UIColors.primary),
+              icon: const Icon(Icons.edit, color: UIColors.primary),
               onPressed: onEdit,
             ),
 
             if (onDelete != null)
               IconButton(
-                icon: const Icon(Icons.delete,
-                    color: Colors.red),
+                icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: onDelete,
               ),
           ],
@@ -420,17 +389,12 @@ class _EmptyState extends StatelessWidget {
               gradient: UIColors.secondaryGradient,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.history_edu,
-              size: 40,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.history_edu, size: 40, color: Colors.white),
           ),
           const SizedBox(height: 16),
           const Text(
             'No attendance records found',
-            style:
-                TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ],
       ),

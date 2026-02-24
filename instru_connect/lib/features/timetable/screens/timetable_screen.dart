@@ -29,7 +29,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
     setState(() => isLoading = true);
     try {
       // Constructs path based on your pubspec.yaml structure
-      final String assetPath = "assets/PDF's/${_selectedYear.toLowerCase()}_timetable.pdf";
+      final String assetPath =
+          "assets/PDF's/${_selectedYear.toLowerCase()}_timetable.pdf";
 
       final data = await rootBundle.load(assetPath);
       final bytes = data.buffer.asUint8List();
@@ -61,15 +62,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       appBar: AppBar(
         // Heading text is now White
         title: const Text(
           'Official Timetable',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         // Ensures the back arrow button is also White
         iconTheme: const IconThemeData(color: Colors.white),
@@ -86,10 +84,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
               fontSize: 16,
             ),
             icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-            items: _years.map((y) => DropdownMenuItem(
-              value: y,
-              child: Text(y),
-            )).toList(),
+            items: _years
+                .map((y) => DropdownMenuItem(value: y, child: Text(y)))
+                .toList(),
             onChanged: (val) {
               if (val != null) {
                 setState(() => _selectedYear = val);
@@ -101,18 +98,18 @@ class _TimetableScreenState extends State<TimetableScreen> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF263238)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF263238)),
+            )
           : localPath != null
           ? PDFView(
-        filePath: localPath,
-        enableSwipe: true,
-        autoSpacing: true,
-        pageFling: true,
-        swipeHorizontal: false,
-      )
-          : const Center(
-        child: Text("Timetable not available"),
-      ),
+              filePath: localPath,
+              enableSwipe: true,
+              autoSpacing: true,
+              pageFling: true,
+              swipeHorizontal: false,
+            )
+          : const Center(child: Text("Timetable not available")),
     );
   }
 }

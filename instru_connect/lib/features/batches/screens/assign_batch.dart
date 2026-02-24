@@ -21,38 +21,37 @@ class _AssignBatchToStudentsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ================= FAB =================
       floatingActionButton:
           selectedStudentIds.isNotEmpty && selectedBatchId != null
-              ? FloatingActionButton.extended(
-                  backgroundColor: UIColors.primary,
-                  icon: const Icon(Icons.check),
-                  label: const Text('Assign Batch'),
-                  onPressed: () async {
-                    try {
-                      await BatchService().bulkAssignStudents(
-                        studentUids: selectedStudentIds.toList(),
-                        batchId: selectedBatchId!,
-                      );
+          ? FloatingActionButton.extended(
+              backgroundColor: UIColors.primary,
+              icon: const Icon(Icons.check),
+              label: const Text('Assign Batch'),
+              onPressed: () async {
+                try {
+                  await BatchService().bulkAssignStudents(
+                    studentUids: selectedStudentIds.toList(),
+                    batchId: selectedBatchId!,
+                  );
 
-                      setState(() => selectedStudentIds.clear());
+                  setState(() => selectedStudentIds.clear());
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Batch assigned successfully'),
-                        ),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.toString())),
-                      );
-                    }
-                  },
-                )
-              : null,
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Batch assigned successfully'),
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              },
+            )
+          : null,
 
       body: Stack(
         children: [
@@ -103,37 +102,32 @@ class _AssignBatchToStudentsScreenState
                       // -------- BATCH SELECTOR --------
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: _cardDecoration(),
+                        decoration: _cardDecoration(context),
                         child: StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
                               .collection('batches')
-                              .where('isActive',
-                                  isEqualTo: true)
+                              .where('isActive', isEqualTo: true)
                               .snapshots(),
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) {
                               return const LinearProgressIndicator();
                             }
 
-                            final batches =
-                                snapshot.data!.docs;
+                            final batches = snapshot.data!.docs;
 
                             return DropdownButtonFormField<String>(
                               initialValue: selectedBatchId,
-                              hint:
-                                  const Text('Select Batch'),
+                              hint: const Text('Select Batch'),
                               isExpanded: true,
                               items: batches.map((doc) {
-                                final data = doc.data()
-                                    as Map<String, dynamic>;
+                                final data = doc.data() as Map<String, dynamic>;
                                 return DropdownMenuItem(
                                   value: doc.id,
                                   child: Text(data['name']),
                                 );
                               }).toList(),
                               onChanged: (value) {
-                                setState(() =>
-                                    selectedBatchId = value);
+                                setState(() => selectedBatchId = value);
                               },
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
@@ -147,20 +141,17 @@ class _AssignBatchToStudentsScreenState
 
                       // -------- SEARCH --------
                       Container(
-                        decoration: _cardDecoration(),
+                        decoration: _cardDecoration(context),
                         child: TextField(
                           decoration: const InputDecoration(
-                            hintText:
-                                'Search by name or email',
+                            hintText: 'Search by name or email',
                             prefixIcon: Icon(Icons.search),
                             border: InputBorder.none,
-                            contentPadding:
-                                EdgeInsets.all(16),
+                            contentPadding: EdgeInsets.all(16),
                           ),
                           onChanged: (value) {
                             setState(() {
-                              searchQuery =
-                                  value.toLowerCase();
+                              searchQuery = value.toLowerCase();
                             });
                           },
                         ),
@@ -174,28 +165,22 @@ class _AssignBatchToStudentsScreenState
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
-                        .where('role',
-                            whereIn: ['student', 'cr'])
+                        .where('role', whereIn: ['student', 'cr'])
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
-                      final students =
-                          snapshot.data!.docs.where((doc) {
-                        final data = doc.data()
-                            as Map<String, dynamic>;
+                      final students = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
 
                         final name = (data['name'] ?? '')
                             .toString()
                             .toLowerCase();
-                        final email =
-                            (data['email'] ?? '')
-                                .toString()
-                                .toLowerCase();
+                        final email = (data['email'] ?? '')
+                            .toString()
+                            .toLowerCase();
 
                         return name.contains(searchQuery) ||
                             email.contains(searchQuery);
@@ -203,37 +188,29 @@ class _AssignBatchToStudentsScreenState
 
                       if (students.isEmpty) {
                         return const Center(
-                          child:
-                              Text('No matching students'),
+                          child: Text('No matching students'),
                         );
                       }
 
                       return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(
-                            16, 8, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         itemCount: students.length,
                         itemBuilder: (context, index) {
                           final doc = students[index];
-                          final data = doc.data()
-                              as Map<String, dynamic>;
+                          final data = doc.data() as Map<String, dynamic>;
 
-                          final selected =
-                              selectedStudentIds
-                                  .contains(doc.id);
+                          final selected = selectedStudentIds.contains(doc.id);
 
                           return _StudentCard(
                             name: _getStudentName(data),
                             email: data['email'] ?? '',
-                            assigned:
-                                data['batchId'] != null,
+                            assigned: data['batchId'] != null,
                             selected: selected,
                             onChanged: (checked) {
                               setState(() {
                                 checked
-                                    ? selectedStudentIds
-                                        .add(doc.id)
-                                    : selectedStudentIds
-                                        .remove(doc.id);
+                                    ? selectedStudentIds.add(doc.id)
+                                    : selectedStudentIds.remove(doc.id);
                               });
                             },
                           );
@@ -250,9 +227,9 @@ class _AssignBatchToStudentsScreenState
     );
   }
 
-  BoxDecoration _cardDecoration() {
+  BoxDecoration _cardDecoration(BuildContext context) {
     return BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
@@ -289,7 +266,7 @@ class _StudentCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -302,19 +279,13 @@ class _StudentCard extends StatelessWidget {
       child: CheckboxListTile(
         value: selected,
         onChanged: (v) => onChanged(v ?? false),
-        title: Text(name,
-            style: Theme.of(context).textTheme.bodyLarge),
+        title: Text(name, style: Theme.of(context).textTheme.bodyLarge),
         subtitle: Text(email),
         secondary: Icon(
-          assigned
-              ? Icons.check_circle
-              : Icons.info_outline,
-          color:
-              assigned ? Colors.green : Colors.grey,
+          assigned ? Icons.check_circle : Icons.info_outline,
+          color: assigned ? Colors.green : Colors.grey,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
@@ -328,10 +299,7 @@ String _getStudentName(Map<String, dynamic> data) {
   if ((data['name'] ?? '').toString().trim().isNotEmpty) {
     return data['name'];
   }
-  if ((data['displayName'] ?? '')
-      .toString()
-      .trim()
-      .isNotEmpty) {
+  if ((data['displayName'] ?? '').toString().trim().isNotEmpty) {
     return data['displayName'];
   }
   return 'Unknown Student';

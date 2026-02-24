@@ -20,15 +20,12 @@ class MarkAttendanceScreen extends StatefulWidget {
   });
 
   @override
-  State<MarkAttendanceScreen> createState() =>
-      _MarkAttendanceScreenState();
+  State<MarkAttendanceScreen> createState() => _MarkAttendanceScreenState();
 }
 
-class _MarkAttendanceScreenState
-    extends State<MarkAttendanceScreen> {
+class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   final BatchService _batchService = BatchService();
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   final Map<String, bool> absentStatus = {};
   bool _isSaving = false;
@@ -71,8 +68,9 @@ class _MarkAttendanceScreenState
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -86,7 +84,7 @@ class _MarkAttendanceScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UIColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Stack(
         children: [
@@ -109,8 +107,7 @@ class _MarkAttendanceScreenState
               children: [
                 // ================= APP BAR =================
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [
                       IconButton(
@@ -136,21 +133,17 @@ class _MarkAttendanceScreenState
 
                 // ================= SEARCH =================
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (v) =>
-                        setState(() => _searchQuery = v),
+                    onChanged: (v) => setState(() => _searchQuery = v),
                     decoration: InputDecoration(
                       hintText: 'Search name or MIS',
-                      prefixIcon:
-                          const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Theme.of(context).cardColor,
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -159,8 +152,7 @@ class _MarkAttendanceScreenState
 
                 // ================= INFO =================
                 Container(
-                  margin:
-                      const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: UIColors.error.withValues(alpha: 0.1),
@@ -168,14 +160,12 @@ class _MarkAttendanceScreenState
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.info_outline,
-                          color: UIColors.error),
+                      Icon(Icons.info_outline, color: UIColors.error),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Tap students who are ABSENT',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -187,16 +177,12 @@ class _MarkAttendanceScreenState
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
-                        .where('batchId',
-                            isEqualTo: widget.batchId)
-                        .where('role',
-                            whereIn: ['student', 'cr'])
+                        .where('batchId', isEqualTo: widget.batchId)
+                        .where('role', whereIn: ['student', 'cr'])
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return const Center(
-                            child:
-                                CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       final docs = snapshot.data!.docs;
@@ -206,55 +192,39 @@ class _MarkAttendanceScreenState
                         for (var doc in docs) {
                           absentStatus[doc.id] =
                               widget.isEditing &&
-                                      widget.initialAbsentees !=
-                                          null
-                                  ? widget.initialAbsentees!
-                                      .contains(doc.id)
-                                  : false;
+                                  widget.initialAbsentees != null
+                              ? widget.initialAbsentees!.contains(doc.id)
+                              : false;
                         }
                         _hasInitialized = true;
                       }
 
                       final filtered = docs.where((doc) {
-                        final data =
-                            doc.data() as Map<String, dynamic>;
-                        final name = (data['Name'] ??
-                                data['name'] ??
-                                '')
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = (data['Name'] ?? data['name'] ?? '')
                             .toString()
                             .toLowerCase();
-                        final mis = (data['MIS No'] ??
-                                data['mis'] ??
-                                '')
+                        final mis = (data['MIS No'] ?? data['mis'] ?? '')
                             .toString()
                             .toLowerCase();
-                        return name
-                                .contains(_searchQuery.toLowerCase()) ||
-                            mis.contains(
-                                _searchQuery.toLowerCase());
+                        return name.contains(_searchQuery.toLowerCase()) ||
+                            mis.contains(_searchQuery.toLowerCase());
                       }).toList();
 
                       return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(
-                            16, 8, 16, 100),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final doc = filtered[index];
-                          final data =
-                              doc.data() as Map<String, dynamic>;
+                          final data = doc.data() as Map<String, dynamic>;
                           final uid = doc.id;
 
-                          final name = data['Name'] ??
-                              data['name'] ??
-                              'Unknown';
-                          final mis =
-                              (data['MIS No'] ??
-                                      data['mis'] ??
-                                      'N/A')
-                                  .toString();
+                          final name =
+                              data['Name'] ?? data['name'] ?? 'Unknown';
+                          final mis = (data['MIS No'] ?? data['mis'] ?? 'N/A')
+                              .toString();
 
-                          final isAbsent =
-                              absentStatus[uid] ?? false;
+                          final isAbsent = absentStatus[uid] ?? false;
 
                           return _StudentCard(
                             name: name,
@@ -262,8 +232,7 @@ class _MarkAttendanceScreenState
                             isAbsent: isAbsent,
                             onTap: () {
                               setState(() {
-                                absentStatus[uid] =
-                                    !isAbsent;
+                                absentStatus[uid] = !isAbsent;
                               });
                             },
                           );
@@ -294,12 +263,9 @@ class _MarkAttendanceScreenState
             ),
             onPressed: _isSaving ? null : _handleSave,
             child: _isSaving
-                ? const CircularProgressIndicator(
-                    color: Colors.white)
+                ? const CircularProgressIndicator(color: Colors.white)
                 : Text(
-                    widget.isEditing
-                        ? 'UPDATE CHANGES'
-                        : 'CONFIRM ATTENDANCE',
+                    widget.isEditing ? 'UPDATE CHANGES' : 'CONFIRM ATTENDANCE',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -332,8 +298,7 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        isAbsent ? UIColors.error : UIColors.success;
+    final color = isAbsent ? UIColors.error : UIColors.success;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -356,44 +321,30 @@ class _StudentCard extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor:
-                    color.withValues(alpha: 0.15),
+                backgroundColor: color.withValues(alpha: 0.15),
                 child: Icon(
-                  isAbsent
-                      ? Icons.person_off
-                      : Icons.person,
+                  isAbsent ? Icons.person_off : Icons.person,
                   color: color,
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium,
-                    ),
+                    Text(name, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 4),
                     Text(
                       'MIS: $mis',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(
-                              color:
-                                  UIColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
                   ],
                 ),
               ),
               Icon(
-                isAbsent
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
+                isAbsent ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: color,
               ),
             ],
