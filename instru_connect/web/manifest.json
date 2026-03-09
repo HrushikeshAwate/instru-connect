@@ -1,6 +1,6 @@
 {
-    "name": "instru_connect",
-    "short_name": "instru_connect",
+    "name": "InstruConnect",
+    "short_name": "InstruConnect",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

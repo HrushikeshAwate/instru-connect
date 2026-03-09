@@ -5,7 +5,7 @@ import 'package:instru_connect/core/services/firestore_service.dart';
 import 'package:instru_connect/core/services/role_service.dart';
 import 'package:instru_connect/core/sessioin/current_user.dart';
 import 'package:instru_connect/core/widgets/error_view.dart';
-import 'package:instru_connect/core/widgets/loading_view.dart';
+import 'package:instru_connect/core/widgets/animated_splash_loader.dart';
 import 'package:instru_connect/core/services/notification_token_service.dart';
 import 'package:instru_connect/features/home/home_router.dart';
 import 'package:instru_connect/features/profile/screens/profile_screen.dart';
@@ -19,6 +19,8 @@ class RoleLoadingScreen extends StatefulWidget {
 }
 
 class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
+  static const String _allowedEmailSuffix = '.instru@coeptech.ac.in';
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +34,14 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
       final roleService = RoleService();
 
       final user = auth.currentUser!;
+      final email = user.email?.trim().toLowerCase();
+      if (email == null || !email.endsWith(_allowedEmailSuffix)) {
+        await auth.signOut();
+        throw Exception(
+          'Only emails ending with $_allowedEmailSuffix are allowed.',
+        );
+      }
+
       await firestore.getOrCreateUser(firebaseUser: user);
 
       final userDoc = await roleService.fetchFullUser(user.uid);
@@ -120,6 +130,8 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const LoadingView(message: 'Setting things up...');
+    return const Scaffold(
+      body: AnimatedSplashLoader(),
+    );
   }
 }

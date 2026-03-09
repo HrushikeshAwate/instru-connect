@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  static const String _allowedEmailSuffix = '.instru@coeptech.ac.in';
 
   // 🔐 ONLY THIS GMAIL CAN BE ADMIN
   static const String allowedAdminGmail =
@@ -31,7 +32,19 @@ class AuthService {
       'offline_access',
     ]);
 
-    return await _auth.signInWithProvider(provider);
+    final credential = await _auth.signInWithProvider(provider);
+    final email = credential.user?.email?.trim().toLowerCase();
+
+    if (email == null || !email.endsWith(_allowedEmailSuffix)) {
+      await _auth.signOut();
+      throw FirebaseAuthException(
+        code: 'unauthorized-domain',
+        message:
+            'Only emails ending with $_allowedEmailSuffix are allowed to sign in.',
+      );
+    }
+
+    return credential;
   }
 
   // =====================================================
