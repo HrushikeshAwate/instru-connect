@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:instru_connect/core/services/push_notification_service.dart';
+import 'package:instru_connect/core/services/theme_controller.dart';
 import 'firebase_options.dart';
 import 'app.dart';
 
@@ -30,5 +31,6 @@ void main() async {
   );
   // ----------------------------------------------₹
 
+  await ThemeController.instance.loadThemeMode();
   runApp(const App());
 }

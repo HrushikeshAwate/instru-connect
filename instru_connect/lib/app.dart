@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:instru_connect/config/theme/app_theme.dart';
 import 'package:instru_connect/config/routes/app_router.dart';
 import 'package:instru_connect/core/services/theme_controller.dart';
-import 'features/auth/services/auth_gate.dart';
+import 'package:instru_connect/features/auth/screens/splash_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -17,7 +17,7 @@ class App extends StatelessWidget {
           theme: buildAppTheme(),
           darkTheme: buildDarkAppTheme(),
           themeMode: ThemeController.instance.themeMode,
-          home: const AuthGate(),
+          home: const SplashScreen(),
           onGenerateRoute: AppRouter.generate,
         );
       },
