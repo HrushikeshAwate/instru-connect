@@ -1,15 +1,205 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/core/sessioin/current_user.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
+import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
+import 'package:instru_connect/features/attendance/screens/attendance_history_screen.dart';
+import 'package:instru_connect/features/batches/screens/manage_batches_screen.dart';
+import 'package:instru_connect/features/batches/screens/subject_detail_screen.dart';
+import 'package:instru_connect/features/complaints/models/complaint_model.dart';
+import 'package:instru_connect/features/complaints/screens/complaint_detail_screen.dart';
+import 'package:instru_connect/features/events/screens/event_calendar_screen.dart';
+import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
+import 'package:instru_connect/features/notices/services/notice_service.dart';
+import 'package:instru_connect/features/resources/models/resource_model.dart';
+import 'package:instru_connect/features/resources/screens/resource_detail_screen.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final NotificationService _service = NotificationService();
+  final NoticeService _noticeService = NoticeService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isMarkingVisibleNotificationsRead = false;
+
+  Future<bool> _confirmDeleteNotification({
+    required bool canDeletePostedNotification,
+  }) {
+    return showDestructiveConfirmationDialog(
+      context: context,
+      title: canDeletePostedNotification
+          ? 'Delete Posted Notification?'
+          : 'Delete Notification?',
+      message: canDeletePostedNotification
+          ? 'This will permanently delete the notification entry for the posted notice. The deleted notification cannot be recovered.'
+          : 'This notification will be permanently deleted and cannot be recovered.',
+    );
+  }
+
+  Future<bool> _confirmClearAllNotifications() {
+    return showDestructiveConfirmationDialog(
+      context: context,
+      title: 'Clear All Notifications?',
+      message:
+          'This will permanently delete all notifications from this list. They cannot be recovered once cleared.',
+      confirmLabel: 'Clear All',
+    );
+  }
+
+  Future<void> _openNotification(Map<String, dynamic> notification) async {
+    final type = (notification['type'] ?? '').toString();
+    final noticeId = (notification['noticeId'] ?? '').toString();
+    final rawData = notification['data'];
+    final data = rawData is Map
+        ? Map<String, dynamic>.from(
+            rawData.map((key, value) => MapEntry(key.toString(), value)),
+          )
+        : <String, dynamic>{};
+
+    if (noticeId.isNotEmpty) {
+      final notice = await _noticeService.fetchNoticeById(noticeId);
+      if (!mounted) return;
+      if (notice == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This notice is no longer available.')),
+        );
+        return;
+      }
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => NoticeDetailScreen(notice: notice)),
+      );
+      return;
+    }
+
+    final complaintId = (data['complaintId'] ?? '').toString();
+    if (complaintId.isNotEmpty &&
+        type.startsWith('complaint_') &&
+        type != 'complaint_deleted') {
+      final complaintDoc = await _firestore
+          .collection('complaints')
+          .doc(complaintId)
+          .get();
+      if (!mounted) return;
+      if (!complaintDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This complaint is no longer available.')),
+        );
+        return;
+      }
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              ComplaintDetailScreen(complaint: ComplaintModel.fromFirestore(complaintDoc)),
+        ),
+      );
+      return;
+    }
+
+    final resourceId = (data['resourceId'] ?? '').toString();
+    if (resourceId.isNotEmpty &&
+        (type == 'resource' || type == 'resource_deleted')) {
+      final resourceDoc = await _firestore
+          .collection('resources')
+          .doc(resourceId)
+          .get();
+      if (!mounted) return;
+      if (!resourceDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This resource is no longer available.')),
+        );
+        return;
+      }
+      final resource = ResourceModel.fromFirestore(resourceDoc.id, resourceDoc.data()!);
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ResourceDetailScreen(),
+          settings: RouteSettings(arguments: resource),
+        ),
+      );
+      return;
+    }
+
+    final batchId = (data['batchId'] ?? '').toString();
+    final subjectName = (data['subjectName'] ?? data['subject'] ?? '')
+        .toString()
+        .trim();
+
+    if (type == 'subject_created' &&
+        batchId.isNotEmpty &&
+        subjectName.isNotEmpty) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SubjectDetailScreen(
+            subjectName: subjectName,
+            batchId: batchId,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (type == 'batch_created' ||
+        type == 'batch_deleted' ||
+        type == 'subject_deleted') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ManageBatchesScreen()),
+      );
+      return;
+    }
+
+    if (type.startsWith('event_')) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const EventCalendarScreen()),
+      );
+      return;
+    }
+
+    if ((type == 'attendance_marked' ||
+            type == 'attendance_updated' ||
+            type == 'low_attendance') &&
+        subjectName.isNotEmpty &&
+        (CurrentUser.batchId ?? '').isNotEmpty) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AttendanceHistoryScreen(
+            batchId: CurrentUser.batchId!,
+            subjectName: subjectName,
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _service.purgeExpiredNotifications();
+        _service.markAllReadForUser(uid);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    final service = NotificationService();
 
     if (uid == null) {
       return const Scaffold(body: Center(child: Text('Please sign in')));
@@ -52,9 +242,33 @@ class NotificationsScreen extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
+                      StreamBuilder<NotificationCounter>(
+                        stream: _service.streamUserNotificationCounter(uid),
+                        builder: (context, snapshot) {
+                          final counter = snapshot.data ??
+                              const NotificationCounter(total: 0, unread: 0);
+                          return Row(
+                            children: [
+                              _CountChip(
+                                label: 'Unread',
+                                value: counter.unread,
+                              ),
+                              const SizedBox(width: 8),
+                              _CountChip(
+                                label: 'Total',
+                                value: counter.total,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: () async {
-                          await service.clearAllForUser(uid);
+                          final confirmed =
+                              await _confirmClearAllNotifications();
+                          if (!confirmed) return;
+                          await _service.clearAllForUser(uid);
                         },
                         icon: const Icon(
                           Icons.delete_outline,
@@ -70,7 +284,7 @@ class NotificationsScreen extends StatelessWidget {
                 ),
                 Expanded(
                   child: StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: service.streamUserNotifications(uid),
+                    stream: _service.streamUserNotifications(uid),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
@@ -85,6 +299,25 @@ class NotificationsScreen extends StatelessWidget {
                       }
 
                       final items = snapshot.data ?? [];
+                      final unreadCount = items.where((n) {
+                        return n['isRead'] != true;
+                      }).length;
+
+                      if (unreadCount > 0 && !_isMarkingVisibleNotificationsRead) {
+                        _isMarkingVisibleNotificationsRead = true;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _service.markAllReadForUser(uid).whenComplete(() {
+                            if (mounted) {
+                              setState(() {
+                                _isMarkingVisibleNotificationsRead = false;
+                              });
+                            } else {
+                              _isMarkingVisibleNotificationsRead = false;
+                            }
+                          });
+                        });
+                      }
+
                       if (items.isEmpty) {
                         return const _EmptyState();
                       }
@@ -99,6 +332,10 @@ class NotificationsScreen extends StatelessWidget {
                           final title = (n['title'] ?? '').toString();
                           final body = (n['body'] ?? '').toString();
                           final isRead = (n['isRead'] ?? false) as bool;
+                          final noticeId = (n['noticeId'] ?? '').toString();
+                          final createdBy = (n['createdBy'] ?? '').toString();
+                          final canDeletePostedNotification =
+                              noticeId.isNotEmpty && createdBy == uid;
 
                           return Dismissible(
                             key: ValueKey('$id-$index'),
@@ -115,9 +352,22 @@ class NotificationsScreen extends StatelessWidget {
                                 color: Colors.white,
                               ),
                             ),
+                            confirmDismiss: (_) async {
+                              return _confirmDeleteNotification(
+                                canDeletePostedNotification:
+                                    canDeletePostedNotification,
+                              );
+                            },
                             onDismissed: (_) async {
+                              if (canDeletePostedNotification) {
+                                await _service.deleteNotificationsForNotice(
+                                  noticeId,
+                                );
+                                return;
+                              }
+
                               if (id.isNotEmpty) {
-                                await service.deleteNotification(id);
+                                await _service.deleteNotification(id);
                               }
                             },
                             child: _NotificationCard(
@@ -126,8 +376,10 @@ class NotificationsScreen extends StatelessWidget {
                               isRead: isRead,
                               onTap: () async {
                                 if (!isRead && id.isNotEmpty) {
-                                  await service.markRead(id);
+                                  await _service.markRead(id);
                                 }
+                                if (!context.mounted) return;
+                                await _openNotification(n);
                               },
                             ),
                           );
@@ -140,6 +392,35 @@ class NotificationsScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CountChip extends StatelessWidget {
+  final String label;
+  final int value;
+
+  const _CountChip({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label $value',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -160,21 +441,30 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final unreadBorderColor = isDark
+        ? const Color(0xFF60A5FA)
+        : UIColors.primary;
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.24)
+        : UIColors.primary.withValues(alpha: 0.10);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor,
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: UIColors.primary.withValues(alpha: 0.10),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+              color: shadowColor,
+              blurRadius: isDark ? 22 : 16,
+              offset: const Offset(0, 10),
             ),
           ],
           border: Border.all(
-            color: isRead ? Colors.transparent : UIColors.primary,
+            color: isRead ? Colors.transparent : unreadBorderColor,
             width: isRead ? 0 : 1,
           ),
         ),

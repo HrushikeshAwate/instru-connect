@@ -3,6 +3,7 @@ import 'package:instru_connect/config/theme/app_theme.dart';
 import 'package:instru_connect/config/routes/app_router.dart';
 import 'package:instru_connect/core/services/theme_controller.dart';
 import 'package:instru_connect/features/auth/screens/splash_screen.dart';
+import 'package:instru_connect/features/legal/widgets/terms_acceptance_gate.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -17,7 +18,7 @@ class App extends StatelessWidget {
           theme: buildAppTheme(),
           darkTheme: buildDarkAppTheme(),
           themeMode: ThemeController.instance.themeMode,
-          home: const SplashScreen(),
+          home: const TermsAcceptanceGate(child: SplashScreen()),
           onGenerateRoute: AppRouter.generate,
         );
       },

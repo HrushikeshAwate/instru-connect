@@ -15,19 +15,24 @@ class AddResourceScreen extends StatefulWidget {
 }
 
 class _AddResourceScreenState extends State<AddResourceScreen> {
+  static const _sectionOptions = ['Notes', 'PPTs', 'PYQs', 'Workshop', 'Other'];
+
   final _titleCtrl = TextEditingController();
   final _subjectCtrl = TextEditingController();
+  final _sectionCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
 
   final _resourceService = ResourceService();
 
   File? _selectedFile;
+  String _selectedSection = _sectionOptions.first;
   bool _loading = false;
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _subjectCtrl.dispose();
+    _sectionCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
   }
@@ -35,7 +40,19 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'ppt', 'pptx', 'doc', 'docx'],
+      allowedExtensions: [
+        'pdf',
+        'ppt',
+        'pptx',
+        'doc',
+        'docx',
+        'txt',
+        'xls',
+        'xlsx',
+        'jpg',
+        'jpeg',
+        'png',
+      ],
     );
 
     if (result != null && result.files.single.path != null) {
@@ -50,7 +67,8 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
 
     if (_selectedFile == null ||
         _titleCtrl.text.trim().isEmpty ||
-        _subjectCtrl.text.trim().isEmpty) {
+        _subjectCtrl.text.trim().isEmpty ||
+        _sectionName.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all required fields')),
       );
@@ -66,11 +84,18 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
       final role = await RoleService().fetchUserRole(user.uid);
 
       if (role.isEmpty) throw Exception('User role not found');
+      final normalizedRole = role.trim().toLowerCase();
+      if (normalizedRole != 'cr' &&
+          normalizedRole != 'faculty' &&
+          normalizedRole != 'admin') {
+        throw Exception('You are not allowed to add resources.');
+      }
 
       await _resourceService.addResource(
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         subject: _subjectCtrl.text.trim(),
+        section: _sectionName,
         file: _selectedFile!,
         role: role,
         uid: user.uid,
@@ -84,6 +109,11 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String get _sectionName {
+    if (_selectedSection != 'Other') return _selectedSection;
+    return _sectionCtrl.text.trim();
   }
 
   @override
@@ -147,7 +177,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: SizedBox(
-                      width: double.infinity, // 🔥 KEY FIX
+                      width: double.infinity,
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -161,85 +191,133 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
                             ),
                           ],
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const _SectionTitle('Resource Details'),
-                            const SizedBox(height: 16),
+                        child: SingleChildScrollView(
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _SectionTitle('Resource Details'),
+                              const SizedBox(height: 16),
 
-                            TextField(
-                              controller: _titleCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Title *',
+                              TextField(
+                                controller: _titleCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Title *',
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
+                              const SizedBox(height: 12),
 
-                            TextField(
-                              controller: _subjectCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Subject *',
+                              TextField(
+                                controller: _subjectCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Subject *',
+                                  hintText: 'Example: Control Systems',
+                                ),
+                                textCapitalization: TextCapitalization.words,
                               ),
-                            ),
-                            const SizedBox(height: 12),
+                              const SizedBox(height: 12),
 
-                            TextField(
-                              controller: _descCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Description',
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedSection,
+                                decoration: const InputDecoration(
+                                  labelText: 'Segregation *',
+                                  helperText:
+                                      'Resources are organised under the selected subject',
+                                ),
+                                items: _sectionOptions
+                                    .map(
+                                      (section) => DropdownMenuItem(
+                                        value: section,
+                                        child: Text(section),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: _loading
+                                    ? null
+                                    : (value) {
+                                        if (value == null) return;
+                                        setState(() {
+                                          _selectedSection = value;
+                                          if (value != 'Other') {
+                                            _sectionCtrl.clear();
+                                          }
+                                        });
+                                      },
                               ),
-                              maxLines: 3,
-                            ),
+                              const SizedBox(height: 12),
 
-                            const SizedBox(height: 28),
-
-                            const _SectionTitle('File'),
-                            const SizedBox(height: 10),
-
-                            OutlinedButton.icon(
-                              icon: const Icon(Icons.attach_file_outlined),
-                              label: Text(
-                                _selectedFile == null
-                                    ? 'Pick file'
-                                    : _selectedFile!.path.split('/').last,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              onPressed: _loading ? null : _pickFile,
-                            ),
-
-                            if (_selectedFile != null) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: const [
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 18,
+                              if (_selectedSection == 'Other') ...[
+                                TextField(
+                                  controller: _sectionCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Custom Segregation *',
+                                    hintText: 'Example: Assignments',
+                                    helperText:
+                                        'Resources are grouped subject first, then by this section',
                                   ),
-                                  SizedBox(width: 6),
-                                  Text('File selected'),
-                                ],
+                                  textCapitalization: TextCapitalization.words,
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+
+                              TextField(
+                                controller: _descCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Description',
+                                ),
+                                maxLines: 3,
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              const _SectionTitle('File'),
+                              const SizedBox(height: 10),
+
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.attach_file_outlined),
+                                label: Text(
+                                  _selectedFile == null
+                                      ? 'Pick file'
+                                      : _selectedFile!.path.split('/').last,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onPressed: _loading ? null : _pickFile,
+                              ),
+
+                              if (_selectedFile != null) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: const [
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text('File selected'),
+                                  ],
+                                ),
+                              ],
+
+                              const SizedBox(height: 28),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _loading ? null : _submit,
+                                  child: _loading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Upload Resource'),
+                                ),
                               ),
                             ],
-
-                            const Spacer(),
-
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _loading ? null : _submit,
-                                child: _loading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Text('Upload Resource'),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),

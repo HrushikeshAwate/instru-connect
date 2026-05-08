@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
+import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
@@ -204,9 +206,31 @@ class HomeFaculty extends StatelessWidget {
                     ),
                     // ADDED TIMETABLE CARD
                     _ActionCard(
+                      icon: Icons.assignment_late_outlined,
+                      title: 'Complaints',
+                      gradient: UIColors.tileGradient(3),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ComplaintListScreen(),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.add_comment_outlined,
+                      title: 'Raise Complaint',
+                      gradient: UIColors.tileGradient(4),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CreateComplaintScreen(),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
                       icon: Icons.calendar_month_outlined,
                       title: 'Timetable',
-                      gradient: UIColors.tileGradient(3),
+                      gradient: UIColors.tileGradient(5),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -219,14 +243,14 @@ class HomeFaculty extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.group_work_outlined,
                       title: 'Manage Batches',
-                      gradient: UIColors.tileGradient(4),
+                      gradient: UIColors.tileGradient(0),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.manageBatches),
                     ),
                     _ActionCard(
                       icon: Icons.file_download_outlined,
                       title: 'Export Achievements',
-                      gradient: UIColors.tileGradient(5),
+                      gradient: UIColors.tileGradient(1),
                       onTap: () => _exportAchievements(context),
                     ),
                   ],

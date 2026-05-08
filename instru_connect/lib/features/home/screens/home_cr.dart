@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
 import 'package:instru_connect/core/sessioin/current_user.dart';
-import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
-import 'package:instru_connect/features/complaints/services/complaint_service.dart';
+import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
+import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
+import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
+import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -225,22 +227,20 @@ class HomeCr extends StatelessWidget {
                       ),
                     ),
                     _ActionCard(
-                      icon: Icons.assignment_late_outlined,
-                      label: 'View Complaints',
+                      icon: Icons.add_comment_outlined,
+                      label: 'Raise Complaint',
                       gradient: UIColors.tileGradient(2),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ComplaintListScreen(
-                            stream: ComplaintService().fetchAllComplaints(),
-                          ),
+                          builder: (_) => const CreateComplaintScreen(),
                         ),
                       ),
                     ),
                     _ActionCard(
                       icon: Icons.calendar_month_outlined,
                       label: 'Event Calendar',
-                      gradient: UIColors.tileGradient(3),
+                      gradient: UIColors.tileGradient(4),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
@@ -248,7 +248,7 @@ class HomeCr extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Timetable',
-                      gradient: UIColors.tileGradient(4),
+                      gradient: UIColors.tileGradient(5),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -261,12 +261,89 @@ class HomeCr extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.folder_open_rounded,
                       label: 'Resources',
-                      gradient: UIColors.tileGradient(5),
+                      gradient: UIColors.tileGradient(0),
                       onTap: () {
                         Navigator.pushNamed(context, Routes.resources);
                       },
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 36),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _SectionHeader(
+                      title: 'Notices',
+                      subtitle: 'A second place to quickly browse notices',
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NoticeListScreen(),
+                        ),
+                      ),
+                      child: const Text('View All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: StreamBuilder<List<Notice>>(
+                    stream: NoticeService().streamNotices(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData &&
+                          snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      final notices = snapshot.data ?? const <Notice>[];
+                      if (notices.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('No notices found'),
+                        );
+                      }
+
+                      return Column(
+                        children: notices.asMap().entries.map((entry) {
+                          final isLast = entry.key == notices.length - 1;
+                          return Column(
+                            children: [
+                              _NoticeTile(
+                                notice: entry.value,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        NoticeDetailScreen(notice: entry.value),
+                                  ),
+                                ),
+                              ),
+                              if (!isLast) const Divider(height: 1),
+                            ],
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                 ),
 
                 const SizedBox(height: 48),
@@ -518,4 +595,30 @@ int _asInt(dynamic value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+class _NoticeTile extends StatelessWidget {
+  final Notice notice;
+  final VoidCallback onTap;
+
+  const _NoticeTile({required this.notice, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      title: Text(
+        notice.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: const Text(
+        'Tap to view details',
+        style: TextStyle(fontSize: 12),
+      ),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+      onTap: onTap,
+    );
+  }
 }

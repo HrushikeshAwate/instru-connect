@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDocPath() {
+      return /databases/(default)/documents/users/$(request.auth.uid);
+    }
+
+    function userRole() {
+      return isSignedIn() && firestore.exists(userDocPath())
+        ? firestore.get(userDocPath()).data.role
+        : null;
+    }
+
+    function canCreateResourceContent() {
+      return userRole() in ['cr', 'CR', 'faculty', 'Faculty', 'admin', 'Admin'];
+    }
+
+    function canManageResourceContent() {
+      return userRole() in ['faculty', 'Faculty', 'admin', 'Admin'];
+    }
+
+    match /resources/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && canCreateResourceContent();
+      allow delete: if isSignedIn() && canManageResourceContent();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/sessioin/current_user.dart';
 import '../services/complaint_service.dart';
 
 class CreateComplaintScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   File? _mediaFile;
   String? _mediaType;
   bool _loading = false;
+  bool _isAnonymous = false;
 
   Future<void> _pickMedia(bool video) async {
     final picker = ImagePicker();
@@ -41,40 +43,56 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   Future<void> _submit() async {
     setState(() => _loading = true);
 
-    final user = FirebaseAuth.instance.currentUser!;
-    final uid = user.uid;
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final uid = user.uid;
+      final role = (CurrentUser.role ?? 'unknown').trim().toLowerCase();
 
-    final token = await user.getIdTokenResult();
-    final role = token.claims?['role'] ?? 'unknown';
-
-    final docRef = await _service.createComplaint(
-      title: _title.text.trim(),
-      description: _description.text.trim(),
-      category: _category,
-      createdBy: uid,
-      createdByRole: role,
-      departmentId: '',
-    );
-
-    if (_mediaFile != null) {
-      final media = await _service.uploadMedia(
-        complaintId: docRef.id,
-        file: _mediaFile!,
-        mediaType: _mediaType!,
+      final docRef = await _service.createComplaint(
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        category: _category,
+        createdBy: uid,
+        createdByRole: role,
+        departmentId: '',
+        isAnonymous: role == 'student' ? _isAnonymous : false,
       );
 
-      await _service.attachMedia(
-        complaintId: docRef.id,
-        mediaUrl: media['mediaUrl']!,
-        mediaType: media['mediaType']!,
-      );
+      if (_mediaFile != null) {
+        final media = await _service.uploadMedia(
+          complaintId: docRef.id,
+          file: _mediaFile!,
+          mediaType: _mediaType!,
+        );
+
+        await _service.attachMedia(
+          complaintId: docRef.id,
+          mediaUrl: media['mediaUrl']!,
+          mediaType: media['mediaType']!,
+        );
+      }
+
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-
-    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.22)
+        : UIColors.primary.withValues(alpha: 0.12);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
@@ -122,11 +140,11 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withValues(alpha: 0.12),
+                        color: shadowColor,
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -146,6 +164,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
 
                       DropdownButtonFormField<String>(
                         initialValue: _category,
+                        dropdownColor: surfaceColor,
                         decoration: const InputDecoration(
                           labelText: 'Category',
                         ),
@@ -175,6 +194,22 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                           labelText: 'Description',
                         ),
                       ),
+
+                      if ((CurrentUser.role ?? '').trim().toLowerCase() ==
+                          'student') ...[
+                        const SizedBox(height: 18),
+                        SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          value: _isAnonymous,
+                          onChanged: (value) {
+                            setState(() => _isAnonymous = value);
+                          },
+                          title: const Text('Submit anonymously'),
+                          subtitle: const Text(
+                            'Your complaint will still be linked to your account, but your identity will be hidden in the complaint view.',
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 28),
 
@@ -299,12 +334,22 @@ class _AttachButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark
+        ? const Color(0xFF243244)
+        : const Color(0xFFE2E8F0);
+    final backgroundColor = isDark
+        ? const Color(0xFF182235)
+        : const Color(0xFFF8FAFC);
+
     return Expanded(
       child: OutlinedButton.icon(
         icon: Icon(icon),
         label: Text(label),
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          side: BorderSide(color: borderColor),
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),

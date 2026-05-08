@@ -1,141 +1,89 @@
 // ignore_for_file: use_build_context_synchronously
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:instru_connect/core/services/activity_notification_service.dart';
+import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
+
 import '../../../config/theme/ui_colors.dart';
+import '../services/batch_service.dart';
 import 'subject_detail_screen.dart';
 
-class BatchSubjectsScreen extends StatelessWidget {
+class BatchSubjectsScreen extends StatefulWidget {
   final String batchId;
 
   const BatchSubjectsScreen({super.key, required this.batchId});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+  State<BatchSubjectsScreen> createState() => _BatchSubjectsScreenState();
+}
 
-      // ================= FAB =================
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: UIColors.primary,
-        child: const Icon(Icons.add),
-        onPressed: () => _showCreateSubjectDialog(context),
-      ),
+class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
+  final BatchService _batchService = BatchService();
+  final ActivityNotificationService _activityNotifications =
+      ActivityNotificationService();
+  final Set<String> _selectedSubjectIds = <String>{};
+  late final Stream<QuerySnapshot> _subjectsStream;
+  List<QueryDocumentSnapshot> _visibleSubjects = const <QueryDocumentSnapshot>[];
+  bool _selectionMode = false;
+  bool _deleting = false;
 
-      body: Stack(
-        children: [
-          // ================= HEADER =================
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+  bool get _canManageSubjects => _batchService.canManageSubjects;
 
-          SafeArea(
-            child: Column(
-              children: [
-                // ================= APP BAR =================
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const Text(
-                        'Subjects',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ================= LIST =================
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('subjects')
-                        .where('batchId', isEqualTo: batchId)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      // ERROR
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Error loading subjects',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        );
-                      }
-
-                      // LOADING
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final subjects = snapshot.data?.docs ?? [];
-
-                      // EMPTY
-                      if (subjects.isEmpty) {
-                        return const _EmptyState();
-                      }
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                        itemCount: subjects.length,
-                        itemBuilder: (context, index) {
-                          final doc = subjects[index];
-                          final data = doc.data() as Map<String, dynamic>;
-
-                          return _SubjectCard(
-                            name: data['name'],
-                            code: data['code'],
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SubjectDetailScreen(
-                                    subjectName: data['name'],
-                                    batchId: batchId,
-                                  ),
-                                ),
-                              );
-                            },
-                            onDelete: () => _confirmDeleteSubject(
-                              context,
-                              subjectId: doc.id,
-                              subjectName: (data['name'] ?? '').toString(),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _subjectsStream = FirebaseFirestore.instance
+        .collection('subjects')
+        .where('batchId', isEqualTo: widget.batchId)
+        .snapshots();
   }
 
-  // ===============================
-  // CREATE SUBJECT DIALOG
-  // ===============================
+  void _toggleSelection(String subjectId) {
+    if (!_canManageSubjects) return;
+    setState(() {
+      _selectionMode = true;
+      if (_selectedSubjectIds.contains(subjectId)) {
+        _selectedSubjectIds.remove(subjectId);
+      } else {
+        _selectedSubjectIds.add(subjectId);
+      }
+      if (_selectedSubjectIds.isEmpty) {
+        _selectionMode = false;
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedSubjectIds.clear();
+    });
+  }
+
+  void _syncSelectionWithVisibleItems(List<QueryDocumentSnapshot> subjects) {
+    final visibleIds = subjects.map((subject) => subject.id).toSet();
+    final staleIds = _selectedSubjectIds.difference(visibleIds);
+    if (staleIds.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _selectedSubjectIds.removeWhere((id) => !visibleIds.contains(id));
+        if (_selectedSubjectIds.isEmpty) {
+          _selectionMode = false;
+        }
+      });
+    });
+  }
+
   Future<void> _showCreateSubjectDialog(BuildContext context) async {
+    if (!_canManageSubjects) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only admin or faculty can manage subjects.')),
+      );
+      return;
+    }
+
     final nameController = TextEditingController();
     final codeController = TextEditingController();
 
@@ -174,9 +122,21 @@ class BatchSubjectsScreen extends StatelessWidget {
                 await FirebaseFirestore.instance.collection('subjects').add({
                   'name': nameController.text.trim(),
                   'code': codeController.text.trim(),
-                  'batchId': batchId,
+                  'batchId': widget.batchId,
                   'createdAt': FieldValue.serverTimestamp(),
                 });
+
+                await _activityNotifications.notifyBatchStudentsAndCr(
+                  batchId: widget.batchId,
+                  title: 'New Subject Added',
+                  body: nameController.text.trim(),
+                  type: 'subject_created',
+                  data: {
+                    'batchId': widget.batchId,
+                    'subjectName': nameController.text.trim(),
+                    'subjectCode': codeController.text.trim(),
+                  },
+                );
 
                 Navigator.pop(context);
               },
@@ -187,66 +147,222 @@ class BatchSubjectsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDeleteSubject(
-    BuildContext context, {
-    required String subjectId,
-    required String subjectName,
-  }) async {
-    final shouldDelete = await showDialog<bool>(
+  Future<void> _deleteSelectedSubjects(List<QueryDocumentSnapshot> subjects) async {
+    final selected = subjects
+        .where((doc) => _selectedSubjectIds.contains(doc.id))
+        .toList();
+    if (selected.isEmpty) return;
+
+    final confirmed = await showDestructiveConfirmationDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Subject'),
-        content: Text('Delete "$subjectName"? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      title: 'Delete Subjects?',
+      message:
+          'You are about to permanently delete ${selected.length} selected subject(s). Related attendance history and linked subject data may also be removed, and this action cannot be undone or recovered.',
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deleting = true);
+    try {
+      await _batchService.deleteSubjectsCascade(
+        batchId: widget.batchId,
+        subjects: selected
+            .map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return <String, String>{
+                'id': doc.id,
+                'name': (data['name'] ?? '').toString(),
+              };
+            })
+            .toList(),
+      );
+      if (!mounted) return;
+      _clearSelection();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${selected.length} subject(s) deleted')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      floatingActionButton: _canManageSubjects
+          ? FloatingActionButton(
+              backgroundColor: UIColors.primary,
+              child: const Icon(Icons.add),
+              onPressed: () => _showCreateSubjectDialog(context),
+            )
+          : null,
+      body: Stack(
+        children: [
+          Container(
+            height: 180,
+            decoration: const BoxDecoration(
+              gradient: UIColors.heroGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
+              ),
+            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: UIColors.error),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          _selectionMode
+                              ? Icons.close_rounded
+                              : Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
+                        onPressed: _selectionMode
+                            ? _clearSelection
+                            : () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _selectionMode
+                              ? '${_selectedSubjectIds.length} selected'
+                              : 'Subjects',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      if (_selectionMode)
+                        IconButton(
+                          onPressed: _deleting
+                              ? null
+                              : () => _deleteSelectedSubjects(_visibleSubjects),
+                          icon: _deleting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                ),
+                        ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _subjectsStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Error loading subjects',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        );
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final subjects = snapshot.data?.docs ?? [];
+                      _visibleSubjects = subjects;
+                      _syncSelectionWithVisibleItems(subjects);
+                      if (subjects.isEmpty) {
+                        return const _EmptyState();
+                      }
+
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                24,
+                              ),
+                              itemCount: subjects.length,
+                              itemBuilder: (context, index) {
+                                final doc = subjects[index];
+                                final data = doc.data() as Map<String, dynamic>;
+
+                                return _SubjectCard(
+                                  key: ValueKey(doc.id),
+                                  name: data['name'],
+                                  code: data['code'],
+                                  selectionMode: _selectionMode,
+                                  selected: _selectedSubjectIds.contains(doc.id),
+                                  onTap: () {
+                                    if (_selectionMode) {
+                                      _toggleSelection(doc.id);
+                                      return;
+                                    }
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => SubjectDetailScreen(
+                                          subjectName: data['name'],
+                                          batchId: widget.batchId,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onLongPress: () => _toggleSelection(doc.id),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
-
-    if (shouldDelete != true) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('subjects')
-          .doc(subjectId)
-          .delete();
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Subject deleted')));
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to delete subject: $e')));
-    }
   }
 }
 
-// =======================================================
-// SUBJECT CARD (WHITE TILE LIKE NOTICE/RESOURCE)
-// =======================================================
-
 class _SubjectCard extends StatelessWidget {
+  final Key? key;
   final String name;
   final String code;
+  final bool selectionMode;
+  final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
+  final VoidCallback onLongPress;
 
   const _SubjectCard({
+    this.key,
     required this.name,
     required this.code,
+    required this.selectionMode,
+    required this.selected,
     required this.onTap,
-    required this.onDelete,
-  });
+    required this.onLongPress,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -255,6 +371,9 @@ class _SubjectCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
+        border: selectionMode && selected
+            ? Border.all(color: UIColors.primary, width: 2)
+            : null,
         boxShadow: [
           BoxShadow(
             color: UIColors.primary.withValues(alpha: 0.10),
@@ -268,11 +387,15 @@ class _SubjectCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                // LEFT STRIP
+                if (selectionMode) ...[
+                  Checkbox(value: selected, onChanged: (_) => onTap()),
+                  const SizedBox(width: 4),
+                ],
                 Container(
                   width: 6,
                   height: 56,
@@ -282,16 +405,11 @@ class _SubjectCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
-
-                // TEXT
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text(name, style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 6),
                       Text(
                         code,
@@ -302,31 +420,12 @@ class _SubjectCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                Column(
-                  children: [
-                    PopupMenuButton<String>(
-                      icon: const Icon(
-                        Icons.more_vert,
-                        color: UIColors.textMuted,
-                      ),
-                      onSelected: (value) {
-                        if (value == 'delete') onDelete();
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Text('Delete Subject'),
-                        ),
-                      ],
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                      color: UIColors.textMuted,
-                    ),
-                  ],
-                ),
+                if (!selectionMode)
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: UIColors.textMuted,
+                  ),
               ],
             ),
           ),
@@ -335,10 +434,6 @@ class _SubjectCard extends StatelessWidget {
     );
   }
 }
-
-// =======================================================
-// EMPTY STATE
-// =======================================================
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -351,7 +446,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: UIColors.secondaryGradient,
               shape: BoxShape.circle,
             ),
@@ -363,7 +458,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'No subjects created',
+            'No subjects yet',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ],

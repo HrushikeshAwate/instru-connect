@@ -12,14 +12,24 @@ class FirestoreService {
     final ref = _db
         .collection(FirestoreCollections.users)
         .doc(firebaseUser.uid);
+    final normalizedEmail = firebaseUser.email?.trim().toLowerCase();
+    final normalizedName = firebaseUser.displayName?.trim() ?? '';
 
-    final snap = await ref.get();
+    final baseData = <String, dynamic>{
+      'uid': firebaseUser.uid,
+      'email': normalizedEmail,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (normalizedName.isNotEmpty) {
+      baseData['name'] = normalizedName;
+    }
+
+    final snap = await ref.get(const GetOptions(source: Source.serverAndCache));
 
     if (!snap.exists) {
       final data = {
-        'uid': firebaseUser.uid,
-        'name': firebaseUser.displayName ?? '',
-        'email': firebaseUser.email,
+        ...baseData,
         'role': AppRoles.student,
         'createdAt': FieldValue.serverTimestamp(),
       };
@@ -28,17 +38,14 @@ class FirestoreService {
       return data;
     }
 
-    if (snap.exists) {
-      final data = snap.data()!;
+    final data = snap.data() ?? <String, dynamic>{};
+    final updates = <String, dynamic>{...baseData};
 
-      if ((data['name'] == null || data['name'] == '') &&
-          firebaseUser.displayName != null) {
-        await ref.update({'name': firebaseUser.displayName});
-      }
-
-      return data;
+    if ((data['role'] ?? '').toString().trim().isEmpty) {
+      updates['role'] = AppRoles.student;
     }
 
-    return snap.data()!;
+    await ref.set(updates, SetOptions(merge: true));
+    return {...data, ...updates};
   }
 }

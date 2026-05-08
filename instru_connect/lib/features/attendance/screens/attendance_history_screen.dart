@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:csv/csv.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
+
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/widgets/destructive_confirmation_dialog.dart';
 import '../../batches/services/batch_service.dart';
 import 'mark_attendance_screen.dart';
 
@@ -38,18 +41,20 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         .doc(uid)
         .get();
 
-    _cachedRole = doc.data()?['role'] ?? 'student';
+    _cachedRole = (doc.data()?['role'] ?? 'student').toString();
     return _cachedRole!;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ================= HEADER =================
           Container(
             height: 180,
             decoration: const BoxDecoration(
@@ -60,11 +65,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
               ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
-                // ================= APP BAR =================
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
@@ -76,15 +79,18 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      Text(
-                        '${widget.subjectName} History',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          '${widget.subjectName} Sessions',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       IconButton(
                         icon: _exporting
                             ? const SizedBox(
@@ -104,8 +110,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                     ],
                   ),
                 ),
-
-                // ================= BODY =================
                 Expanded(
                   child: FutureBuilder<String>(
                     future: _getUserRole(),
@@ -115,16 +119,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       }
 
                       final userRole = roleSnapshot.data!;
-
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
-                            .collection('attendance')
+                            .collection('sessions')
                             .where('batchId', isEqualTo: widget.batchId)
-                            .where(
-                              'subject',
-                              isEqualTo: widget.subjectName.trim(),
-                            )
-                            .orderBy('timestamp', descending: true)
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
@@ -139,32 +137,129 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                             );
                           }
 
-                          final docs = snapshot.data!.docs;
+                          final docs = snapshot.data!.docs.where((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final subjectName =
+                                (data['subjectName'] ?? '').toString().trim();
+                            return subjectName == widget.subjectName.trim();
+                          }).toList()
+                            ..sort((a, b) {
+                              final aData = a.data() as Map<String, dynamic>;
+                              final bData = b.data() as Map<String, dynamic>;
+                              final aCreatedAt =
+                                  aData['createdAt'] as Timestamp?;
+                              final bCreatedAt =
+                                  bData['createdAt'] as Timestamp?;
 
+                              if (aCreatedAt != null && bCreatedAt != null) {
+                                return bCreatedAt.compareTo(aCreatedAt);
+                              }
+                              if (aCreatedAt != null) return -1;
+                              if (bCreatedAt != null) return 1;
+                              return b.id.compareTo(a.id);
+                            });
                           if (docs.isEmpty) {
                             return const _EmptyState();
                           }
 
-                          return ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            itemCount: docs.length,
-                            itemBuilder: (context, index) {
-                              final doc = docs[index];
-                              final data = doc.data() as Map<String, dynamic>;
-                              final List<String> absentees = List<String>.from(
-                                data['absentUids'] ?? [],
-                              );
+                          return Column(
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  10,
+                                ),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? colorScheme.outline.withValues(
+                                            alpha: 0.34,
+                                          )
+                                        : colorScheme.outline.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: _HistorySummaryChip(
+                                        label: 'Sessions',
+                                        value: docs.length.toString(),
+                                        icon: Icons.history_toggle_off_rounded,
+                                        color: UIColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _HistorySummaryChip(
+                                        label: 'Subject',
+                                        value: widget.subjectName,
+                                        icon: Icons.menu_book_rounded,
+                                        color: UIColors.tertiary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    24,
+                                  ),
+                                  itemCount: docs.length,
+                                  itemBuilder: (context, index) {
+                                    final doc = docs[index];
+                                    final data =
+                                        doc.data() as Map<String, dynamic>;
+                                    final absentees = List<String>.from(
+                                      data['absentStudentIds'] ?? <String>[],
+                                    );
 
-                              return _AttendanceCard(
-                                date: data['date'] ?? 'N/A',
-                                absentCount: absentees.length,
-                                onEdit: () =>
-                                    _navigateToEdit(doc.id, absentees),
-                                onDelete: userRole != 'cr'
-                                    ? () => _confirmDelete(doc.id)
-                                    : null,
-                              );
-                            },
+                                    final canEditAttendance =
+                                        userRole == 'faculty' ||
+                                        userRole == 'admin';
+
+                                    return _AttendanceCard(
+                                      date: (data['date'] ?? 'N/A').toString(),
+                                      sessionNumber:
+                                          (data['sessionNumber'] as num?)
+                                              ?.toInt() ??
+                                          1,
+                                      absentCount:
+                                          (data['absentCount'] as num?)
+                                              ?.toInt() ??
+                                          absentees.length,
+                                      presentCount:
+                                          (data['presentCount'] as num?)
+                                              ?.toInt() ??
+                                          0,
+                                      totalStudents:
+                                          (data['totalStudents'] as num?)
+                                              ?.toInt() ??
+                                          0,
+                                      onEdit: canEditAttendance
+                                          ? () => _navigateToEdit(
+                                                doc.id,
+                                                absentees,
+                                              )
+                                          : null,
+                                      onDelete: canEditAttendance
+                                          ? () => _confirmDelete(doc.id)
+                                          : null,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           );
                         },
                       );
@@ -209,9 +304,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         final subjects = (data['subjects'] ?? {}) as Map<String, dynamic>;
         final stats =
             (subjects[widget.subjectName] ?? {}) as Map<String, dynamic>;
-        final int total = (stats['total'] ?? 0) as int;
-        final int attended = (stats['attended'] ?? 0) as int;
-        final double percentage = total == 0 ? 0 : (attended / total) * 100;
+        final total = (stats['total'] as num?)?.toInt() ?? 0;
+        final attended = (stats['attended'] as num?)?.toInt() ?? 0;
+        final percentage = total == 0 ? 0 : (attended / total) * 100;
 
         rows.add([
           widget.subjectName,
@@ -247,7 +342,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     }
   }
 
-  void _navigateToEdit(String docId, List<String> absentees) {
+  void _navigateToEdit(String sessionId, List<String> absentees) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -255,67 +350,66 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           batchId: widget.batchId,
           subjectName: widget.subjectName,
           isEditing: true,
-          docId: docId,
+          docId: sessionId,
           initialAbsentees: absentees,
         ),
       ),
     );
   }
 
-  void _confirmDelete(String docId) {
-    showDialog(
+  void _confirmDelete(String sessionId) async {
+    final confirmed = await showDestructiveConfirmationDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Record'),
-        content: const Text(
-          'This will permanently remove the record and update student stats.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await BatchService().deleteAttendance(widget.batchId, docId);
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: 'Delete Attendance Session?',
+      message:
+          'This will permanently delete the attendance session and all linked attendance records. The deleted data cannot be undone or recovered.',
     );
+    if (confirmed != true) return;
+
+    await BatchService().deleteAttendance(widget.batchId, sessionId);
   }
 }
 
-// =======================================================
-// ATTENDANCE CARD
-// =======================================================
-
 class _AttendanceCard extends StatelessWidget {
   final String date;
+  final int sessionNumber;
   final int absentCount;
-  final VoidCallback onEdit;
+  final int presentCount;
+  final int totalStudents;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const _AttendanceCard({
     required this.date,
+    required this.sessionNumber,
     required this.absentCount,
+    required this.presentCount,
+    required this.totalStudents,
     required this.onEdit,
     this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark
+              ? colorScheme.outline.withValues(alpha: 0.34)
+              : colorScheme.outline.withValues(alpha: 0.12),
+        ),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withValues(alpha: 0.10),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.16)
+                : UIColors.primary.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -325,39 +419,38 @@ class _AttendanceCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Row(
           children: [
-            // LEFT STRIP
             Container(
               width: 6,
-              height: 56,
+              height: 64,
               decoration: BoxDecoration(
                 gradient: UIColors.primaryGradient,
                 borderRadius: BorderRadius.circular(6),
               ),
             ),
-
             const SizedBox(width: 14),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(date, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    '$date • Session $sessionNumber',
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 6),
                   Text(
-                    '$absentCount students absent',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    '$presentCount present • $absentCount absent • $totalStudents students',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
               ),
             ),
-
-            IconButton(
-              icon: const Icon(Icons.edit, color: UIColors.primary),
-              onPressed: onEdit,
-            ),
-
+            if (onEdit != null)
+              IconButton(
+                icon: const Icon(Icons.edit, color: UIColors.primary),
+                onPressed: onEdit,
+              ),
             if (onDelete != null)
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
@@ -370,9 +463,55 @@ class _AttendanceCard extends StatelessWidget {
   }
 }
 
-// =======================================================
-// EMPTY STATE
-// =======================================================
+class _HistorySummaryChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _HistorySummaryChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(label, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -385,7 +524,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: UIColors.secondaryGradient,
               shape: BoxShape.circle,
             ),
@@ -393,7 +532,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'No attendance records found',
+            'No attendance sessions found',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ],

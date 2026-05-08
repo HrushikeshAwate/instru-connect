@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:typed_data';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -55,15 +54,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   }
 
   Future<List<Map<String, String>>> _fetchBatches() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('batches')
-        .where('isActive', isEqualTo: true)
-        .get();
-
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      return {'id': doc.id, 'name': data['name'] as String};
-    }).toList();
+    return _noticeService.fetchBatchOptions();
   }
 
   Future<void> _pickAttachment() async {
@@ -127,6 +118,18 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final softFillColor = isDark
+        ? const Color(0xFF182235)
+        : const Color(0xFFF1F5F9);
+    final borderColor = isDark
+        ? const Color(0xFF243244)
+        : const Color(0xFFE2E8F0);
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.22)
+        : UIColors.primary.withValues(alpha: 0.15);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
@@ -174,11 +177,11 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: UIColors.primary.withValues(alpha: 0.15),
+                        color: shadowColor,
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -237,6 +240,17 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                                   );
 
                                   return CheckboxListTile(
+                                    tileColor: softFillColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      side: BorderSide(
+                                        color: selected
+                                            ? UIColors.primary.withValues(
+                                                alpha: isDark ? 0.7 : 0.25,
+                                              )
+                                            : borderColor,
+                                      ),
+                                    ),
                                     contentPadding: EdgeInsets.zero,
                                     title: Text(name),
                                     value: selected,
@@ -262,6 +276,10 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                           onPressed: _pickAttachment,
                           icon: const Icon(Icons.attach_file),
                           label: const Text('Add Attachment'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: softFillColor,
+                            side: BorderSide(color: borderColor),
+                          ),
                         ),
 
                         if (_fileName != null) ...[

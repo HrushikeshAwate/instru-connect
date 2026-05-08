@@ -11,6 +11,7 @@ import 'package:instru_connect/features/complaints/screens/complaint_list_screen
 import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
+import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
 import 'package:instru_connect/features/admin/services/admin_service.dart';
 import 'package:instru_connect/features/home/screens/home_cr.dart';
 import 'package:instru_connect/features/home/screens/home_faculty.dart';
@@ -159,6 +160,15 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                                 : (snapshot.data ?? 0).toString(),
                             icon: Icons.people_outline_rounded,
                             gradient: UIColors.tileGradient(1),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const AdminUserManagementScreen(),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),
@@ -209,6 +219,14 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                                 : snapshot.data.toString(),
                             icon: Icons.campaign_outlined,
                             gradient: UIColors.tileGradient(0),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NoticeListScreen(),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),
@@ -272,6 +290,19 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                       },
                     ),
                     _ActionCard(
+                      icon: Icons.list_alt_outlined,
+                      label: 'View Notices',
+                      gradient: UIColors.tileGradient(1),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NoticeListScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ActionCard(
                       icon: Icons.manage_accounts_outlined,
                       label: 'Manage Users',
                       gradient: UIColors.tileGradient(1),
@@ -285,26 +316,11 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                       },
                     ),
                     _ActionCard(
-                      icon: Icons.layers_outlined,
-                      label: 'Manage Batches',
+                      icon: Icons.folder_open_outlined,
+                      label: 'Resources',
                       gradient: UIColors.tileGradient(2),
                       onTap: () {
-                        Navigator.pushNamed(context, Routes.manageBatches);
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.report_gmailerrorred_outlined,
-                      label: 'View Complaints',
-                      gradient: UIColors.tileGradient(3),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ComplaintListScreen(
-                              stream: ComplaintService().fetchAllComplaints(),
-                            ),
-                          ),
-                        );
+                        Navigator.pushNamed(context, Routes.resources);
                       },
                     ),
                     _ActionCard(
@@ -314,7 +330,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                       label: _exportingAchievements
                           ? 'Exporting...'
                           : 'Export Achievements',
-                      gradient: UIColors.tileGradient(4),
+                      gradient: UIColors.tileGradient(5),
                       onTap: _exportingAchievements
                           ? () {}
                           : () => _exportAchievements(),
@@ -322,7 +338,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                     _ActionCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Event Calendar',
-                      gradient: UIColors.tileGradient(5),
+                      gradient: UIColors.tileGradient(1),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
@@ -584,12 +600,14 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Gradient gradient;
+  final VoidCallback? onTap;
 
   const _MetricCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.gradient,
+    this.onTap,
   });
 
   @override
@@ -597,41 +615,48 @@ class _MetricCard extends StatelessWidget {
     final delay = Duration(milliseconds: 70 + (title.hashCode.abs() % 5) * 55);
     return FadeSlideIn(
       delay: delay,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: gradient,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: Colors.white, size: 28),
+                const SizedBox(height: 16),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

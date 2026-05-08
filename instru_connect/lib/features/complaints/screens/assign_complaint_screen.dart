@@ -1,5 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:instru_connect/core/constants/app_roles.dart';
+import 'package:instru_connect/core/sessioin/current_user.dart';
 import '../services/complaint_service.dart';
 import '../../../config/theme/ui_colors.dart';
 
@@ -21,6 +23,27 @@ class _AssignComplaintScreenState extends State<AssignComplaintScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final role = (CurrentUser.role ?? '').trim().toLowerCase();
+    if (role != AppRoles.admin) {
+      return const Scaffold(
+        body: Center(
+          child: Text('You do not have permission to assign complaints.'),
+        ),
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final softFillColor = isDark
+        ? const Color(0xFF182235)
+        : const Color(0xFFF1F5F9);
+    final borderColor = isDark
+        ? const Color(0xFF243244)
+        : const Color(0xFFE2E8F0);
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.22)
+        : UIColors.primary.withValues(alpha: 0.08);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
@@ -96,13 +119,11 @@ class _AssignComplaintScreenState extends State<AssignComplaintScreen> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: surfaceColor,
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: UIColors.primary.withValues(
-                                      alpha: 0.08,
-                                    ),
+                                    color: shadowColor,
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
                                   ),
@@ -137,13 +158,22 @@ class _AssignComplaintScreenState extends State<AssignComplaintScreen> {
                                   // DROPDOWN
                                   // ---------------------------------------------
                                   DropdownButtonFormField<String>(
+                                    dropdownColor: surfaceColor,
                                     decoration: InputDecoration(
                                       labelText: 'User',
                                       filled: true,
-                                      fillColor: UIColors.background,
+                                      fillColor: softFillColor,
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(14),
-                                        borderSide: BorderSide.none,
+                                        borderSide: BorderSide(
+                                          color: borderColor,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                        borderSide: BorderSide(
+                                          color: borderColor,
+                                        ),
                                       ),
                                     ),
                                     items: users

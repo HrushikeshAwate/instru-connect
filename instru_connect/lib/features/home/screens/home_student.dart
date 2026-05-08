@@ -117,23 +117,33 @@ class HomeStudent extends StatelessWidget {
                 // =========================
                 // ATTENDANCE (LIVE)
                 // =========================
-                StreamBuilder<DocumentSnapshot>(
+                StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(currentUserId)
+                      .collection('attendance')
+                      .where('studentId', isEqualTo: currentUserId)
+                      .orderBy('markedAt', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                    if (!snapshot.hasData) {
                       return const SizedBox.shrink();
                     }
 
-                    final data = snapshot.data!.data() as Map<String, dynamic>;
-                    final int total = data['totalClasses'] ?? 0;
-                    final int attended = data['attendedClasses'] ?? 0;
+                    final docs = snapshot.data!.docs;
+                    final int total = docs.length;
+                    final int attended = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return (data['status'] ?? '').toString().toLowerCase() ==
+                          'present';
+                    }).length;
                     final double percentage = total == 0
                         ? 0
                         : (attended / total) * 100;
-                    final bool isLow = percentage < 75;
+                    final bool isLow = percentage < 75 && total > 0;
+                    final String todayKey = _dateKey(DateTime.now());
+                    final todayEntries = docs
+                        .map((doc) => doc.data() as Map<String, dynamic>)
+                        .where((entry) => (entry['date'] ?? '') == todayKey)
+                        .toList();
 
                     return Container(
                       padding: const EdgeInsets.all(20),
@@ -227,6 +237,37 @@ class HomeStudent extends StatelessWidget {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.today_outlined,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    todayEntries.isEmpty
+                                        ? 'Today: no attendance marked yet'
+                                        : _todaySummary(todayEntries),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -302,6 +343,43 @@ class HomeStudent extends StatelessWidget {
                   },
                 ),
 
+                const SizedBox(height: 22),
+
+                const _SectionHeader(
+                  title: 'Recent Sessions',
+                  subtitle: 'Last 5 marked attendance entries',
+                ),
+                const SizedBox(height: 12),
+
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('attendance')
+                      .where('studentId', isEqualTo: currentUserId)
+                      .orderBy('markedAt', descending: true)
+                      .limit(5)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const _SubjectAttendanceError();
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const _EmptyRecentAttendance();
+                    }
+
+                    return Column(
+                      children: snapshot.data!.docs.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _RecentAttendanceTile(
+                          subject: (data['subjectName'] ?? 'Subject').toString(),
+                          status: (data['status'] ?? 'Unknown').toString(),
+                          date: (data['date'] ?? '').toString(),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+
                 const SizedBox(height: 36),
 
                 const _SectionHeader(
@@ -354,7 +432,7 @@ class HomeStudent extends StatelessWidget {
                       },
                     ),
                     _ActionCard(
-                      icon: Icons.report_problem_outlined,
+                      icon: Icons.add_comment_outlined,
                       label: 'Raise Complaint',
                       gradient: UIColors.tileGradient(3),
                       onTap: () => Navigator.push(
@@ -367,7 +445,7 @@ class HomeStudent extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_month,
                       label: 'Event Calendar',
-                      gradient: UIColors.tileGradient(4),
+                      gradient: UIColors.tileGradient(0),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
@@ -383,8 +461,8 @@ class HomeStudent extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const _SectionHeader(
-                      title: 'Recent Notices',
-                      subtitle: 'Latest announcements',
+                      title: 'Notices',
+                      subtitle: 'All notices are stored here',
                     ),
                     TextButton(
                       onPressed: () => Navigator.push(
@@ -411,17 +489,19 @@ class HomeStudent extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: FutureBuilder<List<Notice>>(
-                    future: NoticeService().fetchRecentNotices(limit: 3),
+                  child: StreamBuilder<List<Notice>>(
+                    stream: NoticeService().streamNotices(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
+                      if (!snapshot.hasData &&
+                          snapshot.connectionState == ConnectionState.waiting) {
                         return const Padding(
                           padding: EdgeInsets.all(24),
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
 
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      final notices = snapshot.data ?? const <Notice>[];
+                      if (notices.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.all(24),
                           child: Text('No notices found'),
@@ -429,8 +509,8 @@ class HomeStudent extends StatelessWidget {
                       }
 
                       return Column(
-                        children: snapshot.data!.asMap().entries.map((entry) {
-                          final isLast = entry.key == snapshot.data!.length - 1;
+                        children: notices.asMap().entries.map((entry) {
+                          final isLast = entry.key == notices.length - 1;
                           return Column(
                             children: [
                               _NoticeTile(
@@ -684,6 +764,97 @@ class _SubjectAttendanceError extends StatelessWidget {
   }
 }
 
+class _EmptyRecentAttendance extends StatelessWidget {
+  const _EmptyRecentAttendance();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        'No recent attendance sessions yet',
+        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+      ),
+    );
+  }
+}
+
+class _RecentAttendanceTile extends StatelessWidget {
+  final String subject;
+  final String status;
+  final String date;
+
+  const _RecentAttendanceTile({
+    required this.subject,
+    required this.status,
+    required this.date,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPresent = status.toLowerCase() == 'present';
+    final accent = isPresent ? UIColors.success : UIColors.error;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: accent.withValues(alpha: 0.12),
+            child: Icon(
+              isPresent ? Icons.check_circle_outline : Icons.person_off_outlined,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subject,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  date,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          Text(
+            status,
+            style: TextStyle(
+              color: accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Map<String, dynamic> _toStringDynamicMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) {
@@ -699,6 +870,21 @@ int _asInt(dynamic value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+String _dateKey(DateTime value) {
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  return '${value.year}-$month-$day';
+}
+
+String _todaySummary(List<Map<String, dynamic>> entries) {
+  final preview = entries.take(3).map((entry) {
+    final subject = (entry['subjectName'] ?? 'Subject').toString();
+    final status = (entry['status'] ?? 'Unknown').toString();
+    return '$subject: $status';
+  }).join(' | ');
+  return 'Today: $preview';
 }
 
 class _NoticeTile extends StatelessWidget {

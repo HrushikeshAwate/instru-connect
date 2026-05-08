@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
-import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
 // ADDED THIS IMPORT
@@ -110,16 +110,25 @@ class HomeStaff extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ComplaintListScreen(
-                            stream: ComplaintService().fetchAllComplaints(),
-                          ),
+                          builder: (_) => const ComplaintListScreen(),
+                        ),
+                      ),
+                    ),
+                    _ActionCard(
+                      icon: Icons.add_comment_outlined,
+                      label: 'Raise Complaint',
+                      gradient: UIColors.tileGradient(1),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CreateComplaintScreen(),
                         ),
                       ),
                     ),
                     _ActionCard(
                       icon: Icons.campaign_outlined,
                       label: 'Notices',
-                      gradient: UIColors.tileGradient(1),
+                      gradient: UIColors.tileGradient(2),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -131,7 +140,7 @@ class HomeStaff extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.calendar_month_rounded,
                       label: 'Timetable',
-                      gradient: UIColors.tileGradient(2),
+                      gradient: UIColors.tileGradient(3),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -144,14 +153,14 @@ class HomeStaff extends StatelessWidget {
                     _ActionCard(
                       icon: Icons.folder_open_rounded,
                       label: 'Resources',
-                      gradient: UIColors.tileGradient(3),
+                      gradient: UIColors.tileGradient(4),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
                     _ActionCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Event Calendar',
-                      gradient: UIColors.tileGradient(4),
+                      gradient: UIColors.tileGradient(5),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),

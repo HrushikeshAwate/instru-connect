@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-import '../models/notice_model.dart';
-import '../services/notice_service.dart';
-import 'notice_detail_screen.dart';
-import '../../../config/theme/ui_colors.dart';
+import 'package:instru_connect/core/constants/app_roles.dart';
+import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
+import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/features/notices/models/notice_model.dart';
+import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
+import 'package:instru_connect/features/notices/services/notice_service.dart';
 
 class NoticeListScreen extends StatefulWidget {
   const NoticeListScreen({super.key});
@@ -15,62 +16,46 @@ class NoticeListScreen extends StatefulWidget {
 
 class _NoticeListScreenState extends State<NoticeListScreen> {
   final NoticeService _service = NoticeService();
-  final ScrollController _scrollController = ScrollController();
+  late final Stream<List<Notice>> _noticesStream;
+  List<Notice> _visibleNotices = const <Notice>[];
 
-  final List<Notice> _notices = [];
-  bool _isLoading = false;
-  bool _hasMore = true;
+  bool get _canClearNotices {
+    final role = (CurrentUser.role ?? '').toLowerCase();
+    return role == AppRoles.admin || role == AppRoles.faculty;
+  }
 
-  DocumentSnapshot? _lastDoc;
+  Future<void> _clearVisibleNotices() async {
+    if (_visibleNotices.isEmpty) return;
 
-  static const int _pageLimit = 10;
-  final String departmentId = 'Instrumentation';
+    final confirmed = await showDestructiveConfirmationDialog(
+      context: context,
+      title: 'Clear Notices?',
+      message:
+          'This will permanently delete all notices currently shown in this list.',
+      confirmLabel: 'Clear Notices',
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteNotices(
+        _visibleNotices.map((notice) => notice.id).toList(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Visible notices cleared')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _fetchNotices();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchNotices() async {
-    if (_isLoading || !_hasMore) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final snapshot = await _service.fetchNoticesSnapshot(
-        departmentId: departmentId,
-        lastDocument: _lastDoc,
-        limit: _pageLimit,
-      );
-
-      final docs = snapshot.docs;
-      final notices = docs.map((e) => Notice.fromFirestore(e)).toList();
-
-      if (!mounted) return;
-
-      setState(() {
-        _notices.addAll(notices);
-        if (docs.isNotEmpty) _lastDoc = docs.last;
-        if (docs.length < _pageLimit) _hasMore = false;
-      });
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _fetchNotices();
-    }
+    _noticesStream = _service.streamNotices();
   }
 
   @override
@@ -103,61 +88,93 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Notices',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Notices',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
+                      if (_canClearNotices)
+                        TextButton.icon(
+                          onPressed: _clearVisibleNotices,
+                          icon: const Icon(
+                            Icons.delete_sweep_outlined,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'Clear',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-                Expanded(child: _buildBody()),
+                Expanded(
+                  child: StreamBuilder<List<Notice>>(
+                    stream: _noticesStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Unable to load notices: ${snapshot.error}',
+                          ),
+                        );
+                      }
+
+                      final notices = snapshot.data ?? const <Notice>[];
+                      _visibleNotices = notices;
+                      if (notices.isEmpty) {
+                        return const _EmptyState();
+                      }
+
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                24,
+                              ),
+                              itemCount: notices.length,
+                              itemBuilder: (context, index) {
+                                final notice = notices[index];
+
+                                return _NoticeCard(
+                                  key: ValueKey(notice.id),
+                                  notice: notice,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            NoticeDetailScreen(notice: notice),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading && _notices.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_notices.isEmpty) {
-      return const _EmptyState();
-    }
-
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: _notices.length + (_hasMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == _notices.length) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          );
-        }
-
-        final notice = _notices[index];
-
-        return _NoticeCard(
-          notice: notice,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => NoticeDetailScreen(notice: notice),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
@@ -166,7 +183,11 @@ class _NoticeCard extends StatelessWidget {
   final Notice notice;
   final VoidCallback onTap;
 
-  const _NoticeCard({required this.notice, required this.onTap});
+  const _NoticeCard({
+    required this.notice,
+    required this.onTap,
+    super.key,
+  });
 
   String? get _firstImageAttachment {
     for (final url in notice.attachments) {
@@ -263,6 +284,8 @@ class _NoticeCard extends StatelessWidget {
                                   ).textTheme.bodyMedium?.color,
                                 ),
                           ),
+                          const SizedBox(height: 8),
+                          _TargetBatchSummary(batchIds: notice.batchIds),
                         ],
                       ),
                     ),
@@ -293,7 +316,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: UIColors.secondaryGradient,
               shape: BoxShape.circle,
             ),
@@ -310,6 +333,35 @@ class _EmptyState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TargetBatchSummary extends StatelessWidget {
+  final List<String> batchIds;
+
+  const _TargetBatchSummary({required this.batchIds});
+
+  @override
+  Widget build(BuildContext context) {
+    if (batchIds.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return FutureBuilder<List<String>>(
+      future: NoticeService().fetchOrderedBatchNames(batchIds),
+      builder: (context, snapshot) {
+        final names = snapshot.data ?? batchIds;
+        return Text(
+          'Target Batches: ${names.join(' • ')}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+            fontWeight: FontWeight.w600,
+          ),
+        );
+      },
     );
   }
 }

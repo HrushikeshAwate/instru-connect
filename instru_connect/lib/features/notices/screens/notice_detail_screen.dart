@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:instru_connect/core/utils/date_utils.dart';
+import 'package:instru_connect/features/notices/models/notice_model.dart';
+import 'package:instru_connect/features/notices/services/notice_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../models/notice_model.dart';
-import '../../../core/utils/date_utils.dart';
 
 class NoticeDetailScreen extends StatelessWidget {
   final Notice notice;
@@ -11,10 +11,11 @@ class NoticeDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final noticeService = NoticeService();
+
     return Scaffold(
       body: Stack(
         children: [
-          // ================= HEADER GRADIENT =================
           Container(
             height: 220,
             decoration: const BoxDecoration(
@@ -33,12 +34,9 @@ class NoticeDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-
-          // ================= CONTENT =================
           SafeArea(
             child: Column(
               children: [
-                // ---------------- APP BAR ----------------
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -61,16 +59,15 @@ class NoticeDetailScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const Spacer(),
                     ],
                   ),
                 ),
-
-                // ---------------- BODY CARD ----------------
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: SizedBox(
-                      width: double.infinity, // 🔥 FIX: FULL WIDTH
+                      width: double.infinity,
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -88,16 +85,12 @@ class NoticeDetailScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // TITLE
                               Text(
                                 notice.title,
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
-
                               const SizedBox(height: 12),
-
-                              // DATE CHIP
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
@@ -116,18 +109,55 @@ class NoticeDetailScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-
                               const SizedBox(height: 24),
-
-                              // BODY
+                              if (notice.batchIds.isNotEmpty) ...[
+                                const _SectionTitle('Target Batches'),
+                                const SizedBox(height: 8),
+                                FutureBuilder<List<String>>(
+                                  future: noticeService.fetchOrderedBatchNames(
+                                    notice.batchIds,
+                                  ),
+                                  builder: (context, snapshot) {
+                                    final batchNames =
+                                        snapshot.data ?? notice.batchIds;
+                                    return Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: batchNames
+                                          .map(
+                                            (name) => Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEFF6FF),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                name,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF2563EB),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 24),
+                              ],
                               Text(
                                 notice.body,
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium?.copyWith(height: 1.6),
                               ),
-
-                              // ATTACHMENTS
                               if (notice.attachments.isNotEmpty) ...[
                                 const SizedBox(height: 32),
                                 Text(
@@ -157,9 +187,21 @@ class NoticeDetailScreen extends StatelessWidget {
   }
 }
 
-// =======================================================
-// ATTACHMENT TILE
-// =======================================================
+class _SectionTitle extends StatelessWidget {
+  final String title;
+
+  const _SectionTitle(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+    );
+  }
+}
 
 class _AttachmentTile extends StatelessWidget {
   final String url;

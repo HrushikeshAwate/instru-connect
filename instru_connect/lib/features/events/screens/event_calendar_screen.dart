@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../config/theme/ui_colors.dart';
@@ -17,6 +18,7 @@ class EventCalendarScreen extends StatefulWidget {
 
 class _EventCalendarScreenState extends State<EventCalendarScreen> {
   final EventService _eventService = EventService();
+  final Set<String> _selectedEventIds = <String>{};
 
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
@@ -24,6 +26,8 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
 
   bool _canEditEvents = false;
   bool _loadingRole = true;
+  bool _selectionMode = false;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -60,6 +64,36 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
   DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
 
   List<EventModel> _getEvents(DateTime day) => _events[_normalize(day)] ?? [];
+
+  void _toggleSelection(EventModel event) {
+    if (!_canEditEvents) return;
+    setState(() {
+      _selectionMode = true;
+      if (_selectedEventIds.contains(event.id)) {
+        _selectedEventIds.remove(event.id);
+      } else {
+        _selectedEventIds.add(event.id);
+      }
+      if (_selectedEventIds.isEmpty) {
+        _selectionMode = false;
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedEventIds.clear();
+    });
+  }
+
+  void _startSelectionMode() {
+    if (!_canEditEvents) return;
+    setState(() {
+      _selectionMode = true;
+      _selectedEventIds.clear();
+    });
+  }
 
   Future<void> _showEventEditor({EventModel? event}) async {
     if (!_canEditEvents) return;
@@ -213,22 +247,11 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
 
   Future<void> _deleteEvent(EventModel event) async {
     if (!_canEditEvents) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showDestructiveConfirmationDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Event'),
-        content: Text('Delete "${event.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Event?',
+      message:
+          'The event "${event.title}" will be permanently deleted and cannot be recovered.',
     );
 
     if (confirmed != true) return;
@@ -243,6 +266,41 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
     }
   }
 
+  Future<void> _deleteSelectedEvents(List<EventModel> events) async {
+    final selected = events
+        .where((event) => _selectedEventIds.contains(event.id))
+        .toList();
+    if (selected.isEmpty) return;
+
+    final confirmed = await showDestructiveConfirmationDialog(
+      context: context,
+      title: 'Delete Events?',
+      message:
+          'You are about to permanently delete ${selected.length} selected event(s). They will not be recoverable after deletion.',
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deleting = true);
+    try {
+      for (final event in selected) {
+        await _eventService.deleteEvent(event.id);
+      }
+      if (!mounted) return;
+      _clearSelection();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${selected.length} event(s) deleted')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete events: $e')));
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Map<DateTime, List<EventModel>>>(
@@ -252,11 +310,26 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
           _events = snapshot.data!;
         }
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final surfaceColor = Theme.of(context).colorScheme.surface;
+        final borderColor = isDark
+            ? const Color(0xFF243244)
+            : const Color(0xFFE2E8F0);
+        final mutedTextColor = Theme.of(context).textTheme.bodyMedium?.color ??
+            UIColors.textMuted;
+        final shadowColor = isDark
+            ? Colors.black.withValues(alpha: 0.24)
+            : Colors.black.withValues(alpha: 0.08);
+
+        final selectedDayEvents = _getEvents(_selectedDay);
+
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            title: const Text(
-              'Academic Calendar',
+            title: Text(
+              _selectionMode
+                  ? '${_selectedEventIds.length} selected'
+                  : 'Academic Calendar',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -264,6 +337,39 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
               ),
             ),
             centerTitle: true,
+            leading: _selectionMode
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                    onPressed: _clearSelection,
+                  )
+                : null,
+            actions: _selectionMode
+                ? [
+                    IconButton(
+                      onPressed: _deleting
+                          ? null
+                          : () => _deleteSelectedEvents(selectedDayEvents),
+                      icon: _deleting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.delete_outline_rounded),
+                    ),
+                  ]
+                : _canEditEvents
+                ? [
+                    IconButton(
+                      onPressed: _startSelectionMode,
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      tooltip: 'Select events to delete',
+                    ),
+                  ]
+                : null,
             flexibleSpace: Container(
               decoration: const BoxDecoration(gradient: UIColors.heroGradient),
             ),
@@ -281,8 +387,16 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor,
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
@@ -296,79 +410,159 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                       _focusedDay = focusedDay;
                     });
                   },
+                  headerStyle: HeaderStyle(
+                    titleCentered: true,
+                    formatButtonVisible: false,
+                    titleTextStyle: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700) ??
+                        const TextStyle(fontWeight: FontWeight.w700),
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left_rounded,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: TextStyle(
+                      color: mutedTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    weekendStyle: TextStyle(
+                      color: mutedTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  calendarStyle: CalendarStyle(
+                    defaultTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    weekendTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    outsideTextStyle: TextStyle(
+                      color: mutedTextColor.withValues(alpha: 0.55),
+                    ),
+                    todayDecoration: BoxDecoration(
+                      color: UIColors.primary.withValues(alpha: 0.22),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: const BoxDecoration(
+                      color: UIColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    markerDecoration: const BoxDecoration(
+                      color: UIColors.warning,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
               ),
               Expanded(
-                child: _getEvents(_selectedDay).isEmpty
-                    ? const Center(
+                child: selectedDayEvents.isEmpty
+                    ? Center(
                         child: Text(
                           'No events for this date',
-                          style: TextStyle(color: UIColors.textMuted),
+                          style: TextStyle(color: mutedTextColor),
                         ),
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _getEvents(_selectedDay).length,
+                        itemCount: selectedDayEvents.length,
                         itemBuilder: (_, index) {
-                          final event = _getEvents(_selectedDay)[index];
+                          final event = selectedDayEvents[index];
+                          final selected = _selectedEventIds.contains(event.id);
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
-                            child: ListTile(
-                              title: Text(event.title),
-                              subtitle: event.details.trim().isEmpty
-                                  ? null
-                                  : Text(event.details.trim()),
-                              trailing: !_canEditEvents
-                                  ? null
-                                  : PopupMenuButton<String>(
-                                      onSelected: (value) {
-                                        if (value == 'edit') {
-                                          _showEventEditor(event: event);
-                                          return;
-                                        }
-                                        if (value == 'postpone') {
-                                          _askShiftDays(isPostpone: true).then((
-                                            days,
-                                          ) {
-                                            if (days != null) {
-                                              _shiftEvent(event, days);
-                                            }
-                                          });
-                                          return;
-                                        }
-                                        if (value == 'prepone') {
-                                          _askShiftDays(isPostpone: false).then(
-                                            (days) {
+                            color: surfaceColor,
+                            shape: selected
+                                ? RoundedRectangleBorder(
+                                    side: const BorderSide(
+                                      color: UIColors.primary,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  )
+                                : null,
+                            child: InkWell(
+                              onTap: () {
+                                if (_selectionMode && _canEditEvents) {
+                                  _toggleSelection(event);
+                                }
+                              },
+                              onLongPress: _canEditEvents
+                                  ? () => _toggleSelection(event)
+                                  : null,
+                              child: ListTile(
+                                leading: _selectionMode
+                                    ? Checkbox(
+                                        value: selected,
+                                        onChanged: (_) => _toggleSelection(event),
+                                      )
+                                    : null,
+                                title: Text(event.title),
+                                subtitle: event.details.trim().isEmpty
+                                    ? null
+                                    : Text(
+                                        event.details.trim(),
+                                        style: TextStyle(color: mutedTextColor),
+                                      ),
+                                trailing: _selectionMode || !_canEditEvents
+                                    ? null
+                                    : PopupMenuButton<String>(
+                                        onSelected: (value) {
+                                          if (value == 'edit') {
+                                            _showEventEditor(event: event);
+                                            return;
+                                          }
+                                          if (value == 'postpone') {
+                                            _askShiftDays(
+                                              isPostpone: true,
+                                            ).then((days) {
+                                              if (days != null) {
+                                                _shiftEvent(event, days);
+                                              }
+                                            });
+                                            return;
+                                          }
+                                          if (value == 'prepone') {
+                                            _askShiftDays(
+                                              isPostpone: false,
+                                            ).then((days) {
                                               if (days != null) {
                                                 _shiftEvent(event, -days);
                                               }
-                                            },
-                                          );
-                                          return;
-                                        }
-                                        if (value == 'delete') {
-                                          _deleteEvent(event);
-                                        }
-                                      },
-                                      itemBuilder: (_) => const [
-                                        PopupMenuItem(
-                                          value: 'edit',
-                                          child: Text('Edit details/date'),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'postpone',
-                                          child: Text('Postpone by N days'),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'prepone',
-                                          child: Text('Prepone by N days'),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'delete',
-                                          child: Text('Delete'),
-                                        ),
-                                      ],
-                                    ),
+                                            });
+                                            return;
+                                          }
+                                          if (value == 'delete') {
+                                            _deleteEvent(event);
+                                          }
+                                        },
+                                        itemBuilder: (_) => const [
+                                          PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text('Edit details/date'),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'postpone',
+                                            child: Text('Postpone by N days'),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'prepone',
+                                            child: Text('Prepone by N days'),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text('Delete'),
+                                          ),
+                                        ],
+                                      ),
+                              ),
                             ),
                           );
                         },

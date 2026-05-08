@@ -40,6 +40,8 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>This app needs notifications to keep you updated with important information.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to the camera to capture images for complaints.</string>
 	<key>NSMicrophoneUsageDescription</key>

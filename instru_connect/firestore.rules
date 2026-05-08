@@ -1,0 +1,292 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userData() {
+      return isSignedIn() && exists(userDocPath())
+        ? get(userDocPath()).data
+        : null;
+    }
+
+    function userRole() {
+      return userData() != null ? userData().role : null;
+    }
+
+    function isStudent() {
+      return userRole() == 'student' || userRole() == 'cr';
+    }
+
+    function isFaculty() {
+      return userRole() == 'faculty';
+    }
+
+    function isAdmin() {
+      return userRole() == 'admin';
+    }
+
+    function isFacultyLike() {
+      return isFaculty() || isAdmin();
+    }
+
+    function canCreateResourceContent() {
+      return userRole() in ['cr', 'CR', 'faculty', 'Faculty', 'admin', 'Admin'];
+    }
+
+    function canManageResourceContent() {
+      return userRole() in ['faculty', 'Faculty', 'admin', 'Admin'];
+    }
+
+    function canManageAttendance() {
+      return isFaculty() || isAdmin() || userRole() == 'cr';
+    }
+
+    function canEditAttendance() {
+      return isFaculty() || isAdmin();
+    }
+
+    function canManageOwnNotice(resourceData) {
+      return isSignedIn()
+        && (isFaculty() || userRole() == 'cr')
+        && resourceData.createdBy == request.auth.uid;
+    }
+
+    function canManageOwnResource(resourceData) {
+      return isSignedIn()
+        && isFaculty()
+        && resourceData.uploadedByUid == request.auth.uid;
+    }
+
+    function isComplaintOwner(resourceData) {
+      return isSignedIn() && resourceData.createdBy == request.auth.uid;
+    }
+
+    function isAssignedComplaintMember(resourceData) {
+      return isSignedIn()
+        && resourceData.assignedTo == request.auth.uid;
+    }
+
+    function isValidComplaintCreatorRole() {
+      return userRole() == 'student'
+        || userRole() == 'cr'
+        || userRole() == 'faculty'
+        || userRole() == 'staff';
+    }
+
+    function complaintOwnerCanOnlyAttachMedia() {
+      return isComplaintOwner(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'mediaUrl',
+          'mediaType',
+          'lastUpdatedAt',
+        ]);
+    }
+
+    function canCreateAnonymousFeedback() {
+      return isSignedIn()
+        && isStudent()
+        && request.resource.data.campaignId is string
+        && request.resource.data.batchId is string
+        && request.resource.data.subjectId is string
+        && request.resource.data.facultyId is string
+        && request.resource.data.type is string
+        && request.resource.data.ratings is map
+        && request.resource.data.overallScore is number
+        && !('studentId' in request.resource.data)
+        && !('uid' in request.resource.data)
+        && !('userId' in request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn()
+        && (request.auth.uid == userId
+          || isAdmin()
+          || isFaculty()
+          || userRole() == 'cr');
+      allow delete: if isAdmin();
+
+      match /fcmTokens/{tokenId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /legal_acceptances/{acceptanceId} {
+        allow read, create: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /feedback_receipts/{campaignId} {
+        allow read, create: if isSignedIn() && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
+    }
+
+    match /profiles/{userId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == userId || isFacultyLike());
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /notices/{noticeId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && (isAdmin() || isFaculty())
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdByRole == userRole();
+
+      allow create: if isSignedIn()
+        && userRole() == 'cr'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdByRole == userRole()
+        && request.resource.data.batchIds is list
+        && request.resource.data.batchIds.size() == 1
+        && userData() != null
+        && request.resource.data.batchIds[0] == userData().batchId;
+
+      allow update: if isFacultyLike() || canManageOwnNotice(resource.data);
+      allow delete: if isFacultyLike();
+    }
+
+    match /complaints/{complaintId} {
+      allow read: if isFacultyLike()
+        || userRole() == 'staff'
+        || isComplaintOwner(resource.data);
+
+      allow create: if isSignedIn()
+        && isValidComplaintCreatorRole()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdByRole == userRole()
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.assignedTo == null
+        && request.resource.data.assignedRole == null
+        && request.resource.data.isAnonymous is bool;
+
+      allow update: if isFacultyLike() || complaintOwnerCanOnlyAttachMedia();
+
+      allow delete: if isSignedIn() && isAdmin();
+
+      match /coordination_notes/{noteId} {
+        allow read: if isFacultyLike()
+          || isAssignedComplaintMember(get(/databases/$(database)/documents/complaints/$(complaintId)).data);
+        allow create: if isSignedIn()
+          && request.resource.data.createdBy == request.auth.uid
+          && (isAdmin()
+            || isAssignedComplaintMember(get(/databases/$(database)/documents/complaints/$(complaintId)).data));
+        allow update, delete: if false;
+      }
+    }
+
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isFacultyLike();
+    }
+
+    match /resources/{resourceId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && canCreateResourceContent()
+        && request.resource.data.uploadedByUid == request.auth.uid;
+      allow update: if canManageResourceContent();
+      allow delete: if canManageResourceContent();
+    }
+
+    match /resourceSections/{sectionId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && canCreateResourceContent();
+      allow delete: if isSignedIn() && canManageResourceContent();
+    }
+
+    match /email_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isFacultyLike();
+    }
+
+    match /certifications/{certId} {
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.uid;
+      allow read, update, delete: if isSignedIn()
+        && request.auth.uid == resource.data.uid;
+    }
+
+    match /achievements/{achievementId} {
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.uid;
+      allow read, update, delete: if isSignedIn()
+        && request.auth.uid == resource.data.uid;
+      allow read: if isFacultyLike();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && (request.resource.data.uid == request.auth.uid
+          || isFacultyLike()
+          || userRole() == 'cr'
+          || request.resource.data.createdBy == request.auth.uid);
+      allow update, delete: if isSignedIn()
+        && (resource.data.uid == request.auth.uid
+          || resource.data.createdBy == request.auth.uid
+          || isAdmin());
+    }
+
+    match /batches/{batchId} {
+      allow read: if isSignedIn();
+      allow create, update: if isFacultyLike();
+      allow delete: if isFacultyLike();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && canManageAttendance();
+      allow update, delete: if isSignedIn() && canEditAttendance();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read: if isSignedIn()
+        && (isFacultyLike() || resource.data.studentId == request.auth.uid);
+      allow create: if isSignedIn() && canManageAttendance();
+      allow update, delete: if isSignedIn() && canEditAttendance();
+    }
+
+    match /attendance_summary/{summaryId} {
+      allow read: if isSignedIn()
+        && (isFacultyLike() || resource.data.studentId == request.auth.uid);
+      allow create: if isSignedIn() && canManageAttendance();
+      allow update, delete: if isSignedIn() && canEditAttendance();
+    }
+
+    match /feedback_campaigns/{campaignId} {
+      allow read: if isSignedIn()
+        && (isFacultyLike()
+          || (isStudent()
+            && userData() != null
+            && resource.data.batchId == userData().batchId));
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /feedback_submissions/{submissionId} {
+      allow read: if isFacultyLike();
+      allow create: if canCreateAnonymousFeedback();
+      allow update, delete: if false;
+    }
+
+    match /feedback_faculty_history/{historyId} {
+      allow read: if isFacultyLike();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,10 +1,11 @@
 // ignore_for_file: use_build_context_synchronously
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:instru_connect/features/profile/services/achievement_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../config/theme/ui_colors.dart';
+import '../services/achievement_service.dart';
 
 class AchievementsScreen extends StatelessWidget {
   const AchievementsScreen({super.key});
@@ -19,9 +20,12 @@ class AchievementsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final service = AchievementService();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(
         backgroundColor: UIColors.primary,
         onPressed: () => _showAddDialog(context, service, uid),
@@ -29,7 +33,6 @@ class AchievementsScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // ================= HEADER =================
           Container(
             height: 180,
             decoration: const BoxDecoration(
@@ -43,7 +46,6 @@ class AchievementsScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // ================= APP BAR =================
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
@@ -66,7 +68,6 @@ class AchievementsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                // ================= BODY =================
                 Expanded(
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                     stream: service.fetchAchievements(uid),
@@ -82,25 +83,26 @@ class AchievementsScreen extends StatelessWidget {
                       }
 
                       final achievements = snapshot.data ?? [];
-
                       if (achievements.isEmpty) {
                         return const _EmptyState();
                       }
 
                       return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                         itemCount: achievements.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (_, i) {
                           final a = achievements[i];
-                          final fileType = a['certificateType'] ?? '';
-
                           return _AchievementCard(
                             title: a['title'] ?? 'Untitled',
                             event: a['event'] ?? '',
                             rank: a['rank'] ?? '',
                             score: a['score'] ?? '',
-                            fileType: fileType,
+                            fileType: a['certificateType'] ?? '',
+                            backgroundColor: colorScheme.surface,
+                            borderColor: isDark
+                                ? colorScheme.outline.withValues(alpha: 0.34)
+                                : colorScheme.outline.withValues(alpha: 0.12),
                             onTap: () =>
                                 _openInBrowser(a['certificateUrl'] ?? ''),
                           );
@@ -116,10 +118,6 @@ class AchievementsScreen extends StatelessWidget {
       ),
     );
   }
-
-  // =====================================================
-  // ADD ACHIEVEMENT DIALOG
-  // =====================================================
 
   void _showAddDialog(
     BuildContext context,
@@ -259,16 +257,14 @@ class AchievementsScreen extends StatelessWidget {
   }
 }
 
-// =======================================================
-// ACHIEVEMENT CARD
-// =======================================================
-
 class _AchievementCard extends StatelessWidget {
   final String title;
   final String event;
   final String rank;
   final String score;
   final String fileType;
+  final Color backgroundColor;
+  final Color borderColor;
   final VoidCallback? onTap;
 
   const _AchievementCard({
@@ -277,6 +273,8 @@ class _AchievementCard extends StatelessWidget {
     required this.rank,
     required this.score,
     required this.fileType,
+    required this.backgroundColor,
+    required this.borderColor,
     this.onTap,
   });
 
@@ -288,8 +286,9 @@ class _AchievementCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: borderColor),
           boxShadow: [
             BoxShadow(
               color: UIColors.primary.withValues(alpha: 0.10),
@@ -356,10 +355,6 @@ class _AchievementCard extends StatelessWidget {
   }
 }
 
-// =======================================================
-// EMPTY STATE
-// =======================================================
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -371,7 +366,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: UIColors.secondaryGradient,
               shape: BoxShape.circle,
             ),

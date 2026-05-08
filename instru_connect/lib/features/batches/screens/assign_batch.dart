@@ -1,7 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/utils/batch_ordering.dart';
 import '../services/batch_service.dart';
 
 class AssignBatchToStudentsScreen extends StatefulWidget {
@@ -17,19 +19,24 @@ class _AssignBatchToStudentsScreenState
   final Set<String> selectedStudentIds = {};
   String? selectedBatchId;
   String searchQuery = '';
+  String filterMode = 'unassigned';
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    final theme = Theme.of(context);
 
-      // ================= FAB =================
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton:
           selectedStudentIds.isNotEmpty && selectedBatchId != null
           ? FloatingActionButton.extended(
               backgroundColor: UIColors.primary,
               icon: const Icon(Icons.check),
-              label: const Text('Assign Batch'),
+              label: Text(
+                selectedStudentIds.length == 1
+                    ? 'Assign 1 Student'
+                    : 'Assign ${selectedStudentIds.length} Students',
+              ),
               onPressed: () async {
                 try {
                   await BatchService().bulkAssignStudents(
@@ -52,10 +59,8 @@ class _AssignBatchToStudentsScreenState
               },
             )
           : null,
-
       body: Stack(
         children: [
-          // ================= HEADER =================
           Container(
             height: 180,
             decoration: const BoxDecoration(
@@ -66,11 +71,9 @@ class _AssignBatchToStudentsScreenState
               ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
-                // ================= APP BAR =================
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
@@ -93,13 +96,10 @@ class _AssignBatchToStudentsScreenState
                     ],
                   ),
                 ),
-
-                // ================= CONTROLS =================
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Column(
                     children: [
-                      // -------- BATCH SELECTOR --------
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: _cardDecoration(context),
@@ -113,54 +113,132 @@ class _AssignBatchToStudentsScreenState
                               return const LinearProgressIndicator();
                             }
 
-                            final batches = snapshot.data!.docs;
-
-                            return DropdownButtonFormField<String>(
-                              initialValue: selectedBatchId,
-                              hint: const Text('Select Batch'),
-                              isExpanded: true,
-                              items: batches.map((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                return DropdownMenuItem(
-                                  value: doc.id,
-                                  child: Text(data['name']),
+                            final batches = snapshot.data!.docs.toList()
+                              ..sort((a, b) {
+                                final aData =
+                                    a.data() as Map<String, dynamic>;
+                                final bData =
+                                    b.data() as Map<String, dynamic>;
+                                final aName = (aData['name'] ?? '')
+                                    .toString();
+                                final bName = (bData['name'] ?? '')
+                                    .toString();
+                                final rankCompare = BatchOrdering.rankForName(
+                                  aName,
+                                ).compareTo(
+                                  BatchOrdering.rankForName(bName),
                                 );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() => selectedBatchId = value);
-                              },
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                              ),
+                                if (rankCompare != 0) return rankCompare;
+                                return aName.toLowerCase().compareTo(
+                                  bName.toLowerCase(),
+                                );
+                              });
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Target Batch',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Choose the destination batch first, then select the students below.',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                const SizedBox(height: 14),
+                                DropdownButtonFormField<String>(
+                                  initialValue: selectedBatchId,
+                                  hint: const Text('Select Batch'),
+                                  isExpanded: true,
+                                  items: batches.map((doc) {
+                                    final data =
+                                        doc.data() as Map<String, dynamic>;
+                                    final year = (data['currentYear'] as num?)
+                                            ?.toInt() ??
+                                        0;
+                                    return DropdownMenuItem(
+                                      value: doc.id,
+                                      child: Text(
+                                        '${data['name']} • ${_yearLabel(year)}',
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() => selectedBatchId = value);
+                                  },
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
-                      // -------- SEARCH --------
                       Container(
+                        padding: const EdgeInsets.all(16),
                         decoration: _cardDecoration(context),
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            hintText: 'Search by name or email',
-                            prefixIcon: Icon(Icons.search),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.all(16),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              searchQuery = value.toLowerCase();
-                            });
-                          },
+                        child: Column(
+                          children: [
+                            TextField(
+                              decoration: const InputDecoration(
+                                hintText: 'Search by name, MIS, or email',
+                                prefixIcon: Icon(Icons.search),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.all(16),
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  searchQuery = value.toLowerCase();
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _FilterChipButton(
+                                    label: 'Unassigned',
+                                    selected: filterMode == 'unassigned',
+                                    onTap: () {
+                                      setState(
+                                        () => filterMode = 'unassigned',
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _FilterChipButton(
+                                    label: 'Assigned',
+                                    selected: filterMode == 'assigned',
+                                    onTap: () {
+                                      setState(() => filterMode = 'assigned');
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _FilterChipButton(
+                                    label: 'All',
+                                    selected: filterMode == 'all',
+                                    onTap: () {
+                                      setState(() => filterMode = 'all');
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                // ================= STUDENT LIST =================
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
@@ -174,45 +252,138 @@ class _AssignBatchToStudentsScreenState
 
                       final students = snapshot.data!.docs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
-
                         final name = (data['name'] ?? '')
                             .toString()
                             .toLowerCase();
                         final email = (data['email'] ?? '')
                             .toString()
                             .toLowerCase();
+                        final mis = (data['MIS No'] ?? data['mis'] ?? '')
+                            .toString()
+                            .toLowerCase();
+                        final hasBatch = (data['batchId'] ?? '')
+                            .toString()
+                            .trim()
+                            .isNotEmpty;
 
-                        return name.contains(searchQuery) ||
-                            email.contains(searchQuery);
-                      }).toList();
+                        final matchesFilter = switch (filterMode) {
+                          'assigned' => hasBatch,
+                          'all' => true,
+                          _ => !hasBatch,
+                        };
+
+                        return matchesFilter &&
+                            (name.contains(searchQuery) ||
+                                email.contains(searchQuery) ||
+                                mis.contains(searchQuery));
+                      }).toList()
+                        ..sort((a, b) {
+                          final aData = a.data() as Map<String, dynamic>;
+                          final bData = b.data() as Map<String, dynamic>;
+                          final aAssigned = (aData['batchId'] ?? '')
+                              .toString()
+                              .trim()
+                              .isNotEmpty;
+                          final bAssigned = (bData['batchId'] ?? '')
+                              .toString()
+                              .trim()
+                              .isNotEmpty;
+                          if (aAssigned != bAssigned) {
+                            return aAssigned ? 1 : -1;
+                          }
+                          return _getStudentName(aData).toLowerCase().compareTo(
+                            _getStudentName(bData).toLowerCase(),
+                          );
+                        });
 
                       if (students.isEmpty) {
-                        return const Center(
-                          child: Text('No matching students'),
+                        return Center(
+                          child: Text(
+                            'No students match this view.',
+                            style: theme.textTheme.bodyMedium,
+                          ),
                         );
                       }
 
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: students.length,
-                        itemBuilder: (context, index) {
-                          final doc = students[index];
-                          final data = doc.data() as Map<String, dynamic>;
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('batches')
+                            .snapshots(),
+                        builder: (context, batchSnapshot) {
+                          final batchNameById = <String, String>{};
+                          if (batchSnapshot.hasData) {
+                            for (final doc in batchSnapshot.data!.docs) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              batchNameById[doc.id] = (data['name'] ?? '')
+                                  .toString();
+                            }
+                          }
 
-                          final selected = selectedStudentIds.contains(doc.id);
+                          return Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${students.length} students shown',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${selectedStudentIds.length} selected',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    8,
+                                    16,
+                                    24,
+                                  ),
+                                  itemCount: students.length,
+                                  itemBuilder: (context, index) {
+                                    final doc = students[index];
+                                    final data =
+                                        doc.data() as Map<String, dynamic>;
+                                    final selected = selectedStudentIds.contains(
+                                      doc.id,
+                                    );
+                                    final batchId =
+                                        (data['batchId'] ?? '').toString();
 
-                          return _StudentCard(
-                            name: _getStudentName(data),
-                            email: data['email'] ?? '',
-                            assigned: data['batchId'] != null,
-                            selected: selected,
-                            onChanged: (checked) {
-                              setState(() {
-                                checked
-                                    ? selectedStudentIds.add(doc.id)
-                                    : selectedStudentIds.remove(doc.id);
-                              });
-                            },
+                                    return _StudentCard(
+                                      name: _getStudentName(data),
+                                      email: (data['email'] ?? '').toString(),
+                                      mis: (data['MIS No'] ??
+                                              data['mis'] ??
+                                              '')
+                                          .toString(),
+                                      currentBatch: batchNameById[batchId],
+                                      assigned: batchId.isNotEmpty,
+                                      selected: selected,
+                                      onChanged: (checked) {
+                                        setState(() {
+                                          checked
+                                              ? selectedStudentIds.add(doc.id)
+                                              : selectedStudentIds.remove(
+                                                  doc.id,
+                                                );
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           );
                         },
                       );
@@ -242,13 +413,11 @@ class _AssignBatchToStudentsScreenState
   }
 }
 
-// =======================================================
-// STUDENT CARD
-// =======================================================
-
 class _StudentCard extends StatelessWidget {
   final String name;
   final String email;
+  final String mis;
+  final String? currentBatch;
   final bool assigned;
   final bool selected;
   final ValueChanged<bool> onChanged;
@@ -256,6 +425,8 @@ class _StudentCard extends StatelessWidget {
   const _StudentCard({
     required this.name,
     required this.email,
+    required this.mis,
+    required this.currentBatch,
     required this.assigned,
     required this.selected,
     required this.onChanged,
@@ -278,9 +449,30 @@ class _StudentCard extends StatelessWidget {
       ),
       child: CheckboxListTile(
         value: selected,
-        onChanged: (v) => onChanged(v ?? false),
-        title: Text(name, style: Theme.of(context).textTheme.bodyLarge),
-        subtitle: Text(email),
+        onChanged: (value) => onChanged(value ?? false),
+        title: Text(
+          name,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(email),
+            if (mis.isNotEmpty) Text('MIS: $mis'),
+            const SizedBox(height: 4),
+            Text(
+              assigned
+                  ? 'Current batch: ${currentBatch ?? 'Assigned'}'
+                  : 'Currently unassigned',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: assigned ? UIColors.primary : UIColors.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
         secondary: Icon(
           assigned ? Icons.check_circle : Icons.info_outline,
           color: assigned ? Colors.green : Colors.grey,
@@ -291,10 +483,6 @@ class _StudentCard extends StatelessWidget {
   }
 }
 
-// =======================================================
-// NAME RESOLVER
-// =======================================================
-
 String _getStudentName(Map<String, dynamic> data) {
   if ((data['name'] ?? '').toString().trim().isNotEmpty) {
     return data['name'];
@@ -303,4 +491,54 @@ String _getStudentName(Map<String, dynamic> data) {
     return data['displayName'];
   }
   return 'Unknown Student';
+}
+
+String _yearLabel(int year) {
+  switch (year) {
+    case 1:
+      return 'FY';
+    case 2:
+      return 'SY';
+    case 3:
+      return 'TY';
+    case 4:
+      return 'Fourth Year';
+    default:
+      return 'Alumni';
+  }
+}
+
+class _FilterChipButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChipButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? UIColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: selected ? UIColors.primary : UIColors.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

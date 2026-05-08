@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:instru_connect/features/admin/screens/admin_dashboard.dart';
 import 'package:instru_connect/features/batches/screens/manage_batches_screen.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
-import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/events/screens/event_calendar_screen.dart';
 import 'package:instru_connect/features/home/screens/home_staff.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
@@ -61,11 +60,7 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const EventCalendarScreen());
 
       case Routes.complaints:
-        return MaterialPageRoute(
-          builder: (_) => ComplaintListScreen(
-            stream: ComplaintService().fetchAllComplaints(),
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const ComplaintListScreen());
 
       case Routes.notifications:
         return MaterialPageRoute(builder: (_) => const NotificationsScreen());

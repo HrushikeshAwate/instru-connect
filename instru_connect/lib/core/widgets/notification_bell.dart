@@ -1,7 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/services/notification_service.dart';
 
 class NotificationBell extends StatelessWidget {
   final Color iconColor;
@@ -14,6 +14,7 @@ class NotificationBell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+    final service = NotificationService();
 
     return Stack(
       clipBehavior: Clip.none,
@@ -26,19 +27,18 @@ class NotificationBell extends StatelessWidget {
           Positioned(
             right: 8,
             top: 8,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('notifications')
-                  .where('uid', isEqualTo: uid)
-                  .where('isRead', isEqualTo: false)
-                  .snapshots(),
+            child: StreamBuilder<NotificationCounter>(
+              stream: service.streamUserNotificationCounter(uid),
               builder: (context, snapshot) {
-                final count = snapshot.data?.docs.length ?? 0;
+                final count = snapshot.data?.unread ?? 0;
                 if (count == 0) return const SizedBox.shrink();
 
                 final display = count > 99 ? '99+' : count.toString();
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(10),

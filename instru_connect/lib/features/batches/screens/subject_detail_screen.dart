@@ -14,6 +14,34 @@ class SubjectDetailScreen extends StatelessWidget {
     required this.batchId,
   });
 
+  int _compareStudents(
+    QueryDocumentSnapshot<Object?> a,
+    QueryDocumentSnapshot<Object?> b,
+  ) {
+    final aData = a.data() as Map<String, dynamic>;
+    final bData = b.data() as Map<String, dynamic>;
+
+    final aMis = (aData['MIS No'] ?? aData['mis'] ?? '').toString().trim();
+    final bMis = (bData['MIS No'] ?? bData['mis'] ?? '').toString().trim();
+    final aName = (aData['Name'] ?? aData['name'] ?? '').toString().trim();
+    final bName = (bData['Name'] ?? bData['name'] ?? '').toString().trim();
+
+    final aHasMis = aMis.isNotEmpty;
+    final bHasMis = bMis.isNotEmpty;
+
+    if (aHasMis && bHasMis) {
+      final misCompare = aMis.toLowerCase().compareTo(bMis.toLowerCase());
+      if (misCompare != 0) return misCompare;
+    } else if (aHasMis != bHasMis) {
+      return aHasMis ? -1 : 1;
+    }
+
+    final nameCompare = aName.toLowerCase().compareTo(bName.toLowerCase());
+    if (nameCompare != 0) return nameCompare;
+
+    return a.id.compareTo(b.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,7 +123,8 @@ class SubjectDetailScreen extends StatelessWidget {
                         return const Center(child: Text('No students found'));
                       }
 
-                      final students = snapshot.data!.docs;
+                      final students = snapshot.data!.docs.toList()
+                        ..sort(_compareStudents);
 
                       return ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),

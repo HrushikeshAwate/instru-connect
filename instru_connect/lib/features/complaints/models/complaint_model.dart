@@ -11,6 +11,7 @@ class ComplaintModel {
 
   final String createdBy;
   final String createdByRole;
+  final bool isAnonymous;
 
   final String? assignedTo;
   final String? assignedRole;
@@ -33,6 +34,7 @@ class ComplaintModel {
     this.progressNote,
     required this.createdBy,
     required this.createdByRole,
+    required this.isAnonymous,
     this.assignedTo,
     this.assignedRole,
     required this.departmentId,
@@ -54,6 +56,7 @@ class ComplaintModel {
       progressNote: data['progressNote'],
       createdBy: data['createdBy'],
       createdByRole: data['createdByRole'],
+      isAnonymous: data['isAnonymous'] == true,
       assignedTo: data['assignedTo'],
       assignedRole: data['assignedRole'],
       departmentId: data['departmentId'],

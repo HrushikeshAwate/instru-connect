@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 // import 'package:instru_connect/core/bootstrap/user_context.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
 import 'package:instru_connect/core/services/firestore_service.dart';
+import 'package:instru_connect/core/services/session_cache_service.dart';
 import 'package:instru_connect/core/services/role_service.dart';
 import 'package:instru_connect/core/sessioin/current_user.dart';
 import 'package:instru_connect/core/widgets/error_view.dart';
@@ -19,8 +22,6 @@ class RoleLoadingScreen extends StatefulWidget {
 }
 
 class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
-  static const String _allowedEmailSuffix = '.instru@coeptech.ac.in';
-
   @override
   void initState() {
     super.initState();
@@ -33,16 +34,17 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
       final firestore = FirestoreService();
       final roleService = RoleService();
 
-      final user = auth.currentUser!;
+      final user = auth.currentUser;
+      if (user == null) {
+        throw Exception('Your session expired. Please sign in again.');
+      }
       final email = user.email?.trim().toLowerCase();
-      if (email == null || !email.endsWith(_allowedEmailSuffix)) {
+      if (!AuthService.isAllowedCollegeEmail(email)) {
         await auth.signOut();
-        throw Exception(
-          'Only emails ending with $_allowedEmailSuffix are allowed.',
-        );
+        throw Exception('Only official college email accounts are allowed.');
       }
 
-      await firestore.getOrCreateUser(firebaseUser: user);
+      await firestore.getOrCreateUser(firebaseUser: auth.currentUser ?? user);
 
       final userDoc = await roleService.fetchFullUser(user.uid);
       final role = (userDoc['role'] ?? '').toString().toLowerCase();
@@ -56,12 +58,21 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
       CurrentUser.email = userDoc['email'];
       CurrentUser.name = userDoc['name'];
 
-      await NotificationTokenService().registerToken(user.uid);
-
-      if (!mounted) return;
-
       final incomplete = await _isProfileIncomplete(user.uid, role);
       if (!mounted) return;
+
+      await SessionCacheService.instance.saveResolvedSession(
+        uid: user.uid,
+        role: role,
+        batchId: CurrentUser.batchId,
+        academicYear: CurrentUser.academicYear,
+        email: CurrentUser.email,
+        name: CurrentUser.name,
+        homeRoute: homeRoute,
+        profileComplete: !incomplete,
+      );
+
+      unawaited(_registerNotificationToken(user.uid));
 
       if (incomplete) {
         Navigator.pushReplacement(
@@ -78,10 +89,19 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
 
       Navigator.pushReplacementNamed(context, homeRoute);
     } catch (e) {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => ErrorView(message: e.toString())),
       );
+    }
+  }
+
+  Future<void> _registerNotificationToken(String uid) async {
+    try {
+      await NotificationTokenService().registerToken(uid);
+    } catch (_) {
+      // Notifications should never block a successful login.
     }
   }
 
@@ -110,14 +130,13 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
 
     final data = profileDoc.data() ?? <String, dynamic>{};
     final department = (data['department'] ?? '').toString().trim();
-    final coCurricular = (data['coCurricular'] ?? '').toString().trim();
     final contactNo = (data['contactNo'] ?? '').toString().trim();
     final misNo = (data['misNo'] ?? '').toString().trim();
     final parentContactNo = (data['parentContactNo'] ?? '').toString().trim();
 
     final needsStudentFields = role == 'student' || role == 'cr';
 
-    if (department.isEmpty || coCurricular.isEmpty || contactNo.isEmpty) {
+    if (department.isEmpty || contactNo.isEmpty) {
       return true;
     }
 
