@@ -57,12 +57,16 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'User Management',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'User Management',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -81,13 +85,12 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       final batchNameById = <String, String>{};
                       if (batchesSnapshot.hasData) {
                         for (final doc in batchesSnapshot.data!.docs) {
-                          batchNameById[doc.id] =
-                              (doc.data()['name'] ?? doc.id).toString();
+                          batchNameById[doc.id] = (doc.data()['name'] ?? doc.id)
+                              .toString();
                         }
                       }
 
-                      return StreamBuilder<
-                          QuerySnapshot<Map<String, dynamic>>>(
+                      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                         stream: FirebaseFirestore.instance
                             .collection('users')
                             .snapshots(),
@@ -121,17 +124,16 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                             itemBuilder: (context, index) {
                               final doc = filteredUsers[index];
                               final data = doc.data();
-                              final batchId =
-                                  (data['batchId'] ?? '').toString().trim();
+                              final batchId = (data['batchId'] ?? '')
+                                  .toString()
+                                  .trim();
 
                               return _UserCard(
                                 userId: doc.id,
-                                name:
-                                    (data['name'] ?? 'Unknown User').toString(),
-                                email:
-                                    (data['email'] ?? 'Unknown').toString(),
-                                role:
-                                    (data['role'] ?? 'unknown').toString(),
+                                name: (data['name'] ?? 'Unknown User')
+                                    .toString(),
+                                email: (data['email'] ?? 'Unknown').toString(),
+                                role: (data['role'] ?? 'unknown').toString(),
                                 batchId: batchId.isEmpty ? null : batchId,
                                 batchName: batchId.isEmpty
                                     ? null

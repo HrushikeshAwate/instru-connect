@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 // import 'package:instru_connect/core/bootstrap/user_context.dart';
+import 'package:instru_connect/core/constants/app_roles.dart';
+import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
 import 'package:instru_connect/core/services/firestore_service.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
@@ -44,11 +46,18 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
         throw Exception('Only official college email accounts are allowed.');
       }
 
-      await firestore.getOrCreateUser(firebaseUser: auth.currentUser ?? user);
+      final isDemoAccount = DemoAccount.isDemoEmail(email);
+      final bootstrappedUserDoc = await firestore.getOrCreateUser(
+        firebaseUser: auth.currentUser ?? user,
+      );
 
-      final userDoc = await roleService.fetchFullUser(user.uid);
+      final userDoc = isDemoAccount
+          ? bootstrappedUserDoc
+          : await roleService.fetchFullUser(user.uid);
       final role = (userDoc['role'] ?? '').toString().toLowerCase();
-      final homeRoute = HomeRouter.routeForRole(userDoc['role']);
+      final homeRoute = HomeRouter.routeForRole(
+        isDemoAccount ? AppRoles.admin : role,
+      );
 
       // 🔑 STORE SESSION DATA
       CurrentUser.uid = user.uid;
@@ -58,7 +67,13 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
       CurrentUser.email = userDoc['email'];
       CurrentUser.name = userDoc['name'];
 
-      final incomplete = await _isProfileIncomplete(user.uid, role);
+      if (isDemoAccount) {
+        await _ensureDemoProfile(user.uid);
+      }
+
+      final incomplete = isDemoAccount
+          ? false
+          : await _isProfileIncomplete(user.uid, role);
       if (!mounted) return;
 
       await SessionCacheService.instance.saveResolvedSession(
@@ -71,6 +86,7 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
         homeRoute: homeRoute,
         profileComplete: !incomplete,
       );
+      if (!mounted) return;
 
       unawaited(_registerNotificationToken(user.uid));
 
@@ -103,6 +119,26 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
     } catch (_) {
       // Notifications should never block a successful login.
     }
+  }
+
+  Future<void> _ensureDemoProfile(String uid) async {
+    final profileRef = FirebaseFirestore.instance
+        .collection('profiles')
+        .doc(uid);
+
+    await profileRef.set({
+      'uid': uid,
+      'name': DemoAccount.name,
+      'email': DemoAccount.email,
+      'misNo': DemoAccount.misNo,
+      'department': DemoAccount.department,
+      'batchId': CurrentUser.batchId,
+      'coCurricular': 'Demo profile for App Review',
+      'contactNo': DemoAccount.contactNo,
+      'parentContactNo': DemoAccount.parentContactNo,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<bool> _isProfileIncomplete(String uid, String role) async {
@@ -149,8 +185,6 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: AnimatedSplashLoader(),
-    );
+    return const Scaffold(body: AnimatedSplashLoader());
   }
 }

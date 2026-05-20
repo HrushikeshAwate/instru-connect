@@ -23,7 +23,8 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
       ActivityNotificationService();
   final Set<String> _selectedSubjectIds = <String>{};
   late final Stream<QuerySnapshot> _subjectsStream;
-  List<QueryDocumentSnapshot> _visibleSubjects = const <QueryDocumentSnapshot>[];
+  List<QueryDocumentSnapshot> _visibleSubjects =
+      const <QueryDocumentSnapshot>[];
   bool _selectionMode = false;
   bool _deleting = false;
 
@@ -79,7 +80,9 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
   Future<void> _showCreateSubjectDialog(BuildContext context) async {
     if (!_canManageSubjects) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only admin or faculty can manage subjects.')),
+        const SnackBar(
+          content: Text('Only admin or faculty can manage subjects.'),
+        ),
       );
       return;
     }
@@ -147,7 +150,9 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
     );
   }
 
-  Future<void> _deleteSelectedSubjects(List<QueryDocumentSnapshot> subjects) async {
+  Future<void> _deleteSelectedSubjects(
+    List<QueryDocumentSnapshot> subjects,
+  ) async {
     final selected = subjects
         .where((doc) => _selectedSubjectIds.contains(doc.id))
         .toList();
@@ -166,15 +171,13 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
     try {
       await _batchService.deleteSubjectsCascade(
         batchId: widget.batchId,
-        subjects: selected
-            .map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return <String, String>{
-                'id': doc.id,
-                'name': (data['name'] ?? '').toString(),
-              };
-            })
-            .toList(),
+        subjects: selected.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return <String, String>{
+            'id': doc.id,
+            'name': (data['name'] ?? '').toString(),
+          };
+        }).toList(),
       );
       if (!mounted) return;
       _clearSelection();
@@ -310,7 +313,9 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
                                   name: data['name'],
                                   code: data['code'],
                                   selectionMode: _selectionMode,
-                                  selected: _selectedSubjectIds.contains(doc.id),
+                                  selected: _selectedSubjectIds.contains(
+                                    doc.id,
+                                  ),
                                   onTap: () {
                                     if (_selectionMode) {
                                       _toggleSelection(doc.id);
@@ -346,7 +351,6 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
 }
 
 class _SubjectCard extends StatelessWidget {
-  final Key? key;
   final String name;
   final String code;
   final bool selectionMode;
@@ -355,14 +359,14 @@ class _SubjectCard extends StatelessWidget {
   final VoidCallback onLongPress;
 
   const _SubjectCard({
-    this.key,
+    super.key,
     required this.name,
     required this.code,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
     required this.onLongPress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -409,10 +413,17 @@ class _SubjectCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         code,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),

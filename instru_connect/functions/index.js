@@ -1,5 +1,5 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { onRequest } = require('firebase-functions/v2/https');
+const { HttpsError, onCall, onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 
 const { admin, db } = require('./src/shared/firebase');
@@ -86,3 +86,82 @@ exports.cleanupExpiredNotifications = onSchedule(
 );
 
 exports.attendanceApi = onRequest(attendanceRouter);
+
+async function deleteQueryInBatches(query, batchSize = 400) {
+  while (true) {
+    const snapshot = await query.limit(batchSize).get();
+    if (snapshot.empty) return;
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
+}
+
+async function deleteStoragePrefix(bucket, prefix) {
+  const [files] = await bucket.getFiles({ prefix });
+  if (!files.length) return;
+
+  await Promise.all(
+    files.map((file) =>
+      file.delete({ ignoreNotFound: true }).catch((error) => {
+        if (error.code === 404) return;
+        throw error;
+      }),
+    ),
+  );
+}
+
+exports.deleteOwnAccount = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.');
+  }
+
+  const bucket = admin.storage().bucket();
+
+  const createdComplaintIds = [];
+  const complaintsSnap = await db
+    .collection('complaints')
+    .where('createdBy', '==', uid)
+    .get();
+  complaintsSnap.docs.forEach((doc) => createdComplaintIds.push(doc.id));
+
+  await Promise.all([
+    deleteQueryInBatches(db.collection('achievements').where('uid', '==', uid)),
+    deleteQueryInBatches(db.collection('certifications').where('uid', '==', uid)),
+    deleteQueryInBatches(db.collection('notifications').where('uid', '==', uid)),
+    deleteQueryInBatches(db.collection('notifications').where('createdBy', '==', uid)),
+    deleteQueryInBatches(db.collection('complaints').where('createdBy', '==', uid)),
+    deleteQueryInBatches(db.collection('attendance').where('studentId', '==', uid)),
+    deleteQueryInBatches(db.collection('attendance').where('facultyId', '==', uid)),
+    deleteQueryInBatches(db.collection('attendance_summary').where('studentId', '==', uid)),
+    deleteQueryInBatches(db.collection('sessions').where('facultyId', '==', uid)),
+    deleteQueryInBatches(db.collection('resources').where('uploadedByUid', '==', uid)),
+    deleteQueryInBatches(db.collection('notices').where('createdBy', '==', uid)),
+    deleteQueryInBatches(db.collection('events').where('createdBy', '==', uid)),
+  ]);
+
+  await Promise.all([
+    deleteStoragePrefix(bucket, `achievements/${uid}/`),
+    deleteStoragePrefix(bucket, `certifications/${uid}/`),
+    ...createdComplaintIds.map((complaintId) =>
+      deleteStoragePrefix(bucket, `complaints_media/${complaintId}/`),
+    ),
+  ]);
+
+  await Promise.all([
+    db.collection('profiles').doc(uid).delete().catch(() => {}),
+    db.collection('users').doc(uid).delete().catch(() => {}),
+  ]);
+
+  try {
+    await admin.auth().deleteUser(uid);
+  } catch (error) {
+    if (error.code !== 'auth/user-not-found') {
+      throw error;
+    }
+  }
+
+  return { success: true };
+});

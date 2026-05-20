@@ -147,7 +147,7 @@ class _AnimatedSplashLoaderState extends State<AnimatedSplashLoader>
                             shape: BoxShape.circle,
                           ),
                           child: Image.asset(
-                            'assets/logo/ic_logo.png',
+                            'assets/logo/ic_logo_runtime.png',
                             width: 52,
                             height: 52,
                             fit: BoxFit.contain,

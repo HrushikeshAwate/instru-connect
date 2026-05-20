@@ -41,9 +41,9 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
         _visibleNotices.map((notice) => notice.id).toList(),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Visible notices cleared')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Visible notices cleared')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -91,6 +91,8 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                       const Expanded(
                         child: Text(
                           'Notices',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -99,15 +101,12 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                         ),
                       ),
                       if (_canClearNotices)
-                        TextButton.icon(
+                        IconButton(
+                          tooltip: 'Clear notices',
                           onPressed: _clearVisibleNotices,
                           icon: const Icon(
                             Icons.delete_sweep_outlined,
                             color: Colors.white,
-                          ),
-                          label: const Text(
-                            'Clear',
-                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                     ],
@@ -183,11 +182,7 @@ class _NoticeCard extends StatelessWidget {
   final Notice notice;
   final VoidCallback onTap;
 
-  const _NoticeCard({
-    required this.notice,
-    required this.onTap,
-    super.key,
-  });
+  const _NoticeCard({required this.notice, required this.onTap, super.key});
 
   String? get _firstImageAttachment {
     for (final url in notice.attachments) {

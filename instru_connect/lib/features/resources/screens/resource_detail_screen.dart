@@ -93,15 +93,18 @@ class ResourceDetailScreen extends StatelessWidget {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Resource',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Resource',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       FutureBuilder<bool>(
                         future: canUseLinkControlsFuture,
                         builder: (context, snapshot) {

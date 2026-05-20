@@ -85,12 +85,16 @@ class _AssignBatchToStudentsScreenState
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Assign Batches',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Assign Batches',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -115,19 +119,13 @@ class _AssignBatchToStudentsScreenState
 
                             final batches = snapshot.data!.docs.toList()
                               ..sort((a, b) {
-                                final aData =
-                                    a.data() as Map<String, dynamic>;
-                                final bData =
-                                    b.data() as Map<String, dynamic>;
-                                final aName = (aData['name'] ?? '')
-                                    .toString();
-                                final bName = (bData['name'] ?? '')
-                                    .toString();
+                                final aData = a.data() as Map<String, dynamic>;
+                                final bData = b.data() as Map<String, dynamic>;
+                                final aName = (aData['name'] ?? '').toString();
+                                final bName = (bData['name'] ?? '').toString();
                                 final rankCompare = BatchOrdering.rankForName(
                                   aName,
-                                ).compareTo(
-                                  BatchOrdering.rankForName(bName),
-                                );
+                                ).compareTo(BatchOrdering.rankForName(bName));
                                 if (rankCompare != 0) return rankCompare;
                                 return aName.toLowerCase().compareTo(
                                   bName.toLowerCase(),
@@ -156,7 +154,8 @@ class _AssignBatchToStudentsScreenState
                                   items: batches.map((doc) {
                                     final data =
                                         doc.data() as Map<String, dynamic>;
-                                    final year = (data['currentYear'] as num?)
+                                    final year =
+                                        (data['currentYear'] as num?)
                                             ?.toInt() ??
                                         0;
                                     return DropdownMenuItem(
@@ -205,9 +204,7 @@ class _AssignBatchToStudentsScreenState
                                     label: 'Unassigned',
                                     selected: filterMode == 'unassigned',
                                     onTap: () {
-                                      setState(
-                                        () => filterMode = 'unassigned',
-                                      );
+                                      setState(() => filterMode = 'unassigned');
                                     },
                                   ),
                                 ),
@@ -250,51 +247,53 @@ class _AssignBatchToStudentsScreenState
                         return const Center(child: CircularProgressIndicator());
                       }
 
-                      final students = snapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final name = (data['name'] ?? '')
-                            .toString()
-                            .toLowerCase();
-                        final email = (data['email'] ?? '')
-                            .toString()
-                            .toLowerCase();
-                        final mis = (data['MIS No'] ?? data['mis'] ?? '')
-                            .toString()
-                            .toLowerCase();
-                        final hasBatch = (data['batchId'] ?? '')
-                            .toString()
-                            .trim()
-                            .isNotEmpty;
+                      final students =
+                          snapshot.data!.docs.where((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final name = (data['name'] ?? '')
+                                .toString()
+                                .toLowerCase();
+                            final email = (data['email'] ?? '')
+                                .toString()
+                                .toLowerCase();
+                            final mis = (data['MIS No'] ?? data['mis'] ?? '')
+                                .toString()
+                                .toLowerCase();
+                            final hasBatch = (data['batchId'] ?? '')
+                                .toString()
+                                .trim()
+                                .isNotEmpty;
 
-                        final matchesFilter = switch (filterMode) {
-                          'assigned' => hasBatch,
-                          'all' => true,
-                          _ => !hasBatch,
-                        };
+                            final matchesFilter = switch (filterMode) {
+                              'assigned' => hasBatch,
+                              'all' => true,
+                              _ => !hasBatch,
+                            };
 
-                        return matchesFilter &&
-                            (name.contains(searchQuery) ||
-                                email.contains(searchQuery) ||
-                                mis.contains(searchQuery));
-                      }).toList()
-                        ..sort((a, b) {
-                          final aData = a.data() as Map<String, dynamic>;
-                          final bData = b.data() as Map<String, dynamic>;
-                          final aAssigned = (aData['batchId'] ?? '')
-                              .toString()
-                              .trim()
-                              .isNotEmpty;
-                          final bAssigned = (bData['batchId'] ?? '')
-                              .toString()
-                              .trim()
-                              .isNotEmpty;
-                          if (aAssigned != bAssigned) {
-                            return aAssigned ? 1 : -1;
-                          }
-                          return _getStudentName(aData).toLowerCase().compareTo(
-                            _getStudentName(bData).toLowerCase(),
-                          );
-                        });
+                            return matchesFilter &&
+                                (name.contains(searchQuery) ||
+                                    email.contains(searchQuery) ||
+                                    mis.contains(searchQuery));
+                          }).toList()..sort((a, b) {
+                            final aData = a.data() as Map<String, dynamic>;
+                            final bData = b.data() as Map<String, dynamic>;
+                            final aAssigned = (aData['batchId'] ?? '')
+                                .toString()
+                                .trim()
+                                .isNotEmpty;
+                            final bAssigned = (bData['batchId'] ?? '')
+                                .toString()
+                                .trim()
+                                .isNotEmpty;
+                            if (aAssigned != bAssigned) {
+                              return aAssigned ? 1 : -1;
+                            }
+                            return _getStudentName(
+                              aData,
+                            ).toLowerCase().compareTo(
+                              _getStudentName(bData).toLowerCase(),
+                            );
+                          });
 
                       if (students.isEmpty) {
                         return Center(
@@ -322,7 +321,12 @@ class _AssignBatchToStudentsScreenState
                           return Column(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  8,
+                                ),
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -354,18 +358,15 @@ class _AssignBatchToStudentsScreenState
                                     final doc = students[index];
                                     final data =
                                         doc.data() as Map<String, dynamic>;
-                                    final selected = selectedStudentIds.contains(
-                                      doc.id,
-                                    );
-                                    final batchId =
-                                        (data['batchId'] ?? '').toString();
+                                    final selected = selectedStudentIds
+                                        .contains(doc.id);
+                                    final batchId = (data['batchId'] ?? '')
+                                        .toString();
 
                                     return _StudentCard(
                                       name: _getStudentName(data),
                                       email: (data['email'] ?? '').toString(),
-                                      mis: (data['MIS No'] ??
-                                              data['mis'] ??
-                                              '')
+                                      mis: (data['MIS No'] ?? data['mis'] ?? '')
                                           .toString(),
                                       currentBatch: batchNameById[batchId],
                                       assigned: batchId.isNotEmpty,
@@ -522,7 +523,9 @@ class _FilterChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? UIColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+      color: selected
+          ? UIColors.primary.withValues(alpha: 0.12)
+          : Colors.transparent,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),

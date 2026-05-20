@@ -25,8 +25,8 @@ class _TermsAcceptanceGateState extends State<TermsAcceptanceGate> {
   }
 
   Future<void> _loadAcceptanceState() async {
-    final hasAccepted =
-        await _legalAcceptanceService.hasAcceptedCurrentVersion();
+    final hasAccepted = await _legalAcceptanceService
+        .hasAcceptedCurrentVersion();
 
     if (!mounted) return;
 
@@ -149,7 +149,9 @@ class _TermsAcceptanceDialogState extends State<_TermsAcceptanceDialog> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: theme.dialogBackgroundColor,
+                  color:
+                      theme.dialogTheme.backgroundColor ??
+                      theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
@@ -216,9 +218,7 @@ class _TermsAcceptanceDialogState extends State<_TermsAcceptanceDialog> {
                             ),
                             const SizedBox(height: 18),
                             Divider(
-                              color: theme.dividerColor.withValues(
-                                alpha: 0.35,
-                              ),
+                              color: theme.dividerColor.withValues(alpha: 0.35),
                             ),
                             const SizedBox(height: 18),
                             _PolicyPreview(
@@ -283,10 +283,7 @@ class _PolicyPreview extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          body,
-          style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
-        ),
+        Text(body, style: theme.textTheme.bodyMedium?.copyWith(height: 1.55)),
       ],
     );
   }

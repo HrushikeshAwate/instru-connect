@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
 import 'package:instru_connect/core/widgets/animated_splash_loader.dart';
@@ -25,6 +26,11 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
       if (user == null) {
         Navigator.pushReplacementNamed(context, Routes.login);
+        return;
+      }
+
+      if (DemoAccount.isDemoEmail(user.email)) {
+        Navigator.pushReplacementNamed(context, Routes.roleLoading);
         return;
       }
 

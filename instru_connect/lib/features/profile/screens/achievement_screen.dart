@@ -57,12 +57,16 @@ class AchievementsScreen extends StatelessWidget {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Achievements',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Achievements',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

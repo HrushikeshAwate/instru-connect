@@ -137,27 +137,28 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                             );
                           }
 
-                          final docs = snapshot.data!.docs.where((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final subjectName =
-                                (data['subjectName'] ?? '').toString().trim();
-                            return subjectName == widget.subjectName.trim();
-                          }).toList()
-                            ..sort((a, b) {
-                              final aData = a.data() as Map<String, dynamic>;
-                              final bData = b.data() as Map<String, dynamic>;
-                              final aCreatedAt =
-                                  aData['createdAt'] as Timestamp?;
-                              final bCreatedAt =
-                                  bData['createdAt'] as Timestamp?;
+                          final docs =
+                              snapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final subjectName = (data['subjectName'] ?? '')
+                                    .toString()
+                                    .trim();
+                                return subjectName == widget.subjectName.trim();
+                              }).toList()..sort((a, b) {
+                                final aData = a.data() as Map<String, dynamic>;
+                                final bData = b.data() as Map<String, dynamic>;
+                                final aCreatedAt =
+                                    aData['createdAt'] as Timestamp?;
+                                final bCreatedAt =
+                                    bData['createdAt'] as Timestamp?;
 
-                              if (aCreatedAt != null && bCreatedAt != null) {
-                                return bCreatedAt.compareTo(aCreatedAt);
-                              }
-                              if (aCreatedAt != null) return -1;
-                              if (bCreatedAt != null) return 1;
-                              return b.id.compareTo(a.id);
-                            });
+                                if (aCreatedAt != null && bCreatedAt != null) {
+                                  return bCreatedAt.compareTo(aCreatedAt);
+                                }
+                                if (aCreatedAt != null) return -1;
+                                if (bCreatedAt != null) return 1;
+                                return b.id.compareTo(a.id);
+                              });
                           if (docs.isEmpty) {
                             return const _EmptyState();
                           }
@@ -248,9 +249,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                                           0,
                                       onEdit: canEditAttendance
                                           ? () => _navigateToEdit(
-                                                doc.id,
-                                                absentees,
-                                              )
+                                              doc.id,
+                                              absentees,
+                                            )
                                           : null,
                                       onDelete: canEditAttendance
                                           ? () => _confirmDelete(doc.id)
@@ -434,11 +435,15 @@ class _AttendanceCard extends StatelessWidget {
                 children: [
                   Text(
                     '$date • Session $sessionNumber',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '$presentCount present • $absentCount absent • $totalStudents students',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.textTheme.bodyMedium?.color,
                     ),

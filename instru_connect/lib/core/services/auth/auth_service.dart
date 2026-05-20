@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
 
 class AuthService {
@@ -39,6 +40,76 @@ class AuthService {
     await _signInWithMicrosoftInternal(retryOnRecoverableFailure: true);
   }
 
+  Future<void> signInWithDemoMode() async {
+    await _safeSignOut();
+
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: DemoAccount.email,
+        password: DemoAccount.password,
+      );
+      await _prepareDemoUserProfile(credential.user);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        try {
+          final credential = await _auth.createUserWithEmailAndPassword(
+            email: DemoAccount.email,
+            password: DemoAccount.password,
+          );
+          await _prepareDemoUserProfile(credential.user);
+          return;
+        } on FirebaseAuthException catch (createError) {
+          throw FirebaseAuthException(
+            code: createError.code,
+            message: _friendlyDemoSignInMessage(createError),
+          );
+        }
+      }
+
+      throw FirebaseAuthException(
+        code: e.code,
+        message: _friendlyDemoSignInMessage(e),
+      );
+    }
+  }
+
+  Future<void> _prepareDemoUserProfile(User? user) async {
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'demo-sign-in-failed',
+        message: 'Demo sign-in could not create a Firebase session.',
+      );
+    }
+
+    final email = user.email?.trim().toLowerCase();
+    if (!isAllowedCollegeEmail(email)) {
+      await _safeSignOut();
+      throw FirebaseAuthException(
+        code: 'unauthorized-domain',
+        message: 'The demo account is not using an approved college domain.',
+      );
+    }
+
+    if ((user.displayName ?? '').trim().isEmpty) {
+      await user.updateDisplayName(DemoAccount.name);
+    }
+  }
+
+  String _friendlyDemoSignInMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'operation-not-allowed':
+        return 'Demo Mode needs Email/Password sign-in enabled in Firebase Authentication.';
+      case 'email-already-in-use':
+      case 'invalid-credential':
+      case 'wrong-password':
+        return 'The demo account exists but the demo password does not match. Update the Firebase Auth user password to ${DemoAccount.password}.';
+      case 'network-request-failed':
+        return 'Demo Mode could not reach Firebase. Please check your internet connection and try again.';
+      default:
+        return e.message ?? 'Demo Mode could not sign in. Please try again.';
+    }
+  }
+
   Future<UserCredential> _signInWithMicrosoftInternal({
     required bool retryOnRecoverableFailure,
   }) async {
@@ -67,9 +138,7 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       if (_shouldRetrySignIn(e) && retryOnRecoverableFailure) {
         await _safeSignOut();
-        return _signInWithMicrosoftInternal(
-          retryOnRecoverableFailure: false,
-        );
+        return _signInWithMicrosoftInternal(retryOnRecoverableFailure: false);
       }
 
       throw FirebaseAuthException(
@@ -79,9 +148,7 @@ class AuthService {
     } catch (_) {
       if (retryOnRecoverableFailure) {
         await _safeSignOut();
-        return _signInWithMicrosoftInternal(
-          retryOnRecoverableFailure: false,
-        );
+        return _signInWithMicrosoftInternal(retryOnRecoverableFailure: false);
       }
 
       throw FirebaseAuthException(
@@ -148,59 +215,59 @@ class AuthService {
   // =====================================================
   // GOOGLE SIGN-IN (ADMIN ONLY)
   // =====================================================
-//   Future<void> signInWithGoogleAdminOnly() async {
-//   final GoogleSignIn googleSignIn = GoogleSignIn(
-//     scopes: ['email'],
-//   );
+  //   Future<void> signInWithGoogleAdminOnly() async {
+  //   final GoogleSignIn googleSignIn = GoogleSignIn(
+  //     scopes: ['email'],
+  //   );
 
-//   // 1️⃣ Trigger Google account picker
-//   final GoogleSignInAccount? googleUser =
-//       await googleSignIn.signIn();
+  //   // 1️⃣ Trigger Google account picker
+  //   final GoogleSignInAccount? googleUser =
+  //       await googleSignIn.signIn();
 
-//   if (googleUser == null) {
-//     throw Exception('Google sign-in cancelled');
-//   }
+  //   if (googleUser == null) {
+  //     throw Exception('Google sign-in cancelled');
+  //   }
 
-//   // 2️⃣ Get auth details
-//   final GoogleSignInAuthentication googleAuth =
-//       await googleUser.authentication;
+  //   // 2️⃣ Get auth details
+  //   final GoogleSignInAuthentication googleAuth =
+  //       await googleUser.authentication;
 
-//   final credential = GoogleAuthProvider.credential(
-//     accessToken: googleAuth.accessToken,
-//     idToken: googleAuth.idToken,
-//   );
+  //   final credential = GoogleAuthProvider.credential(
+  //     accessToken: googleAuth.accessToken,
+  //     idToken: googleAuth.idToken,
+  //   );
 
-//   // 3️⃣ Firebase Auth
-//   final userCredential =
-//       await _auth.signInWithCredential(credential);
+  //   // 3️⃣ Firebase Auth
+  //   final userCredential =
+  //       await _auth.signInWithCredential(credential);
 
-//   final user = userCredential.user!;
-//   final email = user.email!.toLowerCase();
+  //   final user = userCredential.user!;
+  //   final email = user.email!.toLowerCase();
 
-//   // 4️⃣ Enforce admin-only Gmail
-//   if (email != allowedAdminGmail.toLowerCase()) {
-//     await _auth.signOut();
-//     throw Exception('Access denied: Admin only');
-//   }
+  //   // 4️⃣ Enforce admin-only Gmail
+  //   if (email != allowedAdminGmail.toLowerCase()) {
+  //     await _auth.signOut();
+  //     throw Exception('Access denied: Admin only');
+  //   }
 
-//   // 5️⃣ Firestore role bootstrap
-//   final userRef = _db.collection('users').doc(user.uid);
-//   final doc = await userRef.get();
+  //   // 5️⃣ Firestore role bootstrap
+  //   final userRef = _db.collection('users').doc(user.uid);
+  //   final doc = await userRef.get();
 
-//   if (!doc.exists) {
-//     await userRef.set({
-//       'email': email,
-//       'role': 'admin',
-//       'createdAt': FieldValue.serverTimestamp(),
-//     });
-//     return;
-//   }
+  //   if (!doc.exists) {
+  //     await userRef.set({
+  //       'email': email,
+  //       'role': 'admin',
+  //       'createdAt': FieldValue.serverTimestamp(),
+  //     });
+  //     return;
+  //   }
 
-//   if (doc.data()?['role'] != 'admin') {
-//     await _auth.signOut();
-//     throw Exception('Access denied: Admin only');
-//   }
-// }
+  //   if (doc.data()?['role'] != 'admin') {
+  //     await _auth.signOut();
+  //     throw Exception('Access denied: Admin only');
+  //   }
+  // }
 
   // =====================================================
   // SIGN OUT

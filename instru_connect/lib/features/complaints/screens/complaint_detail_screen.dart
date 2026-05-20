@@ -61,8 +61,8 @@ class ComplaintDetailScreen extends StatelessWidget {
   }
 
   String _reporterLabel() {
-    if (complaint.isAnonymous && complaint.createdByRole == 'student') {
-      return 'Anonymous Student';
+    if (complaint.isAnonymous) {
+      return 'Anonymous Reporter';
     }
     return 'By ${complaint.createdByRole}';
   }
@@ -99,12 +99,16 @@ class ComplaintDetailScreen extends StatelessWidget {
                       ),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
-                      'Complaint Details',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    const Expanded(
+                      child: Text(
+                        'Complaint Details',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -287,8 +291,7 @@ class ComplaintDetailScreen extends StatelessWidget {
                               );
                             },
                           ),
-                        if (canUpdateComplaint)
-                          const SizedBox(height: 12),
+                        if (canUpdateComplaint) const SizedBox(height: 12),
                         if (canUseCoordinationNotes) ...[
                           _CoordinationNotesSection(
                             complaintId: complaint.id,

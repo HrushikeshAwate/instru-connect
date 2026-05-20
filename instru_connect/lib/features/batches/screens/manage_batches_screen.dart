@@ -41,7 +41,9 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
   Future<void> _showCreateBatchDialog(BuildContext context) async {
     if (!_canManageBatches) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only admin or faculty can create batches.')),
+        const SnackBar(
+          content: Text('Only admin or faculty can create batches.'),
+        ),
       );
       return;
     }
@@ -118,7 +120,9 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
   Future<void> _showPromoteAllDialog(BuildContext context) async {
     if (!_canManageBatches) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only admin or faculty can manage batches.')),
+        const SnackBar(
+          content: Text('Only admin or faculty can manage batches.'),
+        ),
       );
       return;
     }
@@ -135,9 +139,7 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
 
     await BatchService().promoteAllStudents();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('All students promoted successfully'),
-      ),
+      const SnackBar(content: Text('All students promoted successfully')),
     );
   }
 
@@ -312,7 +314,12 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
                         slivers: [
                           SliverToBoxAdapter(
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 18, 16, 10),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                18,
+                                16,
+                                10,
+                              ),
                               child: _OverviewCard(
                                 totalCount: batches.length,
                                 activeCount: activeCount,
@@ -365,7 +372,9 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
                                         0,
                                     isActive: data['isActive'] == true,
                                     selectionMode: _selectionMode,
-                                    selected: _selectedBatchIds.contains(doc.id),
+                                    selected: _selectedBatchIds.contains(
+                                      doc.id,
+                                    ),
                                     onTap: () {
                                       if (_selectionMode) {
                                         _toggleSelection(doc.id);
@@ -445,6 +454,8 @@ class _HeaderBar extends StatelessWidget {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -455,6 +466,8 @@ class _HeaderBar extends StatelessWidget {
                   const SizedBox(height: 2),
                   const Text(
                     'Organize academic years, subjects, and attendance by batch.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -678,10 +691,7 @@ class _OverviewActionTile extends StatelessWidget {
                       : Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  icon,
-                  color: outlined ? primary : Colors.white,
-                ),
+                child: Icon(icon, color: outlined ? primary : Colors.white),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -783,7 +793,6 @@ class _OverviewStat extends StatelessWidget {
 }
 
 class _BatchCard extends StatelessWidget {
-  final Key? key;
   final String batchId;
   final String name;
   final int currentYear;
@@ -794,7 +803,7 @@ class _BatchCard extends StatelessWidget {
   final VoidCallback onLongPress;
 
   const _BatchCard({
-    this.key,
+    super.key,
     required this.batchId,
     required this.name,
     required this.currentYear,
@@ -803,7 +812,7 @@ class _BatchCard extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.onLongPress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -849,10 +858,7 @@ class _BatchCard extends StatelessWidget {
                   gradient: isActive
                       ? UIColors.primaryGradient
                       : LinearGradient(
-                          colors: [
-                            Colors.grey.shade400,
-                            Colors.grey.shade500,
-                          ],
+                          colors: [Colors.grey.shade400, Colors.grey.shade500],
                         ),
                   borderRadius: BorderRadius.circular(999),
                 ),

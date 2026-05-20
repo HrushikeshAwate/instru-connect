@@ -57,12 +57,16 @@ class CertificationsScreen extends StatelessWidget {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Certifications',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Certifications',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/constants/firestore_collections.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
+import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirestoreService {
@@ -20,9 +21,20 @@ class FirestoreService {
       'email': normalizedEmail,
       'updatedAt': FieldValue.serverTimestamp(),
     };
+    final isDemoAccount = DemoAccount.isDemoEmail(normalizedEmail);
 
     if (normalizedName.isNotEmpty) {
       baseData['name'] = normalizedName;
+    }
+
+    final defaultRole = isDemoAccount ? AppRoles.admin : AppRoles.student;
+
+    if (isDemoAccount) {
+      baseData.addAll({
+        'name': DemoAccount.name,
+        'role': AppRoles.admin,
+        'isDemoAccount': true,
+      });
     }
 
     final snap = await ref.get(const GetOptions(source: Source.serverAndCache));
@@ -30,7 +42,7 @@ class FirestoreService {
     if (!snap.exists) {
       final data = {
         ...baseData,
-        'role': AppRoles.student,
+        'role': defaultRole,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -41,8 +53,8 @@ class FirestoreService {
     final data = snap.data() ?? <String, dynamic>{};
     final updates = <String, dynamic>{...baseData};
 
-    if ((data['role'] ?? '').toString().trim().isEmpty) {
-      updates['role'] = AppRoles.student;
+    if (isDemoAccount || (data['role'] ?? '').toString().trim().isEmpty) {
+      updates['role'] = defaultRole;
     }
 
     await ref.set(updates, SetOptions(merge: true));

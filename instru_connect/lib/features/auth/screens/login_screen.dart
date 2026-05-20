@@ -75,6 +75,28 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginWithDemoMode() async {
+    if (_loading || _redirecting) return;
+    setState(() => _loading = true);
+    try {
+      await _authService.signInWithDemoMode();
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.message ?? 'Demo Mode could not start. Please try again.',
+          ),
+        ),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Demo Mode could not start right now.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -181,6 +203,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: _loginWithMicrosoft,
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.visibility_outlined),
+                            label: const Text(
+                              'Continue in Demo Mode',
+                              style: TextStyle(fontSize: 15),
+                            ),
+                            onPressed: _loginWithDemoMode,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Use your official college account',
@@ -225,7 +260,7 @@ class _AppLogo extends StatelessWidget {
         ],
       ),
       child: Image.asset(
-        'assets/logo/ic_logo.png',
+        'assets/logo/ic_logo_runtime.png',
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) {
           return const Icon(

@@ -90,15 +90,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       if (!complaintDoc.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This complaint is no longer available.')),
+          const SnackBar(
+            content: Text('This complaint is no longer available.'),
+          ),
         );
         return;
       }
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              ComplaintDetailScreen(complaint: ComplaintModel.fromFirestore(complaintDoc)),
+          builder: (_) => ComplaintDetailScreen(
+            complaint: ComplaintModel.fromFirestore(complaintDoc),
+          ),
         ),
       );
       return;
@@ -114,11 +117,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       if (!resourceDoc.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This resource is no longer available.')),
+          const SnackBar(
+            content: Text('This resource is no longer available.'),
+          ),
         );
         return;
       }
-      final resource = ResourceModel.fromFirestore(resourceDoc.id, resourceDoc.data()!);
+      final resource = ResourceModel.fromFirestore(
+        resourceDoc.id,
+        resourceDoc.data()!,
+      );
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -140,10 +148,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => SubjectDetailScreen(
-            subjectName: subjectName,
-            batchId: batchId,
-          ),
+          builder: (_) =>
+              SubjectDetailScreen(subjectName: subjectName, batchId: batchId),
         ),
       );
       return;
@@ -233,37 +239,54 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Notifications',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Notifications',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      const Spacer(),
-                      StreamBuilder<NotificationCounter>(
-                        stream: _service.streamUserNotificationCounter(uid),
-                        builder: (context, snapshot) {
-                          final counter = snapshot.data ??
-                              const NotificationCounter(total: 0, unread: 0);
-                          return Row(
-                            children: [
-                              _CountChip(
-                                label: 'Unread',
-                                value: counter.unread,
-                              ),
-                              const SizedBox(width: 8),
-                              _CountChip(
-                                label: 'Total',
-                                value: counter.total,
-                              ),
-                            ],
-                          );
-                        },
+                      Flexible(
+                        flex: 2,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: StreamBuilder<NotificationCounter>(
+                            stream: _service.streamUserNotificationCounter(uid),
+                            builder: (context, snapshot) {
+                              final counter =
+                                  snapshot.data ??
+                                  const NotificationCounter(
+                                    total: 0,
+                                    unread: 0,
+                                  );
+                              return FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _CountChip(
+                                      label: 'Unread',
+                                      value: counter.unread,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _CountChip(
+                                      label: 'Total',
+                                      value: counter.total,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
+                      IconButton(
+                        tooltip: 'Clear all notifications',
                         onPressed: () async {
                           final confirmed =
                               await _confirmClearAllNotifications();
@@ -273,10 +296,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         icon: const Icon(
                           Icons.delete_outline,
                           color: Colors.white,
-                        ),
-                        label: const Text(
-                          'Clear All',
-                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ],
@@ -303,7 +322,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         return n['isRead'] != true;
                       }).length;
 
-                      if (unreadCount > 0 && !_isMarkingVisibleNotificationsRead) {
+                      if (unreadCount > 0 &&
+                          !_isMarkingVisibleNotificationsRead) {
                         _isMarkingVisibleNotificationsRead = true;
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           _service.markAllReadForUser(uid).whenComplete(() {
@@ -401,10 +421,7 @@ class _CountChip extends StatelessWidget {
   final String label;
   final int value;
 
-  const _CountChip({
-    required this.label,
-    required this.value,
-  });
+  const _CountChip({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {

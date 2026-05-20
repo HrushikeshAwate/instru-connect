@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/services/account_deletion_service.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
 import 'package:instru_connect/core/services/theme_controller.dart';
+import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/features/legal/legal_content.dart';
 import 'package:instru_connect/features/legal/screens/legal_document_screen.dart';
 import '../../../config/theme/ui_colors.dart';
@@ -31,8 +35,10 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _service = ProfileService();
+  final _accountDeletionService = AccountDeletionService();
 
   bool _loading = true;
+  bool _deletingAccount = false;
 
   late ProfileModel profile;
   String? _batchName;
@@ -153,6 +159,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _continueAfterCompletion() {
     if (widget.completionRoute != null) {
       Navigator.pushReplacementNamed(context, widget.completionRoute!);
+    }
+  }
+
+  Future<void> _deleteAccountPermanently() async {
+    final confirmed = await showDestructiveConfirmationDialog(
+      context: context,
+      title: 'Delete Account Permanently?',
+      message:
+          'This will permanently delete your account, profile, notifications, achievements, certifications, complaints, attendance records, and other data linked to your account from Firebase. This cannot be undone.',
+      confirmLabel: 'Delete Account',
+    );
+
+    if (!confirmed || !mounted) return;
+
+    setState(() => _deletingAccount = true);
+    try {
+      await _accountDeletionService.deleteCurrentAccount();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, Routes.login, (_) => false);
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.message ??
+                'Could not delete your account. Please try again later.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not delete your account. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingAccount = false);
     }
   }
 
@@ -303,8 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             value: _displayValue(profile.parentContactNo),
                             showDivider: false,
                           ),
-                        if (!_isStudentOrCr)
-                          const SizedBox.shrink(),
+                        if (!_isStudentOrCr) const SizedBox.shrink(),
                       ],
                     ),
                   ),
@@ -356,8 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _navigationTile(
                             icon: Icons.description_outlined,
                             title: LegalContent.termsTitle,
-                            subtitle:
-                                'Read the full terms and conditions',
+                            subtitle: 'Read the full terms and conditions',
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -454,6 +496,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+
+                  if (!widget.forceCompletion && !_isReadOnlyView) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _deletingAccount
+                            ? null
+                            : _deleteAccountPermanently,
+                        icon: _deletingAccount
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.delete_forever_rounded),
+                        label: Text(
+                          _deletingAccount
+                              ? 'Deleting Account...'
+                              : 'Delete Account Permanently',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onError,
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -750,9 +825,19 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
-              Text(email, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                email,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
           ),
         ),

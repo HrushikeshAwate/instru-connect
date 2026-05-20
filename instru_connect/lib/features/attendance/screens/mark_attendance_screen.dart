@@ -108,9 +108,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -150,7 +148,8 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final docs = snapshot.data!.docs.toList()..sort(_compareStudents);
+                final docs = snapshot.data!.docs.toList()
+                  ..sort(_compareStudents);
 
                 if (!_hasInitialized) {
                   for (final doc in docs) {
@@ -175,7 +174,9 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                 }).toList();
 
                 final total = docs.length;
-                final absent = absentStatus.values.where((value) => value).length;
+                final absent = absentStatus.values
+                    .where((value) => value)
+                    .length;
                 final present = total - absent;
 
                 return Column(
@@ -376,7 +377,9 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                                       ),
                                     )
                                   : ListView.builder(
-                                      padding: const EdgeInsets.only(bottom: 96),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 96,
+                                      ),
                                       itemCount: filtered.length,
                                       itemBuilder: (context, index) {
                                         final doc = filtered[index];
@@ -391,10 +394,11 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                                               data['Name'] ??
                                               data['name'] ??
                                               'Unknown',
-                                          mis: (data['MIS No'] ??
-                                                  data['mis'] ??
-                                                  'N/A')
-                                              .toString(),
+                                          mis:
+                                              (data['MIS No'] ??
+                                                      data['mis'] ??
+                                                      'N/A')
+                                                  .toString(),
                                           isAbsent: isAbsent,
                                           onTap: () {
                                             setState(() {
@@ -522,6 +526,8 @@ class _StudentCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -529,6 +535,8 @@ class _StudentCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'MIS: $mis',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.textTheme.bodyMedium?.color,
                       ),

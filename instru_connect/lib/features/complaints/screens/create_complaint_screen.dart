@@ -55,7 +55,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
         createdBy: uid,
         createdByRole: role,
         departmentId: '',
-        isAnonymous: role == 'student' ? _isAnonymous : false,
+        isAnonymous: _isAnonymous,
       );
 
       if (_mediaFile != null) {
@@ -123,12 +123,16 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       ),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
-                      'Raise Complaint',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    const Expanded(
+                      child: Text(
+                        'Raise Complaint',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -195,8 +199,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         ),
                       ),
 
-                      if ((CurrentUser.role ?? '').trim().toLowerCase() ==
-                          'student') ...[
+                      if (_canSubmitAnonymously) ...[
                         const SizedBox(height: 18),
                         SwitchListTile.adaptive(
                           contentPadding: EdgeInsets.zero,
@@ -206,7 +209,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                           },
                           title: const Text('Submit anonymously'),
                           subtitle: const Text(
-                            'Your complaint will still be linked to your account, but your identity will be hidden in the complaint view.',
+                            'Your complaint remains tied to your signed-in account for safety, but your identity is hidden in complaint views.',
                           ),
                         ),
                       ],
@@ -304,6 +307,14 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
         ],
       ),
     );
+  }
+
+  bool get _canSubmitAnonymously {
+    final role = (CurrentUser.role ?? '').trim().toLowerCase();
+    return role == 'student' ||
+        role == 'cr' ||
+        role == 'faculty' ||
+        role == 'staff';
   }
 }
 

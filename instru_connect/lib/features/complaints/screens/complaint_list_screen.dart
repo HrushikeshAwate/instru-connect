@@ -210,7 +210,8 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                 Expanded(
                   child: StreamBuilder<List<ComplaintModel>>(
                     stream:
-                        widget.stream ?? _complaintService.streamForCurrentUser(),
+                        widget.stream ??
+                        _complaintService.streamForCurrentUser(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator());
@@ -246,7 +247,8 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                                     complaint.id,
                                   ),
                                   onTap: () {
-                                    if (_selectionMode && _canManageComplaints) {
+                                    if (_selectionMode &&
+                                        _canManageComplaints) {
                                       _toggleSelection(complaint);
                                       return;
                                     }
@@ -281,7 +283,6 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
 }
 
 class _ComplaintCard extends StatelessWidget {
-  final Key? key;
   final ComplaintModel complaint;
   final bool selectionMode;
   final bool selected;
@@ -289,13 +290,13 @@ class _ComplaintCard extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   const _ComplaintCard({
-    this.key,
+    super.key,
     required this.complaint,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
     this.onLongPress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
