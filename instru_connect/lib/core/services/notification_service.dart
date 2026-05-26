@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/services/push_notification_service.dart';
@@ -10,7 +12,7 @@ class NotificationService {
       _db.collection('notifications');
 
   Stream<List<Map<String, dynamic>>> streamUserNotifications(String uid) {
-    purgeExpiredNotifications();
+    _scheduleExpiredNotificationPurge(uid: uid);
     return _notifications
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
@@ -28,7 +30,7 @@ class NotificationService {
   }
 
   Stream<NotificationCounter> streamUserNotificationCounter(String uid) {
-    purgeExpiredNotifications();
+    _scheduleExpiredNotificationPurge(uid: uid);
     return _notifications.where('uid', isEqualTo: uid).snapshots().map((
       snapshot,
     ) {
@@ -51,9 +53,7 @@ class NotificationService {
     required String type,
     Map<String, dynamic>? data,
   }) async {
-    final deleteAt = Timestamp.fromDate(
-      DateTime.now().add(_notificationTtl),
-    );
+    final deleteAt = Timestamp.fromDate(DateTime.now().add(_notificationTtl));
 
     await _notifications.add({
       'uid': uid,
@@ -79,9 +79,7 @@ class NotificationService {
   }
 
   Future<void> markRead(String notificationId) async {
-    await _notifications.doc(notificationId).update({
-      'isRead': true,
-    });
+    await _notifications.doc(notificationId).update({'isRead': true});
   }
 
   Future<void> markAllReadForUser(String uid) async {
@@ -156,11 +154,30 @@ class NotificationService {
     }
   }
 
-  Future<void> purgeExpiredNotifications() async {
+  void _scheduleExpiredNotificationPurge({String? uid}) {
+    unawaited(
+      purgeExpiredNotifications(uid: uid).catchError((_) {
+        // Expiry cleanup is best-effort; loading notifications should not fail
+        // because maintenance cleanup could not run.
+      }),
+    );
+  }
+
+  Future<void> purgeExpiredNotifications({String? uid}) async {
+    final currentUid = uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null) return;
+
     final cutoff = Timestamp.fromDate(DateTime.now());
-    final snapshot = await _notifications
-        .where('deleteAt', isLessThanOrEqualTo: cutoff)
-        .get();
+    final QuerySnapshot<Map<String, dynamic>> snapshot;
+    try {
+      snapshot = await _notifications
+          .where('uid', isEqualTo: currentUid)
+          .where('deleteAt', isLessThanOrEqualTo: cutoff)
+          .get();
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') return;
+      rethrow;
+    }
 
     if (snapshot.docs.isEmpty) return;
 
@@ -188,9 +205,7 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     if (uids.isEmpty) return;
-    final deleteAt = Timestamp.fromDate(
-      DateTime.now().add(_notificationTtl),
-    );
+    final deleteAt = Timestamp.fromDate(DateTime.now().add(_notificationTtl));
 
     const int batchSize = 400;
     for (var i = 0; i < uids.length; i += batchSize) {
@@ -276,8 +291,5 @@ class NotificationCounter {
   final int total;
   final int unread;
 
-  const NotificationCounter({
-    required this.total,
-    required this.unread,
-  });
+  const NotificationCounter({required this.total, required this.unread});
 }
