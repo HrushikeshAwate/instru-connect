@@ -103,10 +103,7 @@ class EventService {
       title: 'Event Deleted',
       body: title,
       type: 'event_deleted',
-      data: {
-        'eventId': eventId,
-        'eventTitle': title,
-      },
+      data: {'eventId': eventId, 'eventTitle': title},
     );
   }
 

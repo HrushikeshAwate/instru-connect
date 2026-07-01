@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/widgets/animated_splash_loader.dart';
 import 'package:instru_connect/features/legal/legal_content.dart';
 import 'package:instru_connect/features/legal/services/legal_acceptance_service.dart';
 
-class TermsAcceptanceGate extends StatefulWidget {
+class TermsAcceptanceGate extends ConsumerStatefulWidget {
   final Widget child;
 
   const TermsAcceptanceGate({super.key, required this.child});
 
   @override
-  State<TermsAcceptanceGate> createState() => _TermsAcceptanceGateState();
+  ConsumerState<TermsAcceptanceGate> createState() =>
+      _TermsAcceptanceGateState();
 }
 
-class _TermsAcceptanceGateState extends State<TermsAcceptanceGate> {
-  final _legalAcceptanceService = LegalAcceptanceService();
+class _TermsAcceptanceGateState extends ConsumerState<TermsAcceptanceGate> {
+  late final LegalAcceptanceService _legalAcceptanceService;
 
   bool? _hasAcceptedCurrentVersion;
   bool _dialogVisible = false;
@@ -21,6 +24,7 @@ class _TermsAcceptanceGateState extends State<TermsAcceptanceGate> {
   @override
   void initState() {
     super.initState();
+    _legalAcceptanceService = ref.read(legalAcceptanceServiceProvider);
     _loadAcceptanceState();
   }
 

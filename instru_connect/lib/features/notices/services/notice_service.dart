@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/constants/firestore_collections.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 import 'package:instru_connect/core/utils/batch_ordering.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 
@@ -22,8 +22,9 @@ class NoticeService {
     DocumentSnapshot? lastDocument,
     int limit = 10,
   }) async {
-    Query<Map<String, dynamic>> query =
-        _notices.orderBy('createdAt', descending: true).limit(limit);
+    Query<Map<String, dynamic>> query = _notices
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
 
     if (lastDocument != null) {
       query = query.startAfterDocument(lastDocument);
@@ -33,16 +34,18 @@ class NoticeService {
   }
 
   Stream<List<Notice>> streamNotices({int? limit}) {
-    Query<Map<String, dynamic>> query =
-        _notices.orderBy('createdAt', descending: true);
+    Query<Map<String, dynamic>> query = _notices.orderBy(
+      'createdAt',
+      descending: true,
+    );
 
     if (limit != null) {
       query = query.limit(limit);
     }
 
     return query.snapshots().map(
-          (snapshot) => snapshot.docs.map(Notice.fromFirestore).toList(),
-        );
+      (snapshot) => snapshot.docs.map(Notice.fromFirestore).toList(),
+    );
   }
 
   Future<Notice?> fetchNoticeById(String noticeId) async {
@@ -61,17 +64,15 @@ class NoticeService {
 
     final options = snapshot.docs.map((doc) {
       final data = doc.data();
-      return {
-        'id': doc.id,
-        'name': (data['name'] ?? '').toString(),
-      };
+      return {'id': doc.id, 'name': (data['name'] ?? '').toString()};
     }).toList();
 
     options.sort((a, b) {
       final aName = a['name'] ?? '';
       final bName = b['name'] ?? '';
-      final rankCompare =
-          BatchOrdering.rankForName(aName).compareTo(BatchOrdering.rankForName(bName));
+      final rankCompare = BatchOrdering.rankForName(
+        aName,
+      ).compareTo(BatchOrdering.rankForName(bName));
       if (rankCompare != 0) return rankCompare;
       return aName.toLowerCase().compareTo(bName.toLowerCase());
     });
@@ -111,7 +112,11 @@ class NoticeService {
     }
 
     final creatorRole = (CurrentUser.role ?? '').toLowerCase();
-    if (![AppRoles.admin, AppRoles.faculty, AppRoles.cr].contains(creatorRole)) {
+    if (![
+      AppRoles.admin,
+      AppRoles.faculty,
+      AppRoles.cr,
+    ].contains(creatorRole)) {
       throw Exception('You are not allowed to create notices.');
     }
 
@@ -132,8 +137,8 @@ class NoticeService {
 
     final noticeId = docRef.id;
 
-    final batchStudentAndCrUids =
-        await _notificationService.fetchStudentCrUidsByBatchIds(batchIds);
+    final batchStudentAndCrUids = await _notificationService
+        .fetchStudentCrUidsByBatchIds(batchIds);
     final facultyAndAdminUids = await _notificationService.fetchUidsByRoles([
       AppRoles.faculty,
       AppRoles.admin,
@@ -160,8 +165,10 @@ class NoticeService {
   }
 
   Future<List<Notice>> fetchRecentNotices({int limit = 3}) async {
-    final snapshot =
-        await _notices.orderBy('createdAt', descending: true).limit(limit).get();
+    final snapshot = await _notices
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
 
     return snapshot.docs.map((doc) => Notice.fromFirestore(doc)).toList();
   }
@@ -224,5 +231,4 @@ class NoticeService {
       // Ignore notification cleanup failures after the notices themselves are deleted.
     }
   }
-
 }

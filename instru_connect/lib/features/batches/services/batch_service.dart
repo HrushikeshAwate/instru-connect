@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 
 class BatchService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -45,6 +45,7 @@ class BatchService {
       if (year != null) yearToBatchId[year as int] = doc.id;
     }
 
+    final subjectsByBatchId = await _loadSubjectsByBatchId();
     const promotionMap = <int, int>{1: 2, 2: 3, 3: 4, 4: 0};
     final usersSnapshot = await _db
         .collection('users')
@@ -53,7 +54,8 @@ class BatchService {
 
     if (usersSnapshot.docs.isEmpty) return;
 
-    final batch = _db.batch();
+    final writeOperations = <void Function(WriteBatch)>[];
+    final promotedUidsByYear = <int, List<String>>{};
     for (final userDoc in usersSnapshot.docs) {
       final String? currentBatchId = userDoc.data()['batchId'];
       if (currentBatchId == null) continue;
@@ -65,13 +67,105 @@ class BatchService {
 
       if (currentBatchEntry.key == -1) continue;
       final nextYear = promotionMap[currentBatchEntry.key];
+      if (nextYear == null) continue;
       final nextBatchId = yearToBatchId[nextYear];
 
       if (nextBatchId != null) {
-        batch.update(userDoc.reference, {'batchId': nextBatchId});
+        final resetSubjects = _zeroedSubjectsForBatch(
+          subjectsByBatchId[nextBatchId] ?? const [],
+        );
+        promotedUidsByYear.putIfAbsent(nextYear, () => []).add(userDoc.id);
+        writeOperations.add(
+          (batch) => batch.update(userDoc.reference, {
+            'batchId': nextBatchId,
+            'academicYear': nextYear,
+            'totalClasses': 0,
+            'attendedClasses': 0,
+            'subjects': resetSubjects,
+            'attendanceAlerts': {
+              for (final subjectName in resetSubjects.keys) subjectName: false,
+            },
+          }),
+        );
+
+        final attendanceSnapshot = await _db
+            .collection('attendance')
+            .where('studentId', isEqualTo: userDoc.id)
+            .get();
+        for (final attendanceDoc in attendanceSnapshot.docs) {
+          writeOperations.add((batch) => batch.delete(attendanceDoc.reference));
+        }
       }
     }
-    await batch.commit();
+    await _commitWriteOperations(writeOperations);
+
+    for (final entry in promotedUidsByYear.entries) {
+      await _activityNotifications.notifyUsers(
+        uids: entry.value,
+        title: 'Batch Promotion Updated',
+        body: 'You have been promoted to ${_academicYearLabel(entry.key)}.',
+        type: 'student_promoted',
+        data: {
+          'academicYear': entry.key,
+          'academicYearLabel': _academicYearLabel(entry.key),
+        },
+      );
+    }
+  }
+
+  Future<void> createSubject({
+    required String batchId,
+    required String subjectName,
+    required String subjectCode,
+  }) async {
+    if (!canManageSubjects) {
+      throw Exception('Only admin or faculty can manage subjects.');
+    }
+
+    final normalizedSubject = subjectName.trim();
+    final normalizedCode = subjectCode.trim();
+    if (normalizedSubject.isEmpty || normalizedCode.isEmpty) {
+      throw Exception('Subject name and code are required.');
+    }
+
+    final subjectRef = _db.collection('subjects').doc();
+    final studentsSnapshot = await _db
+        .collection('users')
+        .where('batchId', isEqualTo: batchId)
+        .get();
+
+    final writeOperations = <void Function(WriteBatch)>[
+      (batch) => batch.set(subjectRef, {
+        'name': normalizedSubject,
+        'code': normalizedCode,
+        'batchId': batchId,
+        'createdAt': FieldValue.serverTimestamp(),
+      }),
+    ];
+
+    for (final studentDoc in studentsSnapshot.docs) {
+      writeOperations.add(
+        (batch) => batch.set(studentDoc.reference, {
+          'subjects': {normalizedSubject: _zeroedSubject(subjectRef.id)},
+          'attendanceAlerts': {normalizedSubject: false},
+        }, SetOptions(merge: true)),
+      );
+    }
+
+    await _commitWriteOperations(writeOperations);
+
+    await _activityNotifications.notifyUsers(
+      uids: studentsSnapshot.docs.map((doc) => doc.id),
+      title: 'New Subject Added',
+      body: normalizedSubject,
+      type: 'subject_created',
+      data: {
+        'batchId': batchId,
+        'subjectId': subjectRef.id,
+        'subjectName': normalizedSubject,
+        'subjectCode': normalizedCode,
+      },
+    );
   }
 
   Future<void> assignStudentToBatch({
@@ -313,9 +407,7 @@ class BatchService {
     }
   }
 
-  Future<void> deleteBatchCascade({
-    required String batchId,
-  }) async {
+  Future<void> deleteBatchCascade({required String batchId}) async {
     if (!canDeleteBatches) {
       throw Exception('Only admin or faculty can delete batches.');
     }
@@ -355,9 +447,7 @@ class BatchService {
       title: 'Batch Removed',
       body: (batchSnap.data()?['name'] ?? 'Your batch').toString(),
       type: 'batch_deleted',
-      data: {
-        'batchId': batchId,
-      },
+      data: {'batchId': batchId},
     );
 
     for (final userDoc in usersSnap.docs) {
@@ -376,9 +466,7 @@ class BatchService {
     }
   }
 
-  Future<void> deleteBatchesCascade({
-    required List<String> batchIds,
-  }) async {
+  Future<void> deleteBatchesCascade({required List<String> batchIds}) async {
     if (!canDeleteBatches) {
       throw Exception('Only admin or faculty can delete batches.');
     }
@@ -520,10 +608,12 @@ class BatchService {
     final userRef = _db.collection('users').doc(uid);
     final userSnap = await userRef.get();
     if (!userSnap.exists) return;
+    final currentBatchId = (userSnap.data()?['batchId'] ?? '').toString();
 
     final overallAttendance = await _db
         .collection('attendance')
         .where('studentId', isEqualTo: uid)
+        .where('batchId', isEqualTo: currentBatchId)
         .get();
 
     final totalClasses = overallAttendance.docs.length;
@@ -621,12 +711,10 @@ class BatchService {
         title: isUpdate
             ? 'Attendance updated successfully'
             : 'Attendance marked successfully',
-        body: 'Attendance marked for $subject: ${isAbsent ? 'Absent' : 'Present'}',
+        body:
+            'Attendance marked for $subject: ${isAbsent ? 'Absent' : 'Present'}',
         type: isUpdate ? 'attendance_updated' : 'attendance_marked',
-        data: {
-          'subject': subject,
-          'status': isAbsent ? 'absent' : 'present',
-        },
+        data: {'subject': subject, 'status': isAbsent ? 'absent' : 'present'},
       );
     }
   }
@@ -645,6 +733,68 @@ class BatchService {
       'subjects': <String, dynamic>{},
       'attendanceAlerts': <String, dynamic>{},
     }, SetOptions(merge: true));
+  }
+
+  Future<Map<String, List<DocumentSnapshot<Map<String, dynamic>>>>>
+  _loadSubjectsByBatchId() async {
+    final snapshot = await _db.collection('subjects').get();
+    final subjectsByBatchId =
+        <String, List<DocumentSnapshot<Map<String, dynamic>>>>{};
+
+    for (final doc in snapshot.docs) {
+      final batchId = (doc.data()['batchId'] ?? '').toString();
+      if (batchId.isEmpty) continue;
+      subjectsByBatchId.putIfAbsent(batchId, () => []).add(doc);
+    }
+
+    return subjectsByBatchId;
+  }
+
+  Map<String, dynamic> _zeroedSubjectsForBatch(
+    List<DocumentSnapshot<Map<String, dynamic>>> subjects,
+  ) {
+    return {
+      for (final subject in subjects)
+        if (((subject.data()?['name'] ?? '').toString().trim()).isNotEmpty)
+          (subject.data()?['name'] ?? '').toString().trim(): _zeroedSubject(
+            subject.id,
+          ),
+    };
+  }
+
+  Map<String, dynamic> _zeroedSubject(String subjectId) {
+    return {'total': 0, 'attended': 0, 'percentage': 0, 'subjectId': subjectId};
+  }
+
+  String _academicYearLabel(int year) {
+    switch (year) {
+      case 1:
+        return 'First Year';
+      case 2:
+        return 'Second Year';
+      case 3:
+        return 'Third Year';
+      case 4:
+        return 'Fourth Year';
+      case 0:
+        return 'Alumni';
+      default:
+        return 'your new batch';
+    }
+  }
+
+  Future<void> _commitWriteOperations(
+    List<void Function(WriteBatch)> operations,
+  ) async {
+    if (operations.isEmpty) return;
+
+    for (var i = 0; i < operations.length; i += 450) {
+      final batch = _db.batch();
+      for (final operation in operations.skip(i).take(450)) {
+        operation(batch);
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> _deleteDocumentsSequentially(

@@ -1,21 +1,23 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/providers/app_providers.dart';
+import '../../../core/widgets/app_ui.dart';
 import '../../../core/utils/batch_ordering.dart';
-import '../services/batch_service.dart';
 
-class AssignBatchToStudentsScreen extends StatefulWidget {
+class AssignBatchToStudentsScreen extends ConsumerStatefulWidget {
   const AssignBatchToStudentsScreen({super.key});
 
   @override
-  State<AssignBatchToStudentsScreen> createState() =>
+  ConsumerState<AssignBatchToStudentsScreen> createState() =>
       _AssignBatchToStudentsScreenState();
 }
 
 class _AssignBatchToStudentsScreenState
-    extends State<AssignBatchToStudentsScreen> {
+    extends ConsumerState<AssignBatchToStudentsScreen> {
   final Set<String> selectedStudentIds = {};
   String? selectedBatchId;
   String searchQuery = '';
@@ -24,6 +26,8 @@ class _AssignBatchToStudentsScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final firestore = ref.watch(firebaseFirestoreProvider);
+    final batchService = ref.watch(batchServiceProvider);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -39,7 +43,7 @@ class _AssignBatchToStudentsScreenState
               ),
               onPressed: () async {
                 try {
-                  await BatchService().bulkAssignStudents(
+                  await batchService.bulkAssignStudents(
                     studentUids: selectedStudentIds.toList(),
                     batchId: selectedBatchId!,
                   );
@@ -61,16 +65,7 @@ class _AssignBatchToStudentsScreenState
           : null,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [
@@ -108,7 +103,7 @@ class _AssignBatchToStudentsScreenState
                         padding: const EdgeInsets.all(16),
                         decoration: _cardDecoration(context),
                         child: StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
+                          stream: firestore
                               .collection('batches')
                               .where('isActive', isEqualTo: true)
                               .snapshots(),
@@ -238,7 +233,7 @@ class _AssignBatchToStudentsScreenState
                 ),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
+                    stream: firestore
                         .collection('users')
                         .where('role', whereIn: ['student', 'cr'])
                         .snapshots(),
@@ -305,9 +300,7 @@ class _AssignBatchToStudentsScreenState
                       }
 
                       return StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('batches')
-                            .snapshots(),
+                        stream: firestore.collection('batches').snapshots(),
                         builder: (context, batchSnapshot) {
                           final batchNameById = <String, String>{};
                           if (batchSnapshot.hasData) {

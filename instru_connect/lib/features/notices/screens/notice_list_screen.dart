@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/session/current_user.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/services/notice_service.dart';
 
-class NoticeListScreen extends StatefulWidget {
+class NoticeListScreen extends ConsumerStatefulWidget {
   const NoticeListScreen({super.key});
 
   @override
-  State<NoticeListScreen> createState() => _NoticeListScreenState();
+  ConsumerState<NoticeListScreen> createState() => _NoticeListScreenState();
 }
 
-class _NoticeListScreenState extends State<NoticeListScreen> {
-  final NoticeService _service = NoticeService();
+class _NoticeListScreenState extends ConsumerState<NoticeListScreen> {
+  late final NoticeService _service;
   late final Stream<List<Notice>> _noticesStream;
+  final TextEditingController _searchController = TextEditingController();
   List<Notice> _visibleNotices = const <Notice>[];
+  String _query = '';
+  _NoticeFilter _filter = _NoticeFilter.all;
 
   bool get _canClearNotices {
     final role = (CurrentUser.role ?? '').toLowerCase();
@@ -55,7 +62,31 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   @override
   void initState() {
     super.initState();
+    _service = ref.read(noticeServiceProvider);
     _noticesStream = _service.streamNotices();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Notice> _applyFilters(List<Notice> notices) {
+    final query = _query.trim().toLowerCase();
+    return notices.where((notice) {
+      final matchesQuery =
+          query.isEmpty ||
+          notice.title.toLowerCase().contains(query) ||
+          notice.body.toLowerCase().contains(query) ||
+          notice.createdByRole.toLowerCase().contains(query);
+      final matchesFilter = switch (_filter) {
+        _NoticeFilter.all => true,
+        _NoticeFilter.withAttachments => notice.attachments.isNotEmpty,
+        _NoticeFilter.targeted => notice.batchIds.isNotEmpty,
+      };
+      return matchesQuery && matchesFilter;
+    }).toList();
   }
 
   @override
@@ -64,16 +95,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [
@@ -129,40 +151,73 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                       }
 
                       final notices = snapshot.data ?? const <Notice>[];
-                      _visibleNotices = notices;
+                      final filteredNotices = _applyFilters(notices);
+                      _visibleNotices = filteredNotices;
                       if (notices.isEmpty) {
-                        return const _EmptyState();
+                        return const AppEmptyState(
+                          icon: Icons.campaign_outlined,
+                          title: 'No notices yet',
+                          message:
+                              'Notices from faculty and admins will appear here.',
+                        );
                       }
 
                       return Column(
                         children: [
+                          _NoticeTools(
+                            controller: _searchController,
+                            totalCount: notices.length,
+                            visibleCount: filteredNotices.length,
+                            filter: _filter,
+                            onQueryChanged: (value) =>
+                                setState(() => _query = value),
+                            onFilterChanged: (filter) =>
+                                setState(() => _filter = filter),
+                          ),
                           Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                16,
-                                16,
-                                24,
-                              ),
-                              itemCount: notices.length,
-                              itemBuilder: (context, index) {
-                                final notice = notices[index];
+                            child: filteredNotices.isEmpty
+                                ? AppEmptyState(
+                                    icon: Icons.search_off_rounded,
+                                    title: 'No matching notices',
+                                    message:
+                                        'Try a different search or filter.',
+                                    actionLabel: 'Clear filters',
+                                    onAction: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _query = '';
+                                        _filter = _NoticeFilter.all;
+                                      });
+                                    },
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      8,
+                                      16,
+                                      24,
+                                    ),
+                                    itemCount: filteredNotices.length,
+                                    itemBuilder: (context, index) {
+                                      final notice = filteredNotices[index];
 
-                                return _NoticeCard(
-                                  key: ValueKey(notice.id),
-                                  notice: notice,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            NoticeDetailScreen(notice: notice),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
+                                      return _NoticeCard(
+                                        key: ValueKey(notice.id),
+                                        notice: notice,
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  NoticeDetailScreen(
+                                                    notice: notice,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
                           ),
                         ],
                       );
@@ -174,6 +229,108 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+enum _NoticeFilter { all, withAttachments, targeted }
+
+class _NoticeTools extends StatelessWidget {
+  final TextEditingController controller;
+  final int totalCount;
+  final int visibleCount;
+  final _NoticeFilter filter;
+  final ValueChanged<String> onQueryChanged;
+  final ValueChanged<_NoticeFilter> onFilterChanged;
+
+  const _NoticeTools({
+    required this.controller,
+    required this.totalCount,
+    required this.visibleCount,
+    required this.filter,
+    required this.onQueryChanged,
+    required this.onFilterChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            onChanged: onQueryChanged,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Search notices',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: controller.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () {
+                        controller.clear();
+                        onQueryChanged('');
+                      },
+                    ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$visibleCount of $totalCount notices',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              _FilterChip(
+                label: 'All',
+                selected: filter == _NoticeFilter.all,
+                onSelected: () => onFilterChanged(_NoticeFilter.all),
+              ),
+              const SizedBox(width: 6),
+              _FilterChip(
+                label: 'Files',
+                selected: filter == _NoticeFilter.withAttachments,
+                onSelected: () =>
+                    onFilterChanged(_NoticeFilter.withAttachments),
+              ),
+              const SizedBox(width: 6),
+              _FilterChip(
+                label: 'Batch',
+                selected: filter == _NoticeFilter.targeted,
+                onSelected: () => onFilterChanged(_NoticeFilter.targeted),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      visualDensity: VisualDensity.compact,
     );
   }
 }
@@ -201,26 +358,31 @@ class _NoticeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final previewUrl = _firstImageAttachment;
 
+    final date = DateFormat('dd MMM').format(notice.createdAt);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.7),
+        ),
         boxShadow: [
           BoxShadow(
-            color: UIColors.primary.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: UIColors.primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -249,11 +411,16 @@ class _NoticeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 6,
-                      height: 60,
+                      width: 42,
+                      height: 42,
                       decoration: BoxDecoration(
                         gradient: UIColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.campaign_outlined,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -267,17 +434,23 @@ class _NoticeCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(
                               context,
-                            ).textTheme.titleMedium?.copyWith(height: 1.3),
+                            ).textTheme.titleMedium?.copyWith(height: 1.25),
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            'Tap to view details',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.color,
+                          Row(
+                            children: [
+                              _MetaPill(
+                                icon: Icons.today_outlined,
+                                label: date,
+                              ),
+                              if (notice.attachments.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                _MetaPill(
+                                  icon: Icons.attach_file_rounded,
+                                  label: '${notice.attachments.length}',
                                 ),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 8),
                           _TargetBatchSummary(batchIds: notice.batchIds),
@@ -300,31 +473,32 @@ class _NoticeCard extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _MetaPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetaPill({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: UIColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              gradient: UIColors.secondaryGradient,
-              shape: BoxShape.circle,
+          Icon(icon, size: 13, color: UIColors.primary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: UIColors.primary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
-            child: const Icon(
-              Icons.campaign_outlined,
-              size: 40,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No notices available',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ],
       ),
@@ -332,19 +506,19 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _TargetBatchSummary extends StatelessWidget {
+class _TargetBatchSummary extends ConsumerWidget {
   final List<String> batchIds;
 
   const _TargetBatchSummary({required this.batchIds});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (batchIds.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return FutureBuilder<List<String>>(
-      future: NoticeService().fetchOrderedBatchNames(batchIds),
+      future: ref.read(noticeServiceProvider).fetchOrderedBatchNames(batchIds),
       builder: (context, snapshot) {
         final names = snapshot.data ?? batchIds;
         return Text(

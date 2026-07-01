@@ -40,21 +40,26 @@ class _AnimatedSplashLoaderState extends State<AnimatedSplashLoader>
 
     _logoScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.88, end: 1.04).chain(
-          CurveTween(curve: Curves.easeOutCubic),
-        ),
+        tween: Tween(
+          begin: 0.88,
+          end: 1.04,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 45,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.04, end: 1.0).chain(
-          CurveTween(curve: Curves.easeInOut),
-        ),
+        tween: Tween(
+          begin: 1.04,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 55,
       ),
     ]).animate(_pulseController);
 
     _logoFade = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: const Interval(0.0, 0.4)),
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: const Interval(0.0, 0.4),
+      ),
     );
 
     _titleSlide = Tween<double>(begin: 22, end: 0).animate(

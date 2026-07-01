@@ -1,11 +1,13 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 
 import '../services/complaint_service.dart';
 
-class UpdateComplaintProgressScreen extends StatefulWidget {
+class UpdateComplaintProgressScreen extends ConsumerStatefulWidget {
   final String complaintId;
   final String currentStatus;
 
@@ -16,13 +18,13 @@ class UpdateComplaintProgressScreen extends StatefulWidget {
   });
 
   @override
-  State<UpdateComplaintProgressScreen> createState() =>
+  ConsumerState<UpdateComplaintProgressScreen> createState() =>
       _UpdateComplaintProgressScreenState();
 }
 
 class _UpdateComplaintProgressScreenState
-    extends State<UpdateComplaintProgressScreen> {
-  final _service = ComplaintService();
+    extends ConsumerState<UpdateComplaintProgressScreen> {
+  late final ComplaintService _service;
   final _noteController = TextEditingController();
 
   late String _status;
@@ -38,6 +40,7 @@ class _UpdateComplaintProgressScreenState
   @override
   void initState() {
     super.initState();
+    _service = ref.read(complaintServiceProvider);
     _status = widget.currentStatus == 'resolved'
         ? 'in_progress'
         : widget.currentStatus;
@@ -67,7 +70,9 @@ class _UpdateComplaintProgressScreenState
 
           if (snapshot.data != true) {
             return const Center(
-              child: Text('You do not have permission to update this complaint.'),
+              child: Text(
+                'You do not have permission to update this complaint.',
+              ),
             );
           }
 

@@ -2,8 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
@@ -11,19 +14,19 @@ import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
-import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
-import 'package:instru_connect/features/profile/services/achievement_service.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
 import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
-class HomeFaculty extends StatelessWidget {
+class HomeFaculty extends ConsumerWidget {
   const HomeFaculty({super.key});
 
-  Future<void> _exportAchievements(BuildContext context) async {
+  Future<void> _exportAchievements(BuildContext context, WidgetRef ref) async {
     try {
-      final filePath = await AchievementService().exportAllAchievementsCsv();
+      final filePath = await ref
+          .read(achievementServiceProvider)
+          .exportAllAchievementsCsv();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export downloaded to: $filePath')),
@@ -37,24 +40,15 @@ class HomeFaculty extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final firestore = ref.watch(firebaseFirestoreProvider);
+    final noticeService = ref.watch(noticeServiceProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // =========================
-          // HERO GRADIENT HEADER
-          // =========================
-          Container(
-            height: 240,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 232),
 
           SafeArea(
             child: ListView(
@@ -109,9 +103,7 @@ class HomeFaculty extends StatelessWidget {
                 // COMPLAINTS OVERVIEW
                 // =========================
                 StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('complaints')
-                      .snapshots(),
+                  stream: firestore.collection('complaints').snapshots(),
                   builder: (context, snapshot) {
                     final pending = !snapshot.hasData
                         ? '—'
@@ -162,23 +154,17 @@ class HomeFaculty extends StatelessWidget {
                 // =========================
                 // QUICK ACTIONS
                 // =========================
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Quick Actions',
                   subtitle: 'Academic & management tools',
                 ),
                 const SizedBox(height: 16),
 
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.25,
+                AppActionGrid(
                   children: [
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.add_alert_outlined,
-                      title: 'Create Notice',
+                      label: 'Create Notice',
                       gradient: UIColors.tileGradient(0),
                       onTap: () => Navigator.push(
                         context,
@@ -190,24 +176,24 @@ class HomeFaculty extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_today_outlined,
-                      title: 'Event Calendar',
+                      label: 'Event Calendar',
                       gradient: UIColors.tileGradient(1),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.library_books_outlined,
-                      title: 'Resources',
+                      label: 'Resources',
                       gradient: UIColors.tileGradient(2),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
                     // ADDED TIMETABLE CARD
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.assignment_late_outlined,
-                      title: 'Complaints',
+                      label: 'Complaints',
                       gradient: UIColors.tileGradient(3),
                       onTap: () => Navigator.push(
                         context,
@@ -216,9 +202,9 @@ class HomeFaculty extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.add_comment_outlined,
-                      title: 'Raise Complaint',
+                      label: 'Raise Complaint',
                       gradient: UIColors.tileGradient(4),
                       onTap: () => Navigator.push(
                         context,
@@ -227,9 +213,9 @@ class HomeFaculty extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_month_outlined,
-                      title: 'Timetable',
+                      label: 'Timetable',
                       gradient: UIColors.tileGradient(5),
                       onTap: () {
                         Navigator.push(
@@ -240,18 +226,18 @@ class HomeFaculty extends StatelessWidget {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.group_work_outlined,
-                      title: 'Manage Batches',
+                      label: 'Manage Batches',
                       gradient: UIColors.tileGradient(0),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.manageBatches),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.file_download_outlined,
-                      title: 'Export Achievements',
+                      label: 'Export Achievements',
                       gradient: UIColors.tileGradient(1),
-                      onTap: () => _exportAchievements(context),
+                      onTap: () => _exportAchievements(context, ref),
                     ),
                   ],
                 ),
@@ -264,7 +250,7 @@ class HomeFaculty extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const _SectionHeader(
+                    const AppSectionHeader(
                       title: 'Recent Notices',
                       subtitle: 'Latest announcements',
                     ),
@@ -294,7 +280,7 @@ class HomeFaculty extends StatelessWidget {
                     ],
                   ),
                   child: FutureBuilder<List<Notice>>(
-                    future: NoticeService().fetchRecentNotices(limit: 3),
+                    future: noticeService.fetchRecentNotices(limit: 3),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Padding(
@@ -345,39 +331,8 @@ class HomeFaculty extends StatelessWidget {
 }
 
 // ===================================================================
-// UI COMPONENTS (No changes below this line)
+// Screen-specific UI components
 // ===================================================================
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _StatCard extends StatelessWidget {
   final String label;
@@ -431,71 +386,6 @@ class _StatCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Gradient gradient;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.title,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final delay = Duration(milliseconds: 120 + (title.hashCode.abs() % 6) * 45);
-    return FadeSlideIn(
-      delay: delay,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

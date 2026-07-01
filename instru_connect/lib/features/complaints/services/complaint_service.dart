@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 
 import '../models/complaint_model.dart';
 import '../../../core/services/notification_service.dart';
@@ -163,18 +163,15 @@ class ComplaintService {
   }) async {
     final extension = file.path.split('.').last;
 
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('complaints_media/$complaintId/attachment.$extension');
+    final ref = FirebaseStorage.instance.ref().child(
+      'complaints_media/$complaintId/attachment.$extension',
+    );
 
     await ref.putFile(file);
 
     final downloadUrl = await ref.getDownloadURL();
 
-    return {
-      'mediaUrl': downloadUrl,
-      'mediaType': mediaType,
-    };
+    return {'mediaUrl': downloadUrl, 'mediaType': mediaType};
   }
 
   Future<void> attachMedia({
@@ -227,8 +224,9 @@ class ComplaintService {
     final complaintRef = _db.collection(_collection).doc(complaintId);
     final complaintSnap = await complaintRef.get();
     final complaintData = complaintSnap.data() ?? <String, dynamic>{};
-    final complaintTitle =
-        (complaintData['title'] ?? 'Complaint').toString().trim();
+    final complaintTitle = (complaintData['title'] ?? 'Complaint')
+        .toString()
+        .trim();
     final createdBy = (complaintData['createdBy'] ?? '').toString().trim();
 
     await _db.collection(_collection).doc(complaintId).update({
@@ -239,10 +237,7 @@ class ComplaintService {
     });
 
     await _activityNotifications.notifyUsers(
-      uids: [
-        assignedTo,
-        createdBy,
-      ],
+      uids: [assignedTo, createdBy],
       title: 'Complaint Assigned',
       body: complaintTitle,
       type: 'complaint_assigned',
@@ -319,10 +314,7 @@ class ComplaintService {
       title: notificationTitle,
       body: title,
       type: status == 'resolved' ? 'complaint_resolved' : 'complaint_updated',
-      data: {
-        'complaintId': complaintId,
-        'status': status,
-      },
+      data: {'complaintId': complaintId, 'status': status},
     );
 
     if (oldStatus != 'resolved' && status == 'resolved') {
@@ -332,9 +324,7 @@ class ComplaintService {
           title: 'Complaint Resolved',
           body: title,
           type: 'complaint_resolved',
-          data: {
-            'complaintId': complaintId,
-          },
+          data: {'complaintId': complaintId},
         );
       }
     }
@@ -347,7 +337,10 @@ class ComplaintService {
     if (uid.isEmpty) return false;
     if (role == AppRoles.admin) return true;
 
-    final complaintDoc = await _db.collection(_collection).doc(complaintId).get();
+    final complaintDoc = await _db
+        .collection(_collection)
+        .doc(complaintId)
+        .get();
     if (!complaintDoc.exists) return false;
 
     final data = complaintDoc.data() ?? <String, dynamic>{};
@@ -355,7 +348,9 @@ class ComplaintService {
     return assignedTo == uid;
   }
 
-  Stream<List<Map<String, dynamic>>> streamCoordinationNotes(String complaintId) {
+  Stream<List<Map<String, dynamic>>> streamCoordinationNotes(
+    String complaintId,
+  ) {
     return _db
         .collection(_collection)
         .doc(complaintId)
@@ -363,18 +358,18 @@ class ComplaintService {
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return {
-          'id': doc.id,
-          'message': (data['message'] ?? '').toString(),
-          'createdBy': (data['createdBy'] ?? '').toString(),
-          'createdByName': (data['createdByName'] ?? 'Unknown').toString(),
-          'createdByRole': (data['createdByRole'] ?? '').toString(),
-          'createdAt': data['createdAt'],
-        };
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'id': doc.id,
+              'message': (data['message'] ?? '').toString(),
+              'createdBy': (data['createdBy'] ?? '').toString(),
+              'createdByName': (data['createdByName'] ?? 'Unknown').toString(),
+              'createdByRole': (data['createdByRole'] ?? '').toString(),
+              'createdAt': data['createdAt'],
+            };
+          }).toList();
+        });
   }
 
   Future<void> addCoordinationNote({
@@ -400,8 +395,9 @@ class ComplaintService {
 
     final complaintData = complaintSnap.data() ?? <String, dynamic>{};
     final assignedTo = (complaintData['assignedTo'] ?? '').toString().trim();
-    final complaintTitle =
-        (complaintData['title'] ?? 'Complaint').toString().trim();
+    final complaintTitle = (complaintData['title'] ?? 'Complaint')
+        .toString()
+        .trim();
 
     final canAddNote = role == AppRoles.admin || assignedTo == uid;
     if (!canAddNote) {
@@ -416,9 +412,7 @@ class ComplaintService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    await complaintRef.update({
-      'lastUpdatedAt': FieldValue.serverTimestamp(),
-    });
+    await complaintRef.update({'lastUpdatedAt': FieldValue.serverTimestamp()});
 
     final recipients = <String>{
       if (role == AppRoles.admin && assignedTo.isNotEmpty) assignedTo,
@@ -432,9 +426,7 @@ class ComplaintService {
       title: 'Complaint Coordination Note',
       body: complaintTitle,
       type: 'complaint_note',
-      data: {
-        'complaintId': complaintId,
-      },
+      data: {'complaintId': complaintId},
     );
   }
 

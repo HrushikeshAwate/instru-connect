@@ -1,29 +1,31 @@
 // features/home/screens/home_cr.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/session/current_user.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
-import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
 import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
-class HomeCr extends StatelessWidget {
+class HomeCr extends ConsumerWidget {
   const HomeCr({super.key});
 
-  Future<String> _resolveBatchName(String? batchId) async {
+  Future<String> _resolveBatchName(WidgetRef ref, String? batchId) async {
     if (batchId == null || batchId.trim().isEmpty) return 'CR';
-    final batchDoc = await FirebaseFirestore.instance
+    final batchDoc = await ref
+        .read(firebaseFirestoreProvider)
         .collection('batches')
         .doc(batchId)
         .get();
@@ -33,26 +35,17 @@ class HomeCr extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final String? batchId = CurrentUser.batchId;
+    final firestore = ref.watch(firebaseFirestoreProvider);
+    final auth = ref.watch(firebaseAuthProvider);
+    final noticeService = ref.watch(noticeServiceProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // =========================
-          // HERO GRADIENT HEADER
-          // =========================
-          Container(
-            height: 240,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 232),
 
           SafeArea(
             child: ListView(
@@ -80,7 +73,7 @@ class HomeCr extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             FutureBuilder<String>(
-                              future: _resolveBatchName(batchId),
+                              future: _resolveBatchName(ref, batchId),
                               builder: (context, snapshot) {
                                 return Text(
                                   snapshot.data ?? 'CR',
@@ -116,16 +109,16 @@ class HomeCr extends StatelessWidget {
                 // =========================
                 // SUBJECT ATTENDANCE
                 // =========================
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'My Attendance',
                   subtitle: 'Per-subject performance',
                 ),
                 const SizedBox(height: 12),
 
                 StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
+                  stream: firestore
                       .collection('users')
-                      .doc(FirebaseAuth.instance.currentUser?.uid)
+                      .doc(auth.currentUser?.uid)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
@@ -187,21 +180,15 @@ class HomeCr extends StatelessWidget {
                 // =========================
                 // CLASS ACTIONS
                 // =========================
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Class Actions',
                   subtitle: 'Manage and represent your batch',
                 ),
                 const SizedBox(height: 16),
 
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.25,
+                AppActionGrid(
                   children: [
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.add_comment_rounded,
                       label: 'Create Notice',
                       gradient: UIColors.tileGradient(0),
@@ -215,7 +202,7 @@ class HomeCr extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.campaign_outlined,
                       label: 'View Notices',
                       gradient: UIColors.tileGradient(1),
@@ -226,7 +213,7 @@ class HomeCr extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.add_comment_outlined,
                       label: 'Raise Complaint',
                       gradient: UIColors.tileGradient(2),
@@ -237,7 +224,7 @@ class HomeCr extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_month_outlined,
                       label: 'Event Calendar',
                       gradient: UIColors.tileGradient(4),
@@ -245,7 +232,7 @@ class HomeCr extends StatelessWidget {
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
                     // FIXED: UPDATED TIMETABLE ACTION
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_today_outlined,
                       label: 'Timetable',
                       gradient: UIColors.tileGradient(5),
@@ -258,7 +245,7 @@ class HomeCr extends StatelessWidget {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.folder_open_rounded,
                       label: 'Resources',
                       gradient: UIColors.tileGradient(0),
@@ -274,9 +261,9 @@ class HomeCr extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const _SectionHeader(
+                    const AppSectionHeader(
                       title: 'Notices',
-                      subtitle: 'A second place to quickly browse notices',
+                      subtitle: 'Latest batch updates',
                     ),
                     TextButton(
                       onPressed: () => Navigator.push(
@@ -304,7 +291,7 @@ class HomeCr extends StatelessWidget {
                     ],
                   ),
                   child: StreamBuilder<List<Notice>>(
-                    stream: NoticeService().streamNotices(),
+                    stream: noticeService.streamNotices(limit: 3),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData &&
                           snapshot.connectionState == ConnectionState.waiting) {
@@ -357,104 +344,8 @@ class HomeCr extends StatelessWidget {
 }
 
 // ===================================================================
-// UI COMPONENTS
+// Screen-specific UI components
 // ===================================================================
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Gradient gradient;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
-    return FadeSlideIn(
-      delay: delay,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _SubjectAttendanceCard extends StatelessWidget {
   final String subject;

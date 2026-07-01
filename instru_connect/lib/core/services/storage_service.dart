@@ -9,11 +9,7 @@ class StorageService {
     required String fileName,
     required String noticeId,
   }) async {
-    final ref = _storage
-        .ref()
-        .child('notices')
-        .child(noticeId)
-        .child(fileName);
+    final ref = _storage.ref().child('notices').child(noticeId).child(fileName);
 
     final taskSnapshot = await ref.putData(bytes);
 

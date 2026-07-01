@@ -3,12 +3,15 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/providers/app_providers.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/widgets/app_ui.dart';
 import '../services/notice_service.dart';
 
-class CreateNoticeScreen extends StatefulWidget {
+class CreateNoticeScreen extends ConsumerStatefulWidget {
   final List<String>? fixedBatchIds;
   final bool showBatchSelector;
 
@@ -19,14 +22,14 @@ class CreateNoticeScreen extends StatefulWidget {
   });
 
   @override
-  State<CreateNoticeScreen> createState() => _CreateNoticeScreenState();
+  ConsumerState<CreateNoticeScreen> createState() => _CreateNoticeScreenState();
 }
 
-class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
+class _CreateNoticeScreenState extends ConsumerState<CreateNoticeScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final NoticeService _noticeService = NoticeService();
-  final StorageService _storageService = StorageService();
+  late final NoticeService _noticeService;
+  late final StorageService _storageService;
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
@@ -41,6 +44,8 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   @override
   void initState() {
     super.initState();
+    _noticeService = ref.read(noticeServiceProvider);
+    _storageService = ref.read(storageServiceProvider);
     if (widget.fixedBatchIds != null) {
       _selectedBatchIds.addAll(widget.fixedBatchIds!);
     }
@@ -134,17 +139,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ================= HEADER =================
-          Container(
-            height: 210,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 198),
 
           SafeArea(
             child: ListView(

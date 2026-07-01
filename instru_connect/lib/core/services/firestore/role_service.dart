@@ -23,9 +23,7 @@ class RoleService {
   Future<void> _assignRole(String userId, String role) async {
     final userRef = _firestore.collection('users').doc(userId);
 
-    await userRef.update({
-      'role': role,
-    });
+    await userRef.update({'role': role});
   }
 
   // ============================

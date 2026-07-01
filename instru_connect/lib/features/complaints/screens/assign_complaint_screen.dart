@@ -1,25 +1,35 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/session/current_user.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import '../services/complaint_service.dart';
 import '../../../config/theme/ui_colors.dart';
 
-class AssignComplaintScreen extends StatefulWidget {
+class AssignComplaintScreen extends ConsumerStatefulWidget {
   final String complaintId;
 
   const AssignComplaintScreen({super.key, required this.complaintId});
 
   @override
-  State<AssignComplaintScreen> createState() => _AssignComplaintScreenState();
+  ConsumerState<AssignComplaintScreen> createState() =>
+      _AssignComplaintScreenState();
 }
 
-class _AssignComplaintScreenState extends State<AssignComplaintScreen> {
-  final _service = ComplaintService();
+class _AssignComplaintScreenState extends ConsumerState<AssignComplaintScreen> {
+  late final ComplaintService _service;
 
   String? _selectedUserId;
   String? _selectedRole;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = ref.read(complaintServiceProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,19 +58,7 @@ class _AssignComplaintScreenState extends State<AssignComplaintScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ---------------------------------------------
-          // HEADER GRADIENT
-          // ---------------------------------------------
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
 
           SafeArea(
             child: Column(

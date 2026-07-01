@@ -1,44 +1,54 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 // import 'package:instru_connect/core/bootstrap/user_context.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/demo/demo_account.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
-import 'package:instru_connect/core/services/firestore_service.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
-import 'package:instru_connect/core/services/role_service.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 import 'package:instru_connect/core/widgets/error_view.dart';
 import 'package:instru_connect/core/widgets/animated_splash_loader.dart';
-import 'package:instru_connect/core/services/notification_token_service.dart';
 import 'package:instru_connect/features/home/home_router.dart';
 import 'package:instru_connect/features/profile/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class RoleLoadingScreen extends StatefulWidget {
+class RoleLoadingScreen extends ConsumerStatefulWidget {
   const RoleLoadingScreen({super.key});
 
   @override
-  State<RoleLoadingScreen> createState() => _RoleLoadingScreenState();
+  ConsumerState<RoleLoadingScreen> createState() => _RoleLoadingScreenState();
 }
 
-class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
+class _RoleLoadingScreenState extends ConsumerState<RoleLoadingScreen> {
+  static const Duration _minimumLoadingDuration = Duration(milliseconds: 1000);
+  static const Duration _authSettleTimeout = Duration(seconds: 3);
+
+  late final DateTime _startedAt;
+
   @override
   void initState() {
     super.initState();
+    _startedAt = DateTime.now();
     _resolve();
   }
 
   Future<void> _resolve() async {
     try {
-      final auth = AuthService();
-      final firestore = FirestoreService();
-      final roleService = RoleService();
+      final auth = ref.read(authServiceProvider);
+      final firestore = ref.read(userBootstrapRepositoryProvider);
+      final roleService = ref.read(roleServiceProvider);
 
-      final user = auth.currentUser;
+      final user = auth.currentUser ?? await _waitForSignedInUser();
       if (user == null) {
-        throw Exception('Your session expired. Please sign in again.');
+        await _waitForMinimumLoading();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, Routes.login, (_) => false);
+        return;
       }
       final email = user.email?.trim().toLowerCase();
       if (!AuthService.isAllowedCollegeEmail(email)) {
@@ -89,6 +99,8 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
       if (!mounted) return;
 
       unawaited(_registerNotificationToken(user.uid));
+      await _waitForMinimumLoading();
+      if (!mounted) return;
 
       if (incomplete) {
         Navigator.pushReplacement(
@@ -106,6 +118,8 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
       Navigator.pushReplacementNamed(context, homeRoute);
     } catch (e) {
       if (!mounted) return;
+      await _waitForMinimumLoading();
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => ErrorView(message: e.toString())),
@@ -113,16 +127,37 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
     }
   }
 
+  Future<User?> _waitForSignedInUser() async {
+    try {
+      return await ref
+          .read(authServiceProvider)
+          .authStateChanges()
+          .firstWhere((user) => user != null)
+          .timeout(_authSettleTimeout);
+    } on TimeoutException {
+      return ref.read(authServiceProvider).currentUser;
+    }
+  }
+
   Future<void> _registerNotificationToken(String uid) async {
     try {
-      await NotificationTokenService().registerToken(uid);
+      await ref.read(notificationTokenServiceProvider).registerToken(uid);
     } catch (_) {
       // Notifications should never block a successful login.
     }
   }
 
+  Future<void> _waitForMinimumLoading() async {
+    final elapsed = DateTime.now().difference(_startedAt);
+    final remaining = _minimumLoadingDuration - elapsed;
+    if (!remaining.isNegative) {
+      await Future<void>.delayed(remaining);
+    }
+  }
+
   Future<void> _ensureDemoProfile(String uid) async {
-    final profileRef = FirebaseFirestore.instance
+    final profileRef = ref
+        .read(firebaseFirestoreProvider)
         .collection('profiles')
         .doc(uid);
 
@@ -142,7 +177,8 @@ class _RoleLoadingScreenState extends State<RoleLoadingScreen> {
   }
 
   Future<bool> _isProfileIncomplete(String uid, String role) async {
-    final profileRef = FirebaseFirestore.instance
+    final profileRef = ref
+        .read(firebaseFirestoreProvider)
         .collection('profiles')
         .doc(uid);
     final profileDoc = await profileRef.get();

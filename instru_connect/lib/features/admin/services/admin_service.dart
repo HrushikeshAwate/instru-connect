@@ -15,38 +15,36 @@ class AdminService {
   }
 
   Stream<int> pendingComplaintsCount() {
-    return FirebaseFirestore.instance
-        .collection('complaints')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.where((doc) {
-            final data = doc.data();
-            final status = data['status'] ?? 'submitted';
-            return status != 'resolved';
-          }).length;
-        });
+    return FirebaseFirestore.instance.collection('complaints').snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs.where((doc) {
+        final data = doc.data();
+        final status = data['status'] ?? 'submitted';
+        return status != 'resolved';
+      }).length;
+    });
   }
 
   Stream<Map<String, int>> complaintStatusCounts() {
-    return FirebaseFirestore.instance
-        .collection('complaints')
-        .snapshots()
-        .map((snapshot) {
-          int pending = 0;
-          int resolved = 0;
+    return FirebaseFirestore.instance.collection('complaints').snapshots().map((
+      snapshot,
+    ) {
+      int pending = 0;
+      int resolved = 0;
 
-          for (final doc in snapshot.docs) {
-            final data = doc.data();
-            final status = data['status'] ?? 'submitted';
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final status = data['status'] ?? 'submitted';
 
-            if (status == 'resolved') {
-              resolved++;
-            } else {
-              pending++;
-            }
-          }
+        if (status == 'resolved') {
+          resolved++;
+        } else {
+          pending++;
+        }
+      }
 
-          return {'pending': pending, 'resolved': resolved};
-        });
+      return {'pending': pending, 'resolved': resolved};
+    });
   }
 }

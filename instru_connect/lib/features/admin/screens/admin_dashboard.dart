@@ -3,32 +3,32 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/admin/screens/admin_user_management_screen.dart';
 import 'package:instru_connect/features/complaints/models/complaint_model.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
-import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
-import 'package:instru_connect/features/admin/services/admin_service.dart';
 import 'package:instru_connect/features/home/screens/home_cr.dart';
 import 'package:instru_connect/features/home/screens/home_faculty.dart';
 import 'package:instru_connect/features/home/screens/home_staff.dart';
 import 'package:instru_connect/features/home/screens/home_student.dart';
-import 'package:instru_connect/features/profile/services/achievement_service.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
 import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
-class AdminDashboardView extends StatefulWidget {
+class AdminDashboardView extends ConsumerStatefulWidget {
   const AdminDashboardView({super.key});
 
   @override
-  State<AdminDashboardView> createState() => _AdminDashboardViewState();
+  ConsumerState<AdminDashboardView> createState() => _AdminDashboardViewState();
 }
 
-class _AdminDashboardViewState extends State<AdminDashboardView> {
+class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> {
   int _previewIndex = 0;
   bool _exportingAchievements = false;
 
@@ -41,7 +41,8 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
   ];
 
   Future<int> _fetchNoticeCount() async {
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await ref
+        .read(firebaseFirestoreProvider)
         .collection('notices')
         .get();
     return snapshot.docs.length;
@@ -52,7 +53,9 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     setState(() => _exportingAchievements = true);
 
     try {
-      final filePath = await AchievementService().exportAllAchievementsCsv();
+      final filePath = await ref
+          .read(achievementServiceProvider)
+          .exportAllAchievementsCsv();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export downloaded to: $filePath')),
@@ -71,20 +74,15 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
   @override
   Widget build(BuildContext context) {
+    final adminService = ref.watch(adminServiceProvider);
+    final complaintService = ref.watch(complaintServiceProvider);
+    final firestore = ref.watch(firebaseFirestoreProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 240,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 232),
           SafeArea(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -137,7 +135,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                 // =========================
                 // SYSTEM OVERVIEW
                 // =========================
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'System Overview',
                   subtitle: 'Live platform metrics',
                 ),
@@ -147,7 +145,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   children: [
                     Expanded(
                       child: FutureBuilder<int>(
-                        future: AdminService().getTotalUsers(),
+                        future: adminService.getTotalUsers(),
                         builder: (context, snapshot) {
                           return _MetricCard(
                             title: 'Total Users',
@@ -176,9 +174,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                     const SizedBox(width: 14),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('complaints')
-                            .snapshots(),
+                        stream: firestore.collection('complaints').snapshots(),
                         builder: (context, snapshot) {
                           final pending = !snapshot.hasData
                               ? '—'
@@ -234,7 +230,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                     const SizedBox(width: 14),
                     Expanded(
                       child: StreamBuilder<List<ComplaintModel>>(
-                        stream: ComplaintService().fetchAllComplaints(),
+                        stream: complaintService.fetchAllComplaints(),
                         builder: (context, snapshot) {
                           final resolved = !snapshot.hasData
                               ? '—'
@@ -259,21 +255,15 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                 // =========================
                 // QUICK ACTIONS
                 // =========================
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Quick Actions',
                   subtitle: 'Administrative control center',
                 ),
                 const SizedBox(height: 16),
 
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.25,
+                AppActionGrid(
                   children: [
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.campaign_outlined,
                       label: 'Create Notice',
                       gradient: UIColors.tileGradient(0),
@@ -289,7 +279,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.list_alt_outlined,
                       label: 'View Notices',
                       gradient: UIColors.tileGradient(1),
@@ -302,7 +292,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.manage_accounts_outlined,
                       label: 'Manage Users',
                       gradient: UIColors.tileGradient(1),
@@ -315,7 +305,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.folder_open_outlined,
                       label: 'Resources',
                       gradient: UIColors.tileGradient(2),
@@ -323,7 +313,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         Navigator.pushNamed(context, Routes.resources);
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: _exportingAchievements
                           ? Icons.hourglass_bottom_rounded
                           : Icons.file_download_outlined,
@@ -335,7 +325,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                           ? () {}
                           : () => _exportAchievements(),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_today_outlined,
                       label: 'Event Calendar',
                       gradient: UIColors.tileGradient(1),
@@ -347,7 +337,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
                 const SizedBox(height: 36),
 
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Attention Required',
                   subtitle: 'Items needing priority review',
                 ),
@@ -359,7 +349,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => ComplaintListScreen(
-                          stream: ComplaintService().fetchAllComplaints(),
+                          stream: complaintService.fetchAllComplaints(),
                         ),
                       ),
                     );
@@ -561,39 +551,8 @@ class _PreviewScaffoldState extends State<_PreviewScaffold> {
 }
 
 // ===================================================================
-// UI COMPONENTS (ADVANCED, COLORFUL)
+// Screen-specific UI components
 // ===================================================================
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _MetricCard extends StatelessWidget {
   final String title;
@@ -652,71 +611,6 @@ class _MetricCard extends StatelessWidget {
                     fontSize: 12,
                     color: Colors.white70,
                     fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Gradient gradient;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
-    return FadeSlideIn(
-      delay: delay,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.white,
                   ),
                 ),
               ],

@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
+import 'package:instru_connect/features/auth/domain/repositories/auth_repository.dart';
 
-class AuthService {
+class AuthService implements AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   static const List<String> _allowedEmailSuffixes = [
     '.instru@coeptech.ac.in',
@@ -16,8 +18,10 @@ class AuthService {
   // =====================================================
   // CURRENT USER
   // =====================================================
+  @override
   User? get currentUser => _auth.currentUser;
 
+  @override
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
   static bool isAllowedCollegeEmail(String? email) {
@@ -29,6 +33,7 @@ class AuthService {
   // =====================================================
   // MICROSOFT SIGN-IN (UNCHANGED)
   // =====================================================
+  @override
   Future<void> signInWithMicrosoft() async {
     final currentUser = _auth.currentUser;
     final currentEmail = currentUser?.email?.trim().toLowerCase();
@@ -40,6 +45,7 @@ class AuthService {
     await _signInWithMicrosoftInternal(retryOnRecoverableFailure: true);
   }
 
+  @override
   Future<void> signInWithDemoMode() async {
     await _safeSignOut();
 
@@ -119,10 +125,13 @@ class AuthService {
 
     provider.setCustomParameters({
       'tenant': 'b4c6b754-54e3-41e4-a8da-304355c62816',
+      'prompt': 'select_account',
     });
 
     try {
-      final credential = await _auth.signInWithProvider(provider);
+      final credential = kIsWeb
+          ? await _auth.signInWithPopup(provider)
+          : await _auth.signInWithProvider(provider);
       final email = credential.user?.email?.trim().toLowerCase();
 
       if (!isAllowedCollegeEmail(email)) {
@@ -136,6 +145,15 @@ class AuthService {
 
       return credential;
     } on FirebaseAuthException catch (e) {
+      if (_isMissingInitialStateText(e.message ?? '') ||
+          _isMissingInitialStateText(e.code)) {
+        await _safeSignOut();
+        throw FirebaseAuthException(
+          code: 'missing-initial-state',
+          message: _missingInitialStateMessage,
+        );
+      }
+
       if (_shouldRetrySignIn(e) && retryOnRecoverableFailure) {
         await _safeSignOut();
         return _signInWithMicrosoftInternal(retryOnRecoverableFailure: false);
@@ -145,7 +163,15 @@ class AuthService {
         code: e.code,
         message: _friendlySignInMessage(e),
       );
-    } catch (_) {
+    } catch (e) {
+      if (_isMissingInitialStateText(e.toString())) {
+        await _safeSignOut();
+        throw FirebaseAuthException(
+          code: 'missing-initial-state',
+          message: _missingInitialStateMessage,
+        );
+      }
+
       if (retryOnRecoverableFailure) {
         await _safeSignOut();
         return _signInWithMicrosoftInternal(retryOnRecoverableFailure: false);
@@ -169,27 +195,45 @@ class AuthService {
         e.code == 'web-context-cancelled' ||
         e.code == 'web-operation-cancelled' ||
         e.code == 'user-token-expired' ||
-        message.contains('missing initial state') ||
+        _isMissingInitialStateText(message) ||
         message.contains('public encryption key') ||
         message.contains('generic idp');
   }
 
-  String _friendlySignInMessage(FirebaseAuthException e) {
-    final message = (e.message ?? '').toLowerCase();
+  static const String _missingInitialStateMessage =
+      'Microsoft sign-in lost its secure browser session. Please close the Microsoft sign-in sheet and tap Sign in again. If it keeps happening, restart the app once or clear Safari website data for firebaseapp.com and login.microsoftonline.com.';
 
-    if (message.contains('missing initial state')) {
-      return 'The browser lost the Microsoft sign-in state before returning to the app. Please try again. If this keeps happening, set Chrome as the default browser and avoid privacy browsers for sign-in.';
+  bool _isMissingInitialStateText(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('missing initial state') ||
+        normalized.contains('sessionstorage is inaccessible') ||
+        normalized.contains('session storage is inaccessible') ||
+        normalized.contains('storage-partitioned browser');
+  }
+
+  String _friendlySignInMessage(FirebaseAuthException e) {
+    final message = e.message ?? '';
+
+    if (_isMissingInitialStateText(message) ||
+        _isMissingInitialStateText(e.code)) {
+      return _missingInitialStateMessage;
     }
 
-    if (message.contains('public encryption key') ||
-        message.contains('generic idp')) {
+    final normalizedMessage = message.toLowerCase();
+
+    if (normalizedMessage.contains('public encryption key') ||
+        normalizedMessage.contains('generic idp')) {
       return 'The secure sign-in session could not be prepared. Please try again. If it keeps happening after reinstalling or clearing app data, the Firebase mobile auth configuration may need to be refreshed.';
     }
 
     switch (e.code) {
       case 'web-context-cancelled':
       case 'web-operation-cancelled':
-        return 'Sign-in was interrupted. Please try again. If this account was deleted manually, the app may need one clean retry to re-link it.';
+        return 'Sign-in was interrupted. Please try again and keep the Microsoft pop-up open until it finishes.';
+      case 'popup-blocked':
+        return 'The browser blocked the Microsoft sign-in pop-up. Please allow pop-ups for InstruConnect and try again.';
+      case 'popup-closed-by-user':
+        return 'The Microsoft sign-in pop-up was closed before sign-in finished.';
       case 'internal-error':
         return 'The account could not be restored cleanly from Firebase. Please try signing in again. If it still fails, ask an admin to re-create the user record.';
       case 'invalid-credential':
@@ -272,6 +316,7 @@ class AuthService {
   // =====================================================
   // SIGN OUT
   // =====================================================
+  @override
   Future<void> signOut() async {
     await _safeSignOut();
   }

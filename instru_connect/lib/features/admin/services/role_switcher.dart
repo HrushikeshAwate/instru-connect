@@ -5,7 +5,8 @@ class RoleSwitcher extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
-  const RoleSwitcher({super.key, 
+  const RoleSwitcher({
+    super.key,
     required this.roles,
     required this.selectedIndex,
     required this.onSelected,

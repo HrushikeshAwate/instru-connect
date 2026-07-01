@@ -1,13 +1,15 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../config/theme/ui_colors.dart';
 import '../services/achievement_service.dart';
 
-class AchievementsScreen extends StatelessWidget {
+class AchievementsScreen extends ConsumerWidget {
   const AchievementsScreen({super.key});
 
   Future<void> _openInBrowser(String url) async {
@@ -17,9 +19,9 @@ class AchievementsScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final service = AchievementService();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(firebaseAuthProvider).currentUser!.uid;
+    final service = ref.watch(achievementServiceProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -33,16 +35,7 @@ class AchievementsScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [

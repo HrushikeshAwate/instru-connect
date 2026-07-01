@@ -19,7 +19,10 @@ Future<bool> showDestructiveConfirmationDialog({
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           onPressed: () => Navigator.pop(dialogContext, true),
-          child: Text(confirmLabel, style: const TextStyle(color: Colors.white)),
+          child: Text(
+            confirmLabel,
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       ],
     ),

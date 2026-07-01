@@ -1,20 +1,26 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:instru_connect/core/services/firestore/batch_services.dart';
-import 'package:instru_connect/core/services/firestore/role_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
+import 'package:instru_connect/core/services/firestore/batch_services.dart'
+    as firestore_batch;
+import 'package:instru_connect/core/services/firestore/role_service.dart'
+    as firestore_role;
 import 'package:instru_connect/features/profile/screens/profile_screen.dart';
 import '../../../config/theme/ui_colors.dart';
 
-class AdminUserManagementScreen extends StatefulWidget {
+class AdminUserManagementScreen extends ConsumerStatefulWidget {
   const AdminUserManagementScreen({super.key});
 
   @override
-  State<AdminUserManagementScreen> createState() =>
+  ConsumerState<AdminUserManagementScreen> createState() =>
       _AdminUserManagementScreenState();
 }
 
-class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
+class _AdminUserManagementScreenState
+    extends ConsumerState<AdminUserManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedBatchId = _allBatchesValue;
@@ -29,20 +35,13 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final firestore = ref.watch(firebaseFirestoreProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 212),
           SafeArea(
             child: Column(
               children: [
@@ -78,9 +77,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                 ),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: FirebaseFirestore.instance
-                        .collection('batches')
-                        .snapshots(),
+                    stream: firestore.collection('batches').snapshots(),
                     builder: (context, batchesSnapshot) {
                       final batchNameById = <String, String>{};
                       if (batchesSnapshot.hasData) {
@@ -91,9 +88,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       }
 
                       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .snapshots(),
+                        stream: firestore.collection('users').snapshots(),
                         builder: (context, usersSnapshot) {
                           if (usersSnapshot.connectionState ==
                               ConnectionState.waiting) {
@@ -155,8 +150,10 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   }
 
   Widget _buildFiltersCard(BuildContext context) {
+    final firestore = ref.watch(firebaseFirestoreProvider);
+
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('batches').snapshots(),
+      stream: firestore.collection('batches').snapshots(),
       builder: (context, snapshot) {
         final batchDocs = snapshot.data?.docs.toList() ?? [];
         batchDocs.sort((a, b) {
@@ -283,7 +280,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   }
 }
 
-class _UserCard extends StatelessWidget {
+class _UserCard extends ConsumerWidget {
   final String userId;
   final String name;
   final String email;
@@ -301,7 +298,7 @@ class _UserCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -395,6 +392,8 @@ class _UserCard extends StatelessWidget {
                       onPressed: () {
                         _showRoleDialog(
                           context: context,
+                          roleService: ref.read(firestoreRoleServiceProvider),
+                          batchService: ref.read(firestoreBatchServiceProvider),
                           userId: userId,
                           currentRole: role,
                           batchId: batchId,
@@ -443,13 +442,12 @@ class _InfoChip extends StatelessWidget {
 
 Future<void> _showRoleDialog({
   required BuildContext context,
+  required firestore_role.RoleService roleService,
+  required firestore_batch.BatchService batchService,
   required String userId,
   required String currentRole,
   String? batchId,
 }) async {
-  final roleService = RoleService();
-  final batchService = BatchService();
-
   String selectedRole = currentRole;
 
   await showDialog(

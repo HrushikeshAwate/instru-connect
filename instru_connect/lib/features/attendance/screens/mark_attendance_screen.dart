@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/providers/app_providers.dart';
+import '../../../core/widgets/app_ui.dart';
 import '../../batches/services/batch_service.dart';
 
-class MarkAttendanceScreen extends StatefulWidget {
+class MarkAttendanceScreen extends ConsumerStatefulWidget {
   final String batchId;
   final String subjectName;
   final bool isEditing;
@@ -21,17 +24,24 @@ class MarkAttendanceScreen extends StatefulWidget {
   });
 
   @override
-  State<MarkAttendanceScreen> createState() => _MarkAttendanceScreenState();
+  ConsumerState<MarkAttendanceScreen> createState() =>
+      _MarkAttendanceScreenState();
 }
 
-class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
-  final BatchService _batchService = BatchService();
+class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
+  late final BatchService _batchService;
   final TextEditingController _searchController = TextEditingController();
 
   final Map<String, bool> absentStatus = {};
   bool _isSaving = false;
   bool _hasInitialized = false;
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _batchService = ref.read(batchServiceProvider);
+  }
 
   int _compareStudents(
     QueryDocumentSnapshot<Object?> a,
@@ -124,21 +134,17 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 240,
-            decoration: BoxDecoration(
-              gradient: widget.isEditing
-                  ? UIColors.warningGradient
-                  : UIColors.heroGradient,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
+          AppHeroBackground(
+            height: 224,
+            gradient: widget.isEditing
+                ? UIColors.warningGradient
+                : UIColors.heroGradient,
+            key: ValueKey(widget.isEditing ? 'editing' : 'marking'),
           ),
           SafeArea(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
+              stream: ref
+                  .watch(firebaseFirestoreProvider)
                   .collection('users')
                   .where('batchId', isEqualTo: widget.batchId)
                   .where('role', whereIn: ['student', 'cr'])

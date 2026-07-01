@@ -3,10 +3,12 @@ import 'package:instru_connect/core/constants/firestore_collections.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:instru_connect/features/auth/domain/repositories/user_bootstrap_repository.dart';
 
-class FirestoreService {
+class FirestoreService implements UserBootstrapRepository {
   final _db = FirebaseFirestore.instance;
 
+  @override
   Future<Map<String, dynamic>> getOrCreateUser({
     required User firebaseUser,
   }) async {

@@ -3,21 +3,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:instru_connect/core/services/auth/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/features/auth/domain/repositories/auth_repository.dart';
 import 'package:instru_connect/core/widgets/loading_view.dart';
 
 import '../../../config/routes/route_names.dart';
 import '../../../config/theme/ui_colors.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _authService = AuthService();
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  late final AuthRepository _authService;
   StreamSubscription<User?>? _authSubscription;
   bool _loading = false;
   bool _redirecting = false;
@@ -25,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _authService = ref.read(authRepositoryProvider);
     _redirectIfAuthenticated(_authService.currentUser);
     _authSubscription = _authService.authStateChanges().listen(
       _redirectIfAuthenticated,
@@ -57,6 +60,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _authService.signInWithMicrosoft();
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'missing-initial-state') {
+        _redirecting = false;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

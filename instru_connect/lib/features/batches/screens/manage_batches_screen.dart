@@ -1,8 +1,11 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
 import 'package:instru_connect/core/utils/batch_ordering.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/features/batches/screens/assign_batch.dart';
 import 'package:instru_connect/features/batches/services/batch_service.dart';
@@ -10,17 +13,17 @@ import 'package:instru_connect/features/batches/services/batch_service.dart';
 import '../../../config/theme/ui_colors.dart';
 import 'batch_subject_screen.dart';
 
-class ManageBatchesScreen extends StatefulWidget {
+class ManageBatchesScreen extends ConsumerStatefulWidget {
   const ManageBatchesScreen({super.key});
 
   @override
-  State<ManageBatchesScreen> createState() => _ManageBatchesScreenState();
+  ConsumerState<ManageBatchesScreen> createState() =>
+      _ManageBatchesScreenState();
 }
 
-class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
-  final BatchService _batchService = BatchService();
-  final ActivityNotificationService _activityNotifications =
-      ActivityNotificationService();
+class _ManageBatchesScreenState extends ConsumerState<ManageBatchesScreen> {
+  late final BatchService _batchService;
+  late final ActivityNotificationService _activityNotifications;
   final Set<String> _selectedBatchIds = <String>{};
   late final Stream<QuerySnapshot> _batchesStream;
   bool _selectionMode = false;
@@ -32,7 +35,10 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
   @override
   void initState() {
     super.initState();
-    _batchesStream = FirebaseFirestore.instance
+    _batchService = ref.read(batchServiceProvider);
+    _activityNotifications = ref.read(activityNotificationServiceProvider);
+    _batchesStream = ref
+        .read(firebaseFirestoreProvider)
         .collection('batches')
         .orderBy('currentYear')
         .snapshots();
@@ -86,14 +92,17 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
             onPressed: () async {
               if (nameController.text.trim().isEmpty) return;
 
-              await FirebaseFirestore.instance.collection('batches').add({
-                'name': nameController.text.trim(),
-                'department': 'Instrumentation',
-                'currentYear': currentYear,
-                'isActive': true,
-                'crUserIds': [],
-                'maxCRs': 2,
-              });
+              await ref
+                  .read(firebaseFirestoreProvider)
+                  .collection('batches')
+                  .add({
+                    'name': nameController.text.trim(),
+                    'department': 'Instrumentation',
+                    'currentYear': currentYear,
+                    'isActive': true,
+                    'crUserIds': [],
+                    'maxCRs': 2,
+                  });
 
               await _activityNotifications.notifyAdminsAndFaculty(
                 title: 'Batch Created',
@@ -137,7 +146,7 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
 
     if (!confirmed) return;
 
-    await BatchService().promoteAllStudents();
+    await _batchService.promoteAllStudents();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('All students promoted successfully')),
     );
@@ -232,16 +241,7 @@ class _ManageBatchesScreenState extends State<ManageBatchesScreen> {
           : null,
       body: Stack(
         children: [
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 212),
           SafeArea(
             child: StreamBuilder<QuerySnapshot>(
               stream: _batchesStream,

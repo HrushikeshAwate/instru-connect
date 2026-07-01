@@ -1,7 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
-import 'package:instru_connect/core/services/auth/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 
 Future<void> showLogoutDialog(BuildContext context) async {
   final theme = Theme.of(context);
@@ -71,7 +72,9 @@ Future<void> showLogoutDialog(BuildContext context) async {
     );
 
     try {
-      await AuthService().signOut();
+      await ProviderScope.containerOf(
+        context,
+      ).read(authServiceProvider).signOut();
 
       if (context.mounted) {
         Navigator.pop(context); // remove loader

@@ -2,62 +2,49 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/notice_detail_screen.dart';
 import 'package:instru_connect/features/notices/screens/notice_list_screen.dart';
-import 'package:instru_connect/features/notices/services/notice_service.dart';
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
 import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
-class HomeStudent extends StatelessWidget {
+class HomeStudent extends ConsumerWidget {
   const HomeStudent({super.key});
 
-  Future<String> _fetchBatchName(String uid) async {
+  Future<String> _fetchBatchName(WidgetRef ref, String uid) async {
     if (uid.isEmpty) return 'Student';
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get();
+    final firestore = ref.read(firebaseFirestoreProvider);
+    final userDoc = await firestore.collection('users').doc(uid).get();
     final batchId = (userDoc.data()?['batchId'] ?? '').toString();
     if (batchId.isEmpty) return 'Student';
 
-    final batchDoc = await FirebaseFirestore.instance
-        .collection('batches')
-        .doc(batchId)
-        .get();
+    final batchDoc = await firestore.collection('batches').doc(batchId).get();
     final batchName = (batchDoc.data()?['name'] ?? '').toString().trim();
     if (batchName.isEmpty) return 'Student';
     return batchName;
   }
 
   @override
-  Widget build(BuildContext context) {
-    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  Widget build(BuildContext context, WidgetRef ref) {
+    final firestore = ref.watch(firebaseFirestoreProvider);
+    final noticeService = ref.watch(noticeServiceProvider);
+    final String currentUserId =
+        ref.watch(firebaseAuthProvider).currentUser?.uid ?? '';
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // =========================
-          // HERO GRADIENT HEADER
-          // =========================
-          Container(
-            height: 260,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(42),
-                bottomRight: Radius.circular(42),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 252),
 
           SafeArea(
             child: ListView(
@@ -82,7 +69,7 @@ class HomeStudent extends StatelessWidget {
                             ),
                           ),
                           FutureBuilder<String>(
-                            future: _fetchBatchName(currentUserId),
+                            future: _fetchBatchName(ref, currentUserId),
                             builder: (context, snapshot) {
                               final batch = snapshot.data ?? 'Student';
                               return Text(
@@ -118,7 +105,7 @@ class HomeStudent extends StatelessWidget {
                 // ATTENDANCE (LIVE)
                 // =========================
                 StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
+                  stream: firestore
                       .collection('attendance')
                       .where('studentId', isEqualTo: currentUserId)
                       .orderBy('markedAt', descending: true)
@@ -279,14 +266,14 @@ class HomeStudent extends StatelessWidget {
                 // =========================
                 // SUBJECT ATTENDANCE
                 // =========================
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Subject Attendance',
                   subtitle: 'Per-subject performance',
                 ),
                 const SizedBox(height: 12),
 
                 StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
+                  stream: firestore
                       .collection('users')
                       .doc(currentUserId)
                       .snapshots(),
@@ -345,14 +332,14 @@ class HomeStudent extends StatelessWidget {
 
                 const SizedBox(height: 22),
 
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Recent Sessions',
                   subtitle: 'Last 5 marked attendance entries',
                 ),
                 const SizedBox(height: 12),
 
                 StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
+                  stream: firestore
                       .collection('attendance')
                       .where('studentId', isEqualTo: currentUserId)
                       .orderBy('markedAt', descending: true)
@@ -371,7 +358,8 @@ class HomeStudent extends StatelessWidget {
                       children: snapshot.data!.docs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         return _RecentAttendanceTile(
-                          subject: (data['subjectName'] ?? 'Subject').toString(),
+                          subject: (data['subjectName'] ?? 'Subject')
+                              .toString(),
                           status: (data['status'] ?? 'Unknown').toString(),
                           date: (data['date'] ?? '').toString(),
                         );
@@ -382,7 +370,7 @@ class HomeStudent extends StatelessWidget {
 
                 const SizedBox(height: 36),
 
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Quick Actions',
                   subtitle: 'Academic & support essentials',
                 ),
@@ -391,15 +379,9 @@ class HomeStudent extends StatelessWidget {
                 // =========================
                 // ACTION GRID
                 // =========================
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.3,
+                AppActionGrid(
                   children: [
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.campaign_outlined,
                       label: 'Notices',
                       gradient: UIColors.tileGradient(0),
@@ -410,14 +392,14 @@ class HomeStudent extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.menu_book_outlined,
                       label: 'Resources',
                       gradient: UIColors.tileGradient(1),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.schedule_outlined,
                       label: 'Timetable',
                       gradient: UIColors.tileGradient(2),
@@ -431,7 +413,7 @@ class HomeStudent extends StatelessWidget {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.add_comment_outlined,
                       label: 'Raise Complaint',
                       gradient: UIColors.tileGradient(3),
@@ -442,7 +424,7 @@ class HomeStudent extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_month,
                       label: 'Event Calendar',
                       gradient: UIColors.tileGradient(0),
@@ -460,7 +442,7 @@ class HomeStudent extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const _SectionHeader(
+                    const AppSectionHeader(
                       title: 'Notices',
                       subtitle: 'All notices are stored here',
                     ),
@@ -490,7 +472,7 @@ class HomeStudent extends StatelessWidget {
                     ],
                   ),
                   child: StreamBuilder<List<Notice>>(
-                    stream: NoticeService().streamNotices(),
+                    stream: noticeService.streamNotices(limit: 3),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData &&
                           snapshot.connectionState == ConnectionState.waiting) {
@@ -541,104 +523,8 @@ class HomeStudent extends StatelessWidget {
 }
 
 // ===================================================================
-// UI COMPONENTS
+// Screen-specific UI components
 // ===================================================================
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Gradient gradient;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
-    return FadeSlideIn(
-      delay: delay,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _SubjectAttendanceCard extends StatelessWidget {
   final String subject;
@@ -819,7 +705,9 @@ class _RecentAttendanceTile extends StatelessWidget {
           CircleAvatar(
             backgroundColor: accent.withValues(alpha: 0.12),
             child: Icon(
-              isPresent ? Icons.check_circle_outline : Icons.person_off_outlined,
+              isPresent
+                  ? Icons.check_circle_outline
+                  : Icons.person_off_outlined,
               color: accent,
             ),
           ),
@@ -835,19 +723,13 @@ class _RecentAttendanceTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  date,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(date, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
           Text(
             status,
-            style: TextStyle(
-              color: accent,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: accent, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -879,11 +761,14 @@ String _dateKey(DateTime value) {
 }
 
 String _todaySummary(List<Map<String, dynamic>> entries) {
-  final preview = entries.take(3).map((entry) {
-    final subject = (entry['subjectName'] ?? 'Subject').toString();
-    final status = (entry['status'] ?? 'Unknown').toString();
-    return '$subject: $status';
-  }).join(' | ');
+  final preview = entries
+      .take(3)
+      .map((entry) {
+        final subject = (entry['subjectName'] ?? 'Subject').toString();
+        final status = (entry['status'] ?? 'Unknown').toString();
+        return '$subject: $status';
+      })
+      .join(' | ');
   return 'Today: $preview';
 }
 

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
@@ -10,7 +11,6 @@ import 'package:instru_connect/features/notices/screens/notice_list_screen.dart'
 // ADDED THIS IMPORT
 import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
-import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
 class HomeStaff extends StatelessWidget {
   const HomeStaff({super.key});
@@ -21,19 +21,7 @@ class HomeStaff extends StatelessWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // =========================
-          // HERO GRADIENT HEADER
-          // =========================
-          Container(
-            height: 240,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 232),
 
           SafeArea(
             child: ListView(
@@ -86,24 +74,15 @@ class HomeStaff extends StatelessWidget {
 
                 const SizedBox(height: 36),
 
-                const _SectionHeader(
+                const AppSectionHeader(
                   title: 'Staff Panel',
                   subtitle: 'Assigned responsibilities & updates',
                 ),
                 const SizedBox(height: 16),
 
-                // =========================
-                // ACTION GRID
-                // =========================
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.25,
+                AppActionGrid(
                   children: [
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.build_circle_outlined,
                       label: 'Complaints',
                       gradient: UIColors.tileGradient(0),
@@ -114,7 +93,7 @@ class HomeStaff extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.add_comment_outlined,
                       label: 'Raise Complaint',
                       gradient: UIColors.tileGradient(1),
@@ -125,7 +104,7 @@ class HomeStaff extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.campaign_outlined,
                       label: 'Notices',
                       gradient: UIColors.tileGradient(2),
@@ -137,7 +116,7 @@ class HomeStaff extends StatelessWidget {
                       ),
                     ),
                     // FIXED: UPDATED TIMETABLE ACTION
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_month_rounded,
                       label: 'Timetable',
                       gradient: UIColors.tileGradient(3),
@@ -150,14 +129,14 @@ class HomeStaff extends StatelessWidget {
                         );
                       },
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.folder_open_rounded,
                       label: 'Resources',
                       gradient: UIColors.tileGradient(4),
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.resources),
                     ),
-                    _ActionCard(
+                    AppActionTile(
                       icon: Icons.calendar_today_outlined,
                       label: 'Event Calendar',
                       gradient: UIColors.tileGradient(5),
@@ -172,106 +151,6 @@ class HomeStaff extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ===================================================================
-// UI COMPONENTS
-// ===================================================================
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Gradient gradient;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final delay = Duration(milliseconds: 120 + (label.hashCode.abs() % 6) * 45);
-    return FadeSlideIn(
-      delay: delay,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.22),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

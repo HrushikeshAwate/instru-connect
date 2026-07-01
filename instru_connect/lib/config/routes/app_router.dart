@@ -22,6 +22,26 @@ import '../../features/home/screens/home_faculty.dart';
 import 'route_names.dart';
 
 class AppRouter {
+  static bool isKnownRoute(String? routeName) {
+    return routeName == Routes.splash ||
+        routeName == Routes.login ||
+        routeName == Routes.roleLoading ||
+        routeName == Routes.homeStudent ||
+        routeName == Routes.homeCr ||
+        routeName == Routes.homeFaculty ||
+        routeName == Routes.homeAdmin ||
+        routeName == Routes.homeStaff ||
+        routeName == Routes.profile ||
+        routeName == Routes.createNotice ||
+        routeName == Routes.eventCalendar ||
+        routeName == Routes.complaints ||
+        routeName == Routes.notifications ||
+        routeName == Routes.resources ||
+        routeName == Routes.resourceDetail ||
+        routeName == Routes.addResource ||
+        routeName == Routes.manageBatches;
+  }
+
   static Route<dynamic> generate(RouteSettings settings) {
     switch (settings.name) {
       // ─── AUTH ────────────────────────────────
@@ -84,10 +104,7 @@ class AppRouter {
 
       // ─── FALLBACK ────────────────────────────
       default:
-        return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('Route not found'))),
-        );
+        return MaterialPageRoute(builder: (_) => const RoleLoadingScreen());
     }
   }
 }

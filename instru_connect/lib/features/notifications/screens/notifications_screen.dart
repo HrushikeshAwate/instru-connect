@@ -1,9 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/theme/ui_colors.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/features/attendance/screens/attendance_history_screen.dart';
 import 'package:instru_connect/features/batches/screens/manage_batches_screen.dart';
@@ -16,17 +18,18 @@ import 'package:instru_connect/features/notices/services/notice_service.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
 import 'package:instru_connect/features/resources/screens/resource_detail_screen.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  final NotificationService _service = NotificationService();
-  final NoticeService _noticeService = NoticeService();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  late final NotificationService _service;
+  late final NoticeService _noticeService;
+  late final FirebaseFirestore _firestore;
   bool _isMarkingVisibleNotificationsRead = false;
 
   Future<bool> _confirmDeleteNotification({
@@ -194,7 +197,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    _service = ref.read(notificationServiceProvider);
+    _noticeService = ref.read(noticeServiceProvider);
+    _firestore = ref.read(firebaseFirestoreProvider);
+    final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
     if (uid != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _service.purgeExpiredNotifications();
@@ -205,7 +211,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ref.watch(firebaseAuthProvider).currentUser?.uid;
 
     if (uid == null) {
       return const Scaffold(body: Center(child: Text('Please sign in')));
@@ -215,16 +221,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,29 +12,29 @@ import '../services/complaint_service.dart';
 import 'assign_complaint_screen.dart';
 import 'update_complaint_progress.dart';
 
-class ComplaintDetailScreen extends StatelessWidget {
+class ComplaintDetailScreen extends ConsumerWidget {
   final ComplaintModel complaint;
-  static final ComplaintService _complaintService = ComplaintService();
 
   const ComplaintDetailScreen({super.key, required this.complaint});
 
   // =======================================================
   // FETCH CURRENT USER ROLE
   // =======================================================
-  Future<String?> _getUserRole() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+  Future<String?> _getUserRole(WidgetRef ref) async {
+    final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
     if (uid == null) return null;
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await ref
+        .read(firebaseFirestoreProvider)
         .collection('users')
         .doc(uid)
         .get();
     return doc.data()?['role'] as String?;
   }
 
-  Future<Map<String, dynamic>> _getComplaintPermissions() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final role = await _getUserRole();
+  Future<Map<String, dynamic>> _getComplaintPermissions(WidgetRef ref) async {
+    final uid = ref.read(firebaseAuthProvider).currentUser?.uid ?? '';
+    final role = await _getUserRole(ref);
 
     final normalizedRole = (role ?? '').toLowerCase();
     final canAssignComplaint = normalizedRole == 'admin';
@@ -68,22 +70,14 @@ class ComplaintDetailScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final complaintService = ref.watch(complaintServiceProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ================= HEADER GRADIENT =================
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 208),
 
           SafeArea(
             child: ListView(
@@ -229,7 +223,7 @@ class ComplaintDetailScreen extends StatelessWidget {
 
                 // ================= ACTIONS =================
                 FutureBuilder<Map<String, dynamic>>(
-                  future: _getComplaintPermissions(),
+                  future: _getComplaintPermissions(ref),
                   builder: (context, snapshot) {
                     final permissions =
                         snapshot.data ?? const <String, dynamic>{};
@@ -296,7 +290,7 @@ class ComplaintDetailScreen extends StatelessWidget {
                           _CoordinationNotesSection(
                             complaintId: complaint.id,
                             complaintStatus: complaint.status,
-                            complaintService: _complaintService,
+                            complaintService: complaintService,
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -316,7 +310,7 @@ class ComplaintDetailScreen extends StatelessWidget {
                               if (confirmed != true) return;
 
                               try {
-                                await _complaintService.deleteComplaint(
+                                await complaintService.deleteComplaint(
                                   complaintId: complaint.id,
                                   actorRole: role,
                                 );

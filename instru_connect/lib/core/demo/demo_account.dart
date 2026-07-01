@@ -1,6 +1,6 @@
 class DemoAccount {
   static const email = 'appreview.instru@coeptech.ac.in';
-  static const password = 'Review@12345';
+  static const password = String.fromEnvironment('DEMO_ACCOUNT_PASSWORD');
   static const name = 'App Review Demo';
   static const department = 'Instrumentation Department';
   static const contactNo = '9999999999';

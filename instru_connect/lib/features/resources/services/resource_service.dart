@@ -6,7 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
 import 'package:instru_connect/core/services/firestore/role_service.dart';
-import 'package:instru_connect/core/sessioin/current_user.dart';
+import 'package:instru_connect/core/session/current_user.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
 import 'package:instru_connect/features/resources/models/resource_section_model.dart';
 import 'package:instru_connect/core/services/notification_service.dart';

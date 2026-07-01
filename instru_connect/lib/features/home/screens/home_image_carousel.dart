@@ -17,8 +17,10 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
   Timer? _timer;
 
   final List<String> images = const [
-    'https://www.coeptech.ac.in/wp-content/uploads/2024/06/Dept-Photo-1024x683.jpeg',
-    'https://www.coeptech.ac.in/wp-content/uploads/elementor/thumbs/COEP-Website-Pic-1-r4qfk1ygvn7y9y1tf4vppvonlurjzsbf6jrltou9w8.jpg',
+    'assets/images/ice1.jpeg',
+    'assets/images/ice2.jpg',
+    'assets/images/ice3.jpg',
+    'assets/images/ice4.jpg',
   ];
 
   @override
@@ -85,23 +87,9 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(
+                        Image.asset(
                           images[index],
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return Container(
-                              color: Theme.of(context).cardColor,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: UIColors.primary.withValues(
-                                    alpha: 0.9,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
                           errorBuilder: (_, __, ___) => Container(
                             color: Theme.of(context).cardColor,
                             child: Column(
@@ -156,7 +144,6 @@ class _HomeImageCarouselState extends State<HomeImageCarousel> {
                             ),
                           ),
                         ),
-
                       ],
                     ),
                   ),

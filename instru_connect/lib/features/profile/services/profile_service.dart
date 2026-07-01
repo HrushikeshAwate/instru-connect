@@ -6,17 +6,16 @@ class ProfileService {
   final String collection = 'profiles';
 
   Future<String?> fetchBatchName(String batchId) async {
-  final doc = await FirebaseFirestore.instance
-      .collection('batches')
-      .doc(batchId)
-      .get();
+    final doc = await FirebaseFirestore.instance
+        .collection('batches')
+        .doc(batchId)
+        .get();
 
-  if (!doc.exists) return null;
+    if (!doc.exists) return null;
 
-  final data = doc.data();
-  return data?['name'] as String?;
-}
-
+    final data = doc.data();
+    return data?['name'] as String?;
+  }
 
   Future<ProfileModel> fetchProfile(String uid) async {
     final doc = await _db.collection(collection).doc(uid).get();

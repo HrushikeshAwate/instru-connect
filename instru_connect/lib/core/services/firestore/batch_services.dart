@@ -19,8 +19,7 @@ class BatchService {
       }
 
       final data = batchSnap.data()!;
-      final List<dynamic> crUserIds =
-          List.from(data['crUserIds'] ?? []);
+      final List<dynamic> crUserIds = List.from(data['crUserIds'] ?? []);
       final int maxCRs = data['maxCRs'] ?? 2;
 
       if (crUserIds.length >= maxCRs) {
@@ -36,9 +35,7 @@ class BatchService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      transaction.update(userRef, {
-        'role': 'cr',
-      });
+      transaction.update(userRef, {'role': 'cr'});
     });
   }
 
@@ -55,8 +52,7 @@ class BatchService {
       if (!batchSnap.exists) return;
 
       final data = batchSnap.data()!;
-      final List<dynamic> crUserIds =
-          List.from(data['crUserIds'] ?? []);
+      final List<dynamic> crUserIds = List.from(data['crUserIds'] ?? []);
 
       if (!crUserIds.contains(userId)) return;
 
@@ -67,9 +63,7 @@ class BatchService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      transaction.update(userRef, {
-        'role': 'student',
-      });
+      transaction.update(userRef, {'role': 'student'});
     });
   }
 }

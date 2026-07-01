@@ -35,6 +35,14 @@ migrate_working_dir/
 functions/node_modules/
 ios/build/
 
+# Local secrets / generated Firebase configuration
+.env
+.env.*
+!/.env.example
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/config/firebase/firebase_options.dart
+
 # Symbolication related
 app.*.symbols
 

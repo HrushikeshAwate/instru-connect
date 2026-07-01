@@ -14,6 +14,7 @@ dependencies:
 
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
+  firebase_crashlytics: ^5.2.4
   cloud_functions: ^6.0.4
   cloud_firestore: ^6.1.0
   firebase_messaging: ^16.0.1
@@ -31,6 +32,7 @@ dependencies:
   csv: ^6.0.0
   share_plus: ^12.0.1
   table_calendar: ^3.2.0
+  flutter_riverpod: ^3.3.2
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +49,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/ice1.jpeg
+    - assets/images/ice2.jpg
+    - assets/images/ice3.jpg
+    - assets/images/ice4.jpg
     - assets/logo/ic_logo_runtime.png
     - assets/PDF's/btech_timetable.pdf
     - assets/PDF's/sy_timetable.pdf

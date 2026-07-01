@@ -1,7 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -9,15 +9,16 @@ import '../../../config/theme/ui_colors.dart';
 import '../models/event_model.dart';
 import '../services/events_service.dart';
 
-class EventCalendarScreen extends StatefulWidget {
+class EventCalendarScreen extends ConsumerStatefulWidget {
   const EventCalendarScreen({super.key});
 
   @override
-  State<EventCalendarScreen> createState() => _EventCalendarScreenState();
+  ConsumerState<EventCalendarScreen> createState() =>
+      _EventCalendarScreenState();
 }
 
-class _EventCalendarScreenState extends State<EventCalendarScreen> {
-  final EventService _eventService = EventService();
+class _EventCalendarScreenState extends ConsumerState<EventCalendarScreen> {
+  late final EventService _eventService;
   final Set<String> _selectedEventIds = <String>{};
 
   DateTime _focusedDay = DateTime.now();
@@ -32,11 +33,12 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
   @override
   void initState() {
     super.initState();
+    _eventService = ref.read(eventServiceProvider);
     _loadRolePermission();
   }
 
   Future<void> _loadRolePermission() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
     if (uid == null) {
       if (mounted) {
         setState(() => _loadingRole = false);
@@ -45,7 +47,8 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
     }
 
     try {
-      final userDoc = await FirebaseFirestore.instance
+      final userDoc = await ref
+          .read(firebaseFirestoreProvider)
           .collection('users')
           .doc(uid)
           .get();
@@ -315,8 +318,8 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
         final borderColor = isDark
             ? const Color(0xFF243244)
             : const Color(0xFFE2E8F0);
-        final mutedTextColor = Theme.of(context).textTheme.bodyMedium?.color ??
-            UIColors.textMuted;
+        final mutedTextColor =
+            Theme.of(context).textTheme.bodyMedium?.color ?? UIColors.textMuted;
         final shadowColor = isDark
             ? Colors.black.withValues(alpha: 0.24)
             : Colors.black.withValues(alpha: 0.08);
@@ -413,10 +416,10 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                   headerStyle: HeaderStyle(
                     titleCentered: true,
                     formatButtonVisible: false,
-                    titleTextStyle: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700) ??
+                    titleTextStyle:
+                        Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ) ??
                         const TextStyle(fontWeight: FontWeight.w700),
                     leftChevronIcon: Icon(
                       Icons.chevron_left_rounded,
@@ -501,7 +504,8 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                                 leading: _selectionMode
                                     ? Checkbox(
                                         value: selected,
-                                        onChanged: (_) => _toggleSelection(event),
+                                        onChanged: (_) =>
+                                            _toggleSelection(event),
                                       )
                                     : null,
                                 title: Text(event.title),

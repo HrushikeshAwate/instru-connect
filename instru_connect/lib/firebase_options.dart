@@ -50,19 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyACHCveud2IfySa1VM34TPtR6K6QHH1Aqc',
-    appId: '1:686129163312:android:40c42471f3b719edcf51f5',
-    messagingSenderId: '686129163312',
-    projectId: 'instru-connect',
-    storageBucket: 'instru-connect.firebasestorage.app',
+    apiKey: String.fromEnvironment('FIREBASE_ANDROID_API_KEY'),
+    appId: String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
+    messagingSenderId: String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    storageBucket: String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDsqK7NHqblQS6xUbsAHzbsZMowIJF9OBE',
-    appId: '1:686129163312:ios:0b24c76cc6197172cf51f5',
-    messagingSenderId: '686129163312',
-    projectId: 'instru-connect',
-    storageBucket: 'instru-connect.firebasestorage.app',
-    iosBundleId: 'com.example.instruConnect',
+    apiKey: String.fromEnvironment('FIREBASE_IOS_API_KEY'),
+    appId: String.fromEnvironment('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    storageBucket: String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
+    iosBundleId: String.fromEnvironment('FIREBASE_IOS_BUNDLE_ID'),
   );
 }

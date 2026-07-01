@@ -2,19 +2,22 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:instru_connect/core/services/firestore/role_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
+import 'package:instru_connect/core/services/firestore/role_service.dart'
+    as firestore_role;
 import 'package:instru_connect/features/resources/services/resource_service.dart';
 
-class AddResourceScreen extends StatefulWidget {
+class AddResourceScreen extends ConsumerStatefulWidget {
   const AddResourceScreen({super.key});
 
   @override
-  State<AddResourceScreen> createState() => _AddResourceScreenState();
+  ConsumerState<AddResourceScreen> createState() => _AddResourceScreenState();
 }
 
-class _AddResourceScreenState extends State<AddResourceScreen> {
+class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
   static const _sectionOptions = ['Notes', 'PPTs', 'PYQs', 'Workshop', 'Other'];
 
   final _titleCtrl = TextEditingController();
@@ -22,11 +25,19 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   final _sectionCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
 
-  final _resourceService = ResourceService();
+  late final ResourceService _resourceService;
+  late final firestore_role.RoleService _roleService;
 
   File? _selectedFile;
   String _selectedSection = _sectionOptions.first;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resourceService = ref.read(resourceServiceProvider);
+    _roleService = ref.read(firestoreRoleServiceProvider);
+  }
 
   @override
   void dispose() {
@@ -78,10 +89,10 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     setState(() => _loading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = ref.read(firebaseAuthProvider).currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      final role = await RoleService().fetchUserRole(user.uid);
+      final role = await _roleService.fetchUserRole(user.uid);
 
       if (role.isEmpty) throw Exception('User role not found');
       final normalizedRole = role.trim().toLowerCase();
@@ -121,25 +132,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // ================= HEADER =================
-          Container(
-            height: 200,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF2563EB),
-                  Color(0xFF4F46E5),
-                  Color(0xFF06B6D4),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 190),
 
           // ================= CONTENT =================
           SafeArea(

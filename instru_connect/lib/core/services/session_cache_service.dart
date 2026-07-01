@@ -1,7 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../config/routes/app_router.dart';
 import '../../config/routes/route_names.dart';
-import '../sessioin/current_user.dart';
+import '../session/current_user.dart';
 
 class CachedSession {
   const CachedSession({
@@ -77,7 +78,11 @@ class SessionCacheService {
 
     final role = prefs.getString(_roleKey);
     final homeRoute = prefs.getString(_homeRouteKey);
-    if (role == null || role.isEmpty || homeRoute == null || homeRoute.isEmpty) {
+    if (role == null ||
+        role.isEmpty ||
+        homeRoute == null ||
+        homeRoute.isEmpty ||
+        !AppRouter.isKnownRoute(homeRoute)) {
       return null;
     }
 

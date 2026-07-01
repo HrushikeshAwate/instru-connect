@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
-import 'package:instru_connect/core/services/firestore/role_service.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
-import 'package:instru_connect/features/resources/services/resource_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ResourceDetailScreen extends StatelessWidget {
+class ResourceDetailScreen extends ConsumerWidget {
   const ResourceDetailScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final args = ModalRoute.of(context)?.settings.arguments;
 
     if (args == null || args is! ResourceModel) {
@@ -23,9 +23,9 @@ class ResourceDetailScreen extends StatelessWidget {
     }
 
     final ResourceModel resource = args;
-    final resourceService = ResourceService();
-    final canDeleteFuture = _resolveCanDeleteResources();
-    final canUseLinkControlsFuture = _resolveCanUseLinkControls();
+    final resourceService = ref.watch(resourceServiceProvider);
+    final canDeleteFuture = _resolveCanDeleteResources(ref);
+    final canUseLinkControlsFuture = _resolveCanUseLinkControls(ref);
     final fileUri = Uri.parse(resource.fileUrl);
     final previewUri = Uri.https('docs.google.com', '/gview', {
       'embedded': 'true',
@@ -58,24 +58,7 @@ class ResourceDetailScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            height: 200,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF2563EB),
-                  Color(0xFF4F46E5),
-                  Color(0xFF06B6D4),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 190),
           SafeArea(
             child: Column(
               children: [
@@ -263,12 +246,14 @@ bool _canUseDocumentPreview(String fileType) {
       type == 'pptx';
 }
 
-Future<bool> _resolveCanUseLinkControls() async {
-  final user = FirebaseAuth.instance.currentUser;
+Future<bool> _resolveCanUseLinkControls(WidgetRef ref) async {
+  final user = ref.read(firebaseAuthProvider).currentUser;
   if (user == null) return false;
 
   try {
-    final role = await RoleService().fetchUserRole(user.uid);
+    final role = await ref
+        .read(firestoreRoleServiceProvider)
+        .fetchUserRole(user.uid);
     final normalizedRole = role.trim().toLowerCase();
     return normalizedRole == AppRoles.cr ||
         normalizedRole == AppRoles.faculty ||
@@ -278,12 +263,14 @@ Future<bool> _resolveCanUseLinkControls() async {
   }
 }
 
-Future<bool> _resolveCanDeleteResources() async {
-  final user = FirebaseAuth.instance.currentUser;
+Future<bool> _resolveCanDeleteResources(WidgetRef ref) async {
+  final user = ref.read(firebaseAuthProvider).currentUser;
   if (user == null) return false;
 
   try {
-    final role = await RoleService().fetchUserRole(user.uid);
+    final role = await ref
+        .read(firestoreRoleServiceProvider)
+        .fetchUserRole(user.uid);
     final normalizedRole = role.trim().toLowerCase();
     return normalizedRole == AppRoles.faculty ||
         normalizedRole == AppRoles.admin;

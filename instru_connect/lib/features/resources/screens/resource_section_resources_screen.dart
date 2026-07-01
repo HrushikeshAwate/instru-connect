@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/features/resources/models/resource_library_group.dart';
 import 'package:instru_connect/features/resources/models/resource_model.dart';
@@ -9,7 +12,7 @@ import 'package:instru_connect/features/resources/utils/resource_access_actions.
 
 import '../../../config/theme/ui_colors.dart';
 
-class ResourceSectionResourcesScreen extends StatefulWidget {
+class ResourceSectionResourcesScreen extends ConsumerStatefulWidget {
   final ResourceSectionGroup section;
   final ResourceScreenAccess access;
 
@@ -20,17 +23,23 @@ class ResourceSectionResourcesScreen extends StatefulWidget {
   });
 
   @override
-  State<ResourceSectionResourcesScreen> createState() =>
+  ConsumerState<ResourceSectionResourcesScreen> createState() =>
       _ResourceSectionResourcesScreenState();
 }
 
 class _ResourceSectionResourcesScreenState
-    extends State<ResourceSectionResourcesScreen> {
-  final ResourceService _resourceService = ResourceService();
+    extends ConsumerState<ResourceSectionResourcesScreen> {
+  late final ResourceService _resourceService;
   final Set<String> _selectedIds = <String>{};
   bool _deleting = false;
 
   bool get _selectionMode => _selectedIds.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _resourceService = ref.read(resourceServiceProvider);
+  }
 
   void _toggleSelection(ResourceModel resource) {
     if (!widget.access.canManage) return;
@@ -89,16 +98,7 @@ class _ResourceSectionResourcesScreenState
           : null,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [

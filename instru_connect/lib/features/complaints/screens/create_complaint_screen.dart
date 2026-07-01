@@ -1,21 +1,24 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../config/theme/ui_colors.dart';
-import '../../../core/sessioin/current_user.dart';
+import '../../../core/providers/app_providers.dart';
+import '../../../core/session/current_user.dart';
+import '../../../core/widgets/app_ui.dart';
 import '../services/complaint_service.dart';
 
-class CreateComplaintScreen extends StatefulWidget {
+class CreateComplaintScreen extends ConsumerStatefulWidget {
   const CreateComplaintScreen({super.key});
 
   @override
-  State<CreateComplaintScreen> createState() => _CreateComplaintScreenState();
+  ConsumerState<CreateComplaintScreen> createState() =>
+      _CreateComplaintScreenState();
 }
 
-class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
-  final _service = ComplaintService();
+class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
+  late final ComplaintService _service;
 
   final _title = TextEditingController();
   final _description = TextEditingController();
@@ -25,6 +28,12 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   String? _mediaType;
   bool _loading = false;
   bool _isAnonymous = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = ref.read(complaintServiceProvider);
+  }
 
   Future<void> _pickMedia(bool video) async {
     final picker = ImagePicker();
@@ -44,7 +53,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     setState(() => _loading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser!;
+      final user = ref.read(firebaseAuthProvider).currentUser!;
       final uid = user.uid;
       final role = (CurrentUser.role ?? 'unknown').trim().toLowerCase();
 
@@ -97,17 +106,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ================= HEADER GRADIENT =================
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 208),
 
           SafeArea(
             child: ListView(

@@ -5,14 +5,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PushNotificationService {
-  static final PushNotificationService _instance = PushNotificationService._internal();
+  static final PushNotificationService _instance =
+      PushNotificationService._internal();
 
   factory PushNotificationService() => _instance;
 
   PushNotificationService._internal();
 
-  static const AndroidNotificationChannel _channel =
-      AndroidNotificationChannel(
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'high_importance_channel',
     'High Importance Notifications',
     description: 'Used for important push notifications.',
@@ -32,8 +32,7 @@ class PushNotificationService {
       }
     }
 
-    const androidInit =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwinInit = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -47,15 +46,12 @@ class PushNotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_channel);
 
     // Request permission for push notifications
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _messaging.requestPermission(alert: true, badge: true, sound: true);
 
     // iOS foreground notifications (banner/sound/badge)
     await _messaging.setForegroundNotificationPresentationOptions(

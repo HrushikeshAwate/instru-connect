@@ -2,17 +2,18 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../config/theme/ui_colors.dart';
+import '../../../core/providers/app_providers.dart';
+import '../../../core/widgets/app_ui.dart';
 import '../../../core/widgets/destructive_confirmation_dialog.dart';
-import '../../batches/services/batch_service.dart';
 import 'mark_attendance_screen.dart';
 
-class AttendanceHistoryScreen extends StatefulWidget {
+class AttendanceHistoryScreen extends ConsumerStatefulWidget {
   final String batchId;
   final String subjectName;
 
@@ -23,20 +24,22 @@ class AttendanceHistoryScreen extends StatefulWidget {
   });
 
   @override
-  State<AttendanceHistoryScreen> createState() =>
+  ConsumerState<AttendanceHistoryScreen> createState() =>
       _AttendanceHistoryScreenState();
 }
 
-class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
+class _AttendanceHistoryScreenState
+    extends ConsumerState<AttendanceHistoryScreen> {
   String? _cachedRole;
   bool _exporting = false;
 
   Future<String> _getUserRole() async {
     if (_cachedRole != null) return _cachedRole!;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
     if (uid == null) return 'student';
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await ref
+        .read(firebaseFirestoreProvider)
         .collection('users')
         .doc(uid)
         .get();
@@ -55,16 +58,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [
@@ -120,7 +114,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
                       final userRole = roleSnapshot.data!;
                       return StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
+                        stream: ref
+                            .watch(firebaseFirestoreProvider)
                             .collection('sessions')
                             .where('batchId', isEqualTo: widget.batchId)
                             .snapshots(),
@@ -288,7 +283,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         return;
       }
 
-      final usersSnap = await FirebaseFirestore.instance
+      final usersSnap = await ref
+          .read(firebaseFirestoreProvider)
           .collection('users')
           .where('batchId', isEqualTo: widget.batchId)
           .where('role', whereIn: ['student', 'cr'])
@@ -367,7 +363,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     );
     if (confirmed != true) return;
 
-    await BatchService().deleteAttendance(widget.batchId, sessionId);
+    await ref
+        .read(batchServiceProvider)
+        .deleteAttendance(widget.batchId, sessionId);
   }
 }
 

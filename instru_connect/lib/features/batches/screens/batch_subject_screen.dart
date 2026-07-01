@@ -1,26 +1,27 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:instru_connect/core/services/activity_notification_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 
 import '../../../config/theme/ui_colors.dart';
 import '../services/batch_service.dart';
 import 'subject_detail_screen.dart';
 
-class BatchSubjectsScreen extends StatefulWidget {
+class BatchSubjectsScreen extends ConsumerStatefulWidget {
   final String batchId;
 
   const BatchSubjectsScreen({super.key, required this.batchId});
 
   @override
-  State<BatchSubjectsScreen> createState() => _BatchSubjectsScreenState();
+  ConsumerState<BatchSubjectsScreen> createState() =>
+      _BatchSubjectsScreenState();
 }
 
-class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
-  final BatchService _batchService = BatchService();
-  final ActivityNotificationService _activityNotifications =
-      ActivityNotificationService();
+class _BatchSubjectsScreenState extends ConsumerState<BatchSubjectsScreen> {
+  late final BatchService _batchService;
   final Set<String> _selectedSubjectIds = <String>{};
   late final Stream<QuerySnapshot> _subjectsStream;
   List<QueryDocumentSnapshot> _visibleSubjects =
@@ -33,7 +34,9 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
   @override
   void initState() {
     super.initState();
-    _subjectsStream = FirebaseFirestore.instance
+    _batchService = ref.read(batchServiceProvider);
+    _subjectsStream = ref
+        .read(firebaseFirestoreProvider)
         .collection('subjects')
         .where('batchId', isEqualTo: widget.batchId)
         .snapshots();
@@ -122,23 +125,10 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
                   return;
                 }
 
-                await FirebaseFirestore.instance.collection('subjects').add({
-                  'name': nameController.text.trim(),
-                  'code': codeController.text.trim(),
-                  'batchId': widget.batchId,
-                  'createdAt': FieldValue.serverTimestamp(),
-                });
-
-                await _activityNotifications.notifyBatchStudentsAndCr(
+                await _batchService.createSubject(
                   batchId: widget.batchId,
-                  title: 'New Subject Added',
-                  body: nameController.text.trim(),
-                  type: 'subject_created',
-                  data: {
-                    'batchId': widget.batchId,
-                    'subjectName': nameController.text.trim(),
-                    'subjectCode': codeController.text.trim(),
-                  },
+                  subjectName: nameController.text,
+                  subjectCode: codeController.text,
                 );
 
                 Navigator.pop(context);
@@ -207,16 +197,7 @@ class _BatchSubjectsScreenState extends State<BatchSubjectsScreen> {
           : null,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [

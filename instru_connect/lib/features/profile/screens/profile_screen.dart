@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/services/account_deletion_service.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
 import 'package:instru_connect/features/auth/screens/log_out_screens.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
-import 'package:instru_connect/core/services/theme_controller.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/widgets/destructive_confirmation_dialog.dart';
 import 'package:instru_connect/features/legal/legal_content.dart';
 import 'package:instru_connect/features/legal/screens/legal_document_screen.dart';
@@ -15,7 +16,7 @@ import '../../../config/theme/ui_colors.dart';
 import '../services/profile_service.dart';
 import 'achievement_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   final bool forceCompletion;
   final String? completionRoute;
   final String? userId;
@@ -30,12 +31,12 @@ class ProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final _service = ProfileService();
-  final _accountDeletionService = AccountDeletionService();
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  late final ProfileService _service;
+  late final AccountDeletionService _accountDeletionService;
 
   bool _loading = true;
   bool _deletingAccount = false;
@@ -45,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _role = '';
   bool get _isViewingOwnProfile => widget.userId == null;
   String get _targetUserId =>
-      widget.userId ?? FirebaseAuth.instance.currentUser!.uid;
+      widget.userId ?? ref.read(firebaseAuthProvider).currentUser!.uid;
   bool get _isReadOnlyView => widget.readOnly || !_isViewingOwnProfile;
 
   bool get _isStudentOrCr => _role == 'student' || _role == 'cr';
@@ -61,16 +62,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _service = ref.read(profileServiceProvider);
+    _accountDeletionService = ref.read(accountDeletionServiceProvider);
     _loadProfile();
   }
 
   Future<void> _loadProfile() async {
-    final currentUser = FirebaseAuth.instance.currentUser!;
+    final currentUser = ref.read(firebaseAuthProvider).currentUser!;
     final targetUserId = _targetUserId;
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(targetUserId)
-        .get();
+    final firestore = ref.read(firebaseFirestoreProvider);
+    final userDoc = await firestore.collection('users').doc(targetUserId).get();
     _role = (userDoc.data()?['role'] ?? '').toString().toLowerCase();
 
     if (_isViewingOwnProfile) {
@@ -109,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : fallbackBatchId;
 
     if (selectedBatchId.isNotEmpty) {
-      final batchDoc = await FirebaseFirestore.instance
+      final batchDoc = await firestore
           .collection('batches')
           .doc(selectedBatchId)
           .get();
@@ -202,6 +203,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeController = ref.watch(themeControllerProvider);
+
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -210,17 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ================= GRADIENT HEADER =================
-          Container(
-            height: 200,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 190),
 
           SafeArea(
             child: SingleChildScrollView(
@@ -471,9 +464,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Dark Mode'),
                         subtitle: const Text('Use darker app appearance'),
-                        value: ThemeController.instance.isDarkMode,
+                        value: themeController.isDarkMode,
                         onChanged: (enabled) {
-                          ThemeController.instance.setDarkMode(enabled);
+                          themeController.setDarkMode(enabled);
                           setState(() {});
                         },
                       ),
@@ -626,7 +619,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _ProfileDetailsEditScreen extends StatefulWidget {
+class _ProfileDetailsEditScreen extends ConsumerStatefulWidget {
   final ProfileModel profile;
   final bool isStudentOrCr;
 
@@ -636,13 +629,14 @@ class _ProfileDetailsEditScreen extends StatefulWidget {
   });
 
   @override
-  State<_ProfileDetailsEditScreen> createState() =>
+  ConsumerState<_ProfileDetailsEditScreen> createState() =>
       _ProfileDetailsEditScreenState();
 }
 
-class _ProfileDetailsEditScreenState extends State<_ProfileDetailsEditScreen> {
+class _ProfileDetailsEditScreenState
+    extends ConsumerState<_ProfileDetailsEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _service = ProfileService();
+  late final ProfileService _service;
 
   late final TextEditingController _misController;
   late final TextEditingController _deptController;
@@ -655,6 +649,7 @@ class _ProfileDetailsEditScreenState extends State<_ProfileDetailsEditScreen> {
   @override
   void initState() {
     super.initState();
+    _service = ref.read(profileServiceProvider);
     _misController = TextEditingController(text: widget.profile.misNo ?? '');
     _deptController = TextEditingController(
       text: widget.profile.department ?? '',

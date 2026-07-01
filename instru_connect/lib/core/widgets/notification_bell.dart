@@ -1,20 +1,18 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
 
-class NotificationBell extends StatelessWidget {
+class NotificationBell extends ConsumerWidget {
   final Color iconColor;
 
-  const NotificationBell({
-    super.key,
-    this.iconColor = Colors.white,
-  });
+  const NotificationBell({super.key, this.iconColor = Colors.white});
 
   @override
-  Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final service = NotificationService();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(firebaseAuthProvider).currentUser?.uid;
+    final service = ref.watch(notificationServiceProvider);
 
     return Stack(
       clipBehavior: Clip.none,

@@ -5,17 +5,17 @@ final ColorScheme academicColorScheme = const ColorScheme(
   brightness: Brightness.light,
 
   // ===== CORE BRAND (Advanced, Vibrant) =====
-  primary: Color(0xFF2563EB),          // Electric Blue
+  primary: Color(0xFF2563EB), // Electric Blue
   onPrimary: Colors.white,
 
-  secondary: Color(0xFF7C3AED),        // Violet Accent
+  secondary: Color(0xFF7C3AED), // Violet Accent
   onSecondary: Colors.white,
 
-  tertiary: Color(0xFF06B6D4),          // Teal Highlight
+  tertiary: Color(0xFF06B6D4), // Teal Highlight
   onTertiary: Colors.white,
 
   // ===== STATUS COLORS =====
-  error: Color(0xFFEF4444),             // Soft Red
+  error: Color(0xFFEF4444), // Soft Red
   onError: Colors.white,
 
   surface: Colors.white,

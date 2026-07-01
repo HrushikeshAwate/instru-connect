@@ -5,11 +5,5 @@ class AppRoles {
   static const staff = 'staff'; // non-teaching
   static const admin = 'admin';
 
-  static const all = [
-    student,
-    cr,
-    faculty,
-    staff,
-    admin,
-  ];
+  static const all = [student, cr, faculty, staff, admin];
 }

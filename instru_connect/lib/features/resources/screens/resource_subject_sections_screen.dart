@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/resources/models/resource_library_group.dart';
 import 'package:instru_connect/features/resources/models/resource_screen_access.dart';
 import 'package:instru_connect/features/resources/screens/resource_section_resources_screen.dart';
@@ -22,16 +23,7 @@ class ResourceSubjectSectionsScreen extends StatelessWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
           SafeArea(
             child: Column(
               children: [

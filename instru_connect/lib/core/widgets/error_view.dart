@@ -4,11 +4,7 @@ class ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
-  const ErrorView({
-    super.key,
-    required this.message,
-    this.onRetry,
-  });
+  const ErrorView({super.key, required this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +15,7 @@ class ErrorView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 56,
-              ),
+              const Icon(Icons.error_outline, size: 56),
               const SizedBox(height: 16),
               Text(
                 'Something went wrong',
@@ -36,10 +29,7 @@ class ErrorView extends StatelessWidget {
               ),
               if (onRetry != null) ...[
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: onRetry,
-                  child: const Text('Retry'),
-                ),
+                ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
               ],
             ],
           ),

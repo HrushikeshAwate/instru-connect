@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/attendance/screens/attendance_history_screen.dart';
 import '../../../config/theme/ui_colors.dart';
 import '../../attendance/screens/mark_attendance_screen.dart';
 
-class SubjectDetailScreen extends StatelessWidget {
+class SubjectDetailScreen extends ConsumerWidget {
   final String subjectName;
   final String batchId;
 
@@ -43,23 +46,13 @@ class SubjectDetailScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Stack(
         children: [
-          // ================= HEADER =================
-          Container(
-            height: 180,
-            decoration: const BoxDecoration(
-              gradient: UIColors.heroGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(36),
-                bottomRight: Radius.circular(36),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 172),
 
           SafeArea(
             child: Column(
@@ -109,7 +102,8 @@ class SubjectDetailScreen extends StatelessWidget {
                 // ================= STUDENT LIST =================
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
+                    stream: ref
+                        .watch(firebaseFirestoreProvider)
                         .collection('users')
                         .where('role', whereIn: ['student', 'cr'])
                         .where('batchId', isEqualTo: batchId)

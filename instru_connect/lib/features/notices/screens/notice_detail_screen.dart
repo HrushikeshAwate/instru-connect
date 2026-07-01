@@ -1,39 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/providers/app_providers.dart';
+import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/utils/date_utils.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
-import 'package:instru_connect/features/notices/services/notice_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class NoticeDetailScreen extends StatelessWidget {
+class NoticeDetailScreen extends ConsumerWidget {
   final Notice notice;
 
   const NoticeDetailScreen({super.key, required this.notice});
 
   @override
-  Widget build(BuildContext context) {
-    final noticeService = NoticeService();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final noticeService = ref.watch(noticeServiceProvider);
 
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF1E3C72),
-                  Color(0xFF2A5298),
-                  Color(0xFF3A7BD5),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
+          const AppHeroBackground(height: 208),
           SafeArea(
             child: Column(
               children: [
