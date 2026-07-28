@@ -1,13 +1,45 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     // END: FlutterFire Configuration
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = project.layout.projectDirectory.file("../key.properties").asFile
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
+fun signingProperty(name: String): String? {
+    val placeholderValues = setOf("your_store_password", "your_key_password")
+    return keystoreProperties.getProperty(name)
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() && it !in placeholderValues }
+}
+
+fun requiredSigningProperty(name: String): String {
+    return signingProperty(name)
+        ?: error(
+            "Missing or placeholder release signing property '$name' in ${keystorePropertiesFile.absolutePath}. " +
+                "Replace template values like your_store_password with your real keystore password. " +
+                "Loaded keys: ${keystoreProperties.stringPropertyNames().sorted()}. " +
+                "Raw value length: ${keystoreProperties.getProperty(name)?.trim()?.length ?: "null"}. " +
+                "Is template: ${keystoreProperties.getProperty(name)?.trim() in setOf("your_store_password", "your_key_password")}"
+        )
+}
+
+val releaseKeyAlias = requiredSigningProperty("keyAlias")
+val releaseStoreFile = requiredSigningProperty("storeFile")
+val releaseStorePassword = requiredSigningProperty("storePassword")
+val releaseKeyPassword = signingProperty("keyPassword") ?: releaseStorePassword
+val releaseStoreType = signingProperty("storeType") ?: "pkcs12"
 
 android {
     namespace = "com.example.instru_connect"
@@ -18,10 +50,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     defaultConfig {
@@ -40,9 +68,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = releaseKeyAlias
+            storeFile = file(releaseStoreFile)
+            storePassword = releaseStorePassword
+            keyPassword = releaseKeyPassword
+            storeType = releaseStoreType
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -55,6 +93,12 @@ android {
 
 flutter {
     source = "../.."
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
 }
 
 dependencies {

@@ -1,0 +1,5 @@
+storePassword=your_store_password
+keyPassword=
+keyAlias=upload
+storeFile=upload-keystore.jks
+storeType=pkcs12
