@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/core/providers/app_providers.dart';
@@ -35,6 +36,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  static final RegExp _misNoPattern = RegExp(r'^\d{9}$');
+
   late final ProfileService _service;
   late final AccountDeletionService _accountDeletionService;
 
@@ -53,7 +56,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool get _hasCompletedRequiredDetails {
     final hasDepartment = (profile.department ?? '').trim().isNotEmpty;
     final hasContact = (profile.contactNo ?? '').trim().isNotEmpty;
-    final hasMis = !_isStudentOrCr || (profile.misNo ?? '').trim().isNotEmpty;
+    final hasMis =
+        !_isStudentOrCr || _misNoPattern.hasMatch((profile.misNo ?? '').trim());
     final hasParentContact =
         !_isStudentOrCr || (profile.parentContactNo ?? '').trim().isNotEmpty;
     return hasDepartment && hasContact && hasMis && hasParentContact;
@@ -635,6 +639,8 @@ class _ProfileDetailsEditScreen extends ConsumerStatefulWidget {
 
 class _ProfileDetailsEditScreenState
     extends ConsumerState<_ProfileDetailsEditScreen> {
+  static final RegExp _misNoPattern = RegExp(r'^\d{9}$');
+
   final _formKey = GlobalKey<FormState>();
   late final ProfileService _service;
 
@@ -716,6 +722,21 @@ class _ProfileDetailsEditScreenState
                           'MIS No',
                           _misController,
                           required: true,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(9),
+                          ],
+                          validator: (value) {
+                            final misNo = (value ?? '').trim();
+                            if (misNo.isEmpty) {
+                              return 'MIS No is required';
+                            }
+                            if (!_misNoPattern.hasMatch(misNo)) {
+                              return 'MIS No must be exactly 9 digits';
+                            }
+                            return null;
+                          },
                         ),
                       _editableField(
                         'Department',
@@ -768,20 +789,27 @@ class _ProfileDetailsEditScreenState
     TextEditingController controller, {
     int maxLines = 1,
     bool required = false,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        validator: required
-            ? (value) {
-                if ((value ?? '').trim().isEmpty) {
-                  return '$label is required';
-                }
-                return null;
-              }
-            : null,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        validator:
+            validator ??
+            (required
+                ? (value) {
+                    if ((value ?? '').trim().isEmpty) {
+                      return '$label is required';
+                    }
+                    return null;
+                  }
+                : null),
         decoration: InputDecoration(labelText: label),
       ),
     );

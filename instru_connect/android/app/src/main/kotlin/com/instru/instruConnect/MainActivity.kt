@@ -1,4 +1,4 @@
-package com.example.instru_connect
+package com.instru.instruConnect
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -27,6 +27,7 @@ class RoleLoadingScreen extends ConsumerStatefulWidget {
 class _RoleLoadingScreenState extends ConsumerState<RoleLoadingScreen> {
   static const Duration _minimumLoadingDuration = Duration(milliseconds: 1000);
   static const Duration _authSettleTimeout = Duration(seconds: 3);
+  static final RegExp _misNoPattern = RegExp(r'^\d{9}$');
 
   late final DateTime _startedAt;
 
@@ -212,7 +213,8 @@ class _RoleLoadingScreenState extends ConsumerState<RoleLoadingScreen> {
       return true;
     }
 
-    if (needsStudentFields && (misNo.isEmpty || parentContactNo.isEmpty)) {
+    if (needsStudentFields &&
+        (!_misNoPattern.hasMatch(misNo) || parentContactNo.isEmpty)) {
       return true;
     }
 

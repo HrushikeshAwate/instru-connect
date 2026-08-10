@@ -18,6 +18,7 @@ import 'package:instru_connect/features/home/screens/home_cr.dart';
 import 'package:instru_connect/features/home/screens/home_faculty.dart';
 import 'package:instru_connect/features/home/screens/home_staff.dart';
 import 'package:instru_connect/features/home/screens/home_student.dart';
+import 'package:instru_connect/features/timetable/screens/timetable_screen.dart';
 import 'package:instru_connect/core/widgets/notification_bell.dart';
 import 'package:instru_connect/core/widgets/fade_slide_in.dart';
 
@@ -311,6 +312,20 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> {
                       gradient: UIColors.tileGradient(2),
                       onTap: () {
                         Navigator.pushNamed(context, Routes.resources);
+                      },
+                    ),
+                    AppActionTile(
+                      icon: Icons.edit_calendar_outlined,
+                      label: 'Manage Timetable',
+                      gradient: UIColors.tileGradient(3),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const TimetableScreen(showUploadAction: true),
+                          ),
+                        );
                       },
                     ),
                     AppActionTile(

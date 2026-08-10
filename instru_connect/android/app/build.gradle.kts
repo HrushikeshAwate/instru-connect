@@ -42,7 +42,7 @@ val releaseKeyPassword = signingProperty("keyPassword") ?: releaseStorePassword
 val releaseStoreType = signingProperty("storeType") ?: "pkcs12"
 
 android {
-    namespace = "com.example.instru_connect"
+    namespace = "com.instru.instruConnect"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -53,13 +53,13 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.instru_connect"
+        applicationId = "com.instru.instruConnect"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = flutter.versionCode 
+        versionName = flutter.versionName 
         resourceConfigurations += listOf("en")
-        manifestPlaceholders["appAuthRedirectScheme"] = "com.example.instru_connect"
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.instru.instruConnect"
     }
 
     packaging {

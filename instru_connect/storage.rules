@@ -29,6 +29,11 @@ service firebase.storage {
       allow delete: if isSignedIn() && canManageResourceContent();
     }
 
+    match /timetables/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && canManageResourceContent();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

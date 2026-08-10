@@ -29,6 +29,7 @@ import 'package:instru_connect/features/notices/services/notice_service.dart';
 import 'package:instru_connect/features/profile/services/achievement_service.dart';
 import 'package:instru_connect/features/profile/services/profile_service.dart';
 import 'package:instru_connect/features/resources/services/resource_service.dart';
+import 'package:instru_connect/features/timetable/services/timetable_service.dart';
 
 final firebaseAuthProvider = Provider<FirebaseAuth>(
   (ref) => FirebaseAuth.instance,
@@ -129,4 +130,8 @@ final profileServiceProvider = Provider<ProfileService>(
 
 final resourceServiceProvider = Provider<ResourceService>(
   (ref) => ResourceService(),
+);
+
+final timetableServiceProvider = Provider<TimetableService>(
+  (ref) => TimetableService(),
 );

@@ -13,7 +13,23 @@ import 'firebase_options.dart';
 import 'app.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _initializeFirebase();
+}
+
+Future<void> _initializeFirebase() async {
+  if (Firebase.apps.isNotEmpty) {
+    return;
+  }
+
+  try {
+    await Firebase.initializeApp(
+      options: kIsWeb ? DefaultFirebaseOptions.currentPlatform : null,
+    );
+  } on FirebaseException catch (error) {
+    if (error.code != 'duplicate-app') {
+      rethrow;
+    }
+  }
 }
 
 Future<void> _configureCrashReporting() async {
@@ -44,9 +60,7 @@ void main() async {
         DeviceOrientation.portraitUp,
         DeviceOrientation.portraitDown,
       ]);
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      await _initializeFirebase();
       await _configureCrashReporting();
 
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -65,7 +79,7 @@ void main() async {
       unawaited(container.read(pushNotificationServiceProvider).initialize());
     },
     (error, stack) {
-      if (!kIsWeb) {
+      if (!kIsWeb && Firebase.apps.isNotEmpty) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       }
     },

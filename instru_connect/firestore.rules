@@ -206,6 +206,11 @@ service cloud.firestore {
       allow delete: if isSignedIn() && canManageResourceContent();
     }
 
+    match /timetables/{timetableId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isFacultyLike();
+    }
+
     match /email_logs/{logId} {
       allow read, write: if isAdmin();
     }

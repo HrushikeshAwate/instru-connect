@@ -214,14 +214,15 @@ class HomeFaculty extends ConsumerWidget {
                       ),
                     ),
                     AppActionTile(
-                      icon: Icons.calendar_month_outlined,
-                      label: 'Timetable',
+                      icon: Icons.edit_calendar_outlined,
+                      label: 'Manage Timetable',
                       gradient: UIColors.tileGradient(5),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const TimetableScreen(),
+                            builder: (context) =>
+                                const TimetableScreen(showUploadAction: true),
                           ),
                         );
                       },

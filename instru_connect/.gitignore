@@ -39,6 +39,7 @@ ios/build/
 .env
 .env.*
 !/.env.example
+dart_defines.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 lib/config/firebase/firebase_options.dart
