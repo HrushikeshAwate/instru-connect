@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:instru_connect/core/demo/demo_account.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 
 class RoleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -21,7 +23,15 @@ class RoleService {
 
   /// Internal helper
   Future<void> _assignRole(String userId, String role) async {
+    DemoMode.ensureCanWrite();
+
     final userRef = _firestore.collection('users').doc(userId);
+    final userDoc = await userRef.get();
+    final targetEmail = userDoc.data()?['email']?.toString();
+
+    if (DemoAccount.isDemoEmail(targetEmail)) {
+      throw Exception('App Review Demo role cannot be changed.');
+    }
 
     await userRef.update({'role': role});
   }

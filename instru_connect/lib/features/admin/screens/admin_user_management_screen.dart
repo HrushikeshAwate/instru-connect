@@ -2,6 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/demo/demo_account.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/core/services/firestore/batch_services.dart'
@@ -299,6 +301,12 @@ class _UserCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentEmail = ref.watch(firebaseAuthProvider).currentUser?.email;
+    final isDemoSession = DemoAccount.isDemoEmail(currentEmail);
+    final isDemoTarget = DemoAccount.isDemoEmail(email);
+    final canManageRole = !isDemoSession && !isDemoTarget;
+    final hideUserDetails = DemoMode.isActive;
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -315,14 +323,17 @@ class _UserCard extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProfileScreen(userId: userId, readOnly: true),
-              ),
-            );
-          },
+          onTap: hideUserDetails
+              ? null
+              : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ProfileScreen(userId: userId, readOnly: true),
+                    ),
+                  );
+                },
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Row(
@@ -341,20 +352,25 @@ class _UserCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        name,
+                        hideUserDetails ? 'User' : name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        email,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                      if (!hideUserDetails) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.color,
+                              ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -371,16 +387,22 @@ class _UserCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'View profile',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ProfileScreen(userId: userId, readOnly: true),
-                          ),
-                        );
-                      },
+                      tooltip: hideUserDetails
+                          ? 'Hidden in App Review Demo'
+                          : 'View profile',
+                      onPressed: hideUserDetails
+                          ? null
+                          : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProfileScreen(
+                                    userId: userId,
+                                    readOnly: true,
+                                  ),
+                                ),
+                              );
+                            },
                       icon: const Icon(
                         Icons.visibility_outlined,
                         size: 20,
@@ -388,17 +410,25 @@ class _UserCard extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Manage role',
-                      onPressed: () {
-                        _showRoleDialog(
-                          context: context,
-                          roleService: ref.read(firestoreRoleServiceProvider),
-                          batchService: ref.read(firestoreBatchServiceProvider),
-                          userId: userId,
-                          currentRole: role,
-                          batchId: batchId,
-                        );
-                      },
+                      tooltip: canManageRole
+                          ? 'Manage role'
+                          : 'Role changes disabled for App Review Demo',
+                      onPressed: canManageRole
+                          ? () {
+                              _showRoleDialog(
+                                context: context,
+                                roleService: ref.read(
+                                  firestoreRoleServiceProvider,
+                                ),
+                                batchService: ref.read(
+                                  firestoreBatchServiceProvider,
+                                ),
+                                userId: userId,
+                                currentRole: role,
+                                batchId: batchId,
+                              );
+                            }
+                          : null,
                       icon: const Icon(
                         Icons.edit,
                         size: 18,

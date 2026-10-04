@@ -8,6 +8,7 @@ import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/session/current_user.dart';
 import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/complaints/screens/create_complaint_screen.dart';
+import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/home/screens/home_image_carousel.dart';
 import 'package:instru_connect/features/notices/models/notice_model.dart';
 import 'package:instru_connect/features/notices/screens/create_notice_screen.dart';
@@ -31,7 +32,7 @@ class HomeCr extends ConsumerWidget {
         .get();
     final batchName = (batchDoc.data()?['name'] ?? '').toString().trim();
     if (batchName.isEmpty) return 'CR';
-    return batchName;
+    return 'CR • $batchName';
   }
 
   @override
@@ -225,6 +226,17 @@ class HomeCr extends ConsumerWidget {
                       ),
                     ),
                     AppActionTile(
+                      icon: Icons.list_alt_outlined,
+                      label: 'My Complaints',
+                      gradient: UIColors.tileGradient(3),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ComplaintListScreen(),
+                        ),
+                      ),
+                    ),
+                    AppActionTile(
                       icon: Icons.calendar_month_outlined,
                       label: 'Event Calendar',
                       gradient: UIColors.tileGradient(4),
@@ -252,6 +264,13 @@ class HomeCr extends ConsumerWidget {
                       onTap: () {
                         Navigator.pushNamed(context, Routes.resources);
                       },
+                    ),
+                    AppActionTile(
+                      icon: Icons.work_outline_rounded,
+                      label: 'Career Links',
+                      gradient: UIColors.tileGradient(1),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.careerLinks),
                     ),
                   ],
                 ),

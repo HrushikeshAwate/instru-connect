@@ -22,6 +22,7 @@ import 'package:instru_connect/features/attendance/services/attendance_service.d
 import 'package:instru_connect/features/auth/domain/repositories/auth_repository.dart';
 import 'package:instru_connect/features/auth/domain/repositories/user_bootstrap_repository.dart';
 import 'package:instru_connect/features/batches/services/batch_service.dart';
+import 'package:instru_connect/features/career_links/services/career_links_service.dart';
 import 'package:instru_connect/features/complaints/services/complaint_service.dart';
 import 'package:instru_connect/features/events/services/events_service.dart';
 import 'package:instru_connect/features/legal/services/legal_acceptance_service.dart';
@@ -134,4 +135,8 @@ final resourceServiceProvider = Provider<ResourceService>(
 
 final timetableServiceProvider = Provider<TimetableService>(
   (ref) => TimetableService(),
+);
+
+final careerLinksServiceProvider = Provider<CareerLinksService>(
+  (ref) => CareerLinksService(),
 );

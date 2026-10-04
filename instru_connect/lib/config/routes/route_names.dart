@@ -16,6 +16,7 @@ class Routes {
   static const createNotice = '/createnotice';
   static const complaints = '/complaints';
   static const notifications = '/notifications';
+  static const careerLinks = '/career-links';
 
   // Resources
   static const resources = '/resources';

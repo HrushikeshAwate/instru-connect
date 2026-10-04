@@ -143,6 +143,13 @@ class HomeStaff extends StatelessWidget {
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
+                    AppActionTile(
+                      icon: Icons.work_outline_rounded,
+                      label: 'Career Links',
+                      gradient: UIColors.tileGradient(0),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.careerLinks),
+                    ),
                   ],
                 ),
 

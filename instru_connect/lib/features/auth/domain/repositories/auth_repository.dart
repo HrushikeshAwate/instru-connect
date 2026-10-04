@@ -7,7 +7,10 @@ abstract interface class AuthRepository {
 
   Future<void> signInWithMicrosoft();
 
-  Future<void> signInWithDemoMode();
+  Future<void> signInWithDemoMode({
+    required String id,
+    required String password,
+  });
 
   Future<void> signOut();
 }

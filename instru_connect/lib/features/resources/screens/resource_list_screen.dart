@@ -52,7 +52,6 @@ class _ResourceListScreenState extends ConsumerState<ResourceListScreen> {
       final normalizedRole = role.trim().toLowerCase();
       return _ResourceAccess(
         canAdd:
-            normalizedRole == AppRoles.cr ||
             normalizedRole == AppRoles.faculty ||
             normalizedRole == AppRoles.admin,
         canManage:

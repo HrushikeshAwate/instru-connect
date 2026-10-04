@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
 import '../models/event_model.dart';
@@ -20,6 +21,10 @@ class EventService {
   }
 
   Stream<Map<DateTime, List<EventModel>>> streamEvents() {
+    if (DemoMode.isActive) {
+      return Stream.value(const <DateTime, List<EventModel>>{});
+    }
+
     return _firestore.collection('events').orderBy('date').snapshots().map((
       snapshot,
     ) {
@@ -42,6 +47,8 @@ class EventService {
     required String details,
     required DateTime date,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final normalizedDate = _normalize(date);
     await _firestore.collection('events').add({
       'title': title,
@@ -66,6 +73,8 @@ class EventService {
     required String details,
     required DateTime date,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final normalizedDate = _normalize(date);
     await _firestore.collection('events').doc(eventId).update({
       'title': title,
@@ -93,6 +102,8 @@ class EventService {
   }
 
   Future<void> deleteEvent(String eventId) async {
+    DemoMode.ensureCanWrite();
+
     final snapshot = await _firestore.collection('events').doc(eventId).get();
     final data = snapshot.data() ?? <String, dynamic>{};
     final title = (data['title'] ?? 'Event').toString().trim();

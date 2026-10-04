@@ -15,12 +15,81 @@ service firebase.storage {
         : null;
     }
 
+    function roleMatches(pattern) {
+      return userRole() is string && userRole().matches(pattern);
+    }
+
+    function isFaculty() {
+      return roleMatches('^[fF][aA][cC][uU][lL][tT][yY]\\s*$');
+    }
+
+    function isAdmin() {
+      return roleMatches('^[aA][dD][mM][iI][nN]\\s*$');
+    }
+
+    function isCr() {
+      return roleMatches('^[cC][rR]\\s*$');
+    }
+
+    function isFacultyLike() {
+      return isFaculty() || isAdmin();
+    }
+
     function canCreateResourceContent() {
-      return userRole() in ['cr', 'CR', 'faculty', 'Faculty', 'admin', 'Admin'];
+      return isFacultyLike();
     }
 
     function canManageResourceContent() {
-      return userRole() in ['faculty', 'Faculty', 'admin', 'Admin'];
+      return isFacultyLike();
+    }
+
+    function canCreateComplaintContent() {
+      return userRole() in [
+        'student',
+        'Student',
+        'cr',
+        'CR',
+        'faculty',
+        'Faculty',
+        'staff',
+        'Staff',
+      ];
+    }
+
+    function isStaff() {
+      return userRole() in ['staff', 'Staff'];
+    }
+
+    function complaintDocPath(complaintId) {
+      return /databases/(default)/documents/complaints/$(complaintId);
+    }
+
+    function complaintExists(complaintId) {
+      return firestore.exists(complaintDocPath(complaintId));
+    }
+
+    function complaintData(complaintId) {
+      return firestore.get(complaintDocPath(complaintId)).data;
+    }
+
+    function canAccessComplaintAttachment(complaintId) {
+      return isSignedIn()
+        && complaintExists(complaintId)
+        && (isFacultyLike()
+          || isStaff()
+          || complaintData(complaintId).createdBy == request.auth.uid
+          || complaintData(complaintId).assignedTo == request.auth.uid);
+    }
+
+    function isImageOrVideo() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/.*|video/.*');
+    }
+
+    function isReasonableComplaintAttachment() {
+      return request.resource != null
+        && request.resource.size < 25 * 1024 * 1024
+        && isImageOrVideo();
     }
 
     match /resources/{allPaths=**} {
@@ -32,6 +101,17 @@ service firebase.storage {
     match /timetables/{allPaths=**} {
       allow read: if isSignedIn();
       allow create, update, delete: if isSignedIn() && canManageResourceContent();
+    }
+
+    match /complaints_media/{complaintId}/{fileName} {
+      allow read: if canAccessComplaintAttachment(complaintId);
+      allow create, update: if isSignedIn()
+        && canCreateComplaintContent()
+        && complaintExists(complaintId)
+        && complaintData(complaintId).createdBy == request.auth.uid
+        && isReasonableComplaintAttachment();
+      allow delete: if canAccessComplaintAttachment(complaintId)
+        && isFacultyLike();
     }
 
     match /{allPaths=**} {

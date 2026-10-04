@@ -14,7 +14,7 @@
             "android": {
                 "default": {
                     "projectId": "instru-connect",
-                    "appId": "1:686129163312:android:40c42471f3b719edcf51f5",
+                    "appId": "1:686129163312:android:239d2de4fb7613a4cf51f5",
                     "fileOutput": "android/app/google-services.json"
                 }
             },

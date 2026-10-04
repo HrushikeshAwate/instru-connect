@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/constants/firestore_collections.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
 import 'package:instru_connect/core/session/current_user.dart';
 import 'package:instru_connect/core/utils/batch_ordering.dart';
@@ -22,6 +23,10 @@ class NoticeService {
     DocumentSnapshot? lastDocument,
     int limit = 10,
   }) async {
+    if (DemoMode.isActive) {
+      return _notices.where(FieldPath.documentId, isEqualTo: '__demo__').get();
+    }
+
     Query<Map<String, dynamic>> query = _notices
         .orderBy('createdAt', descending: true)
         .limit(limit);
@@ -34,6 +39,8 @@ class NoticeService {
   }
 
   Stream<List<Notice>> streamNotices({int? limit}) {
+    if (DemoMode.isActive) return Stream.value(const <Notice>[]);
+
     Query<Map<String, dynamic>> query = _notices.orderBy(
       'createdAt',
       descending: true,
@@ -49,6 +56,8 @@ class NoticeService {
   }
 
   Future<Notice?> fetchNoticeById(String noticeId) async {
+    if (DemoMode.isActive) return null;
+
     final snapshot = await _notices.doc(noticeId).get();
     if (!snapshot.exists) {
       return null;
@@ -57,6 +66,8 @@ class NoticeService {
   }
 
   Future<List<Map<String, String>>> fetchBatchOptions() async {
+    if (DemoMode.isActive) return const [];
+
     final snapshot = await _firestore
         .collection('batches')
         .where('isActive', isEqualTo: true)
@@ -80,6 +91,7 @@ class NoticeService {
   }
 
   Future<List<String>> fetchOrderedBatchNames(List<String> batchIds) async {
+    if (DemoMode.isActive) return const [];
     if (batchIds.isEmpty) return const [];
     await _ensureBatchCache();
 
@@ -91,6 +103,11 @@ class NoticeService {
   }
 
   Future<void> _ensureBatchCache() async {
+    if (DemoMode.isActive) {
+      _batchNameCache = const {};
+      return;
+    }
+
     if (_batchNameCache != null) return;
 
     final snapshot = await _firestore.collection('batches').get();
@@ -106,6 +123,8 @@ class NoticeService {
     required String departmentId,
     required List<String> batchIds,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('You must be signed in to create a notice.');
@@ -165,6 +184,8 @@ class NoticeService {
   }
 
   Future<List<Notice>> fetchRecentNotices({int limit = 3}) async {
+    if (DemoMode.isActive) return const [];
+
     final snapshot = await _notices
         .orderBy('createdAt', descending: true)
         .limit(limit)
@@ -177,17 +198,23 @@ class NoticeService {
     required String noticeId,
     required String attachmentUrl,
   }) async {
+    DemoMode.ensureCanWrite();
+
     await _notices.doc(noticeId).update({
       'attachments': FieldValue.arrayUnion([attachmentUrl]),
     });
   }
 
   bool canDeleteNotice(Notice notice) {
+    if (DemoMode.isActive) return false;
+
     final role = (CurrentUser.role ?? '').toLowerCase();
     return role == AppRoles.admin || role == AppRoles.faculty;
   }
 
   Future<void> deleteNotice(String noticeId) async {
+    DemoMode.ensureCanWrite();
+
     final doc = await _notices.doc(noticeId).get();
     if (!doc.exists) {
       return;
@@ -207,6 +234,8 @@ class NoticeService {
   }
 
   Future<void> deleteNotices(List<String> noticeIds) async {
+    DemoMode.ensureCanWrite();
+
     final role = (CurrentUser.role ?? '').toLowerCase();
     if (role != AppRoles.admin && role != AppRoles.faculty) {
       throw Exception('You are not allowed to delete notices.');

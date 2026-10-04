@@ -347,6 +347,13 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> {
                       onTap: () =>
                           Navigator.pushNamed(context, Routes.eventCalendar),
                     ),
+                    AppActionTile(
+                      icon: Icons.work_outline_rounded,
+                      label: 'Career Links',
+                      gradient: UIColors.tileGradient(2),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.careerLinks),
+                    ),
                   ],
                 ),
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:instru_connect/core/services/push_notification_service.dart';
 
 class NotificationService {
@@ -12,6 +13,10 @@ class NotificationService {
       _db.collection('notifications');
 
   Stream<List<Map<String, dynamic>>> streamUserNotifications(String uid) {
+    if (DemoMode.isActive) {
+      return Stream.value(const <Map<String, dynamic>>[]);
+    }
+
     _scheduleExpiredNotificationPurge(uid: uid);
     return _notifications
         .where('uid', isEqualTo: uid)
@@ -30,6 +35,10 @@ class NotificationService {
   }
 
   Stream<NotificationCounter> streamUserNotificationCounter(String uid) {
+    if (DemoMode.isActive) {
+      return Stream.value(const NotificationCounter(total: 0, unread: 0));
+    }
+
     _scheduleExpiredNotificationPurge(uid: uid);
     return _notifications.where('uid', isEqualTo: uid).snapshots().map((
       snapshot,
@@ -53,6 +62,8 @@ class NotificationService {
     required String type,
     Map<String, dynamic>? data,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final deleteAt = Timestamp.fromDate(DateTime.now().add(_notificationTtl));
 
     await _notifications.add({
@@ -79,10 +90,14 @@ class NotificationService {
   }
 
   Future<void> markRead(String notificationId) async {
+    DemoMode.ensureCanWrite();
+
     await _notifications.doc(notificationId).update({'isRead': true});
   }
 
   Future<void> markAllReadForUser(String uid) async {
+    if (DemoMode.isActive) return;
+
     final snapshot = await _notifications
         .where('uid', isEqualTo: uid)
         .where('isRead', isEqualTo: false)
@@ -107,10 +122,14 @@ class NotificationService {
   }
 
   Future<void> deleteNotification(String notificationId) async {
+    DemoMode.ensureCanWrite();
+
     await _notifications.doc(notificationId).delete();
   }
 
   Future<void> clearAllForUser(String uid) async {
+    DemoMode.ensureCanWrite();
+
     final snapshot = await _notifications.where('uid', isEqualTo: uid).get();
 
     if (snapshot.docs.isEmpty) return;
@@ -132,6 +151,8 @@ class NotificationService {
   }
 
   Future<void> deleteNotificationsForNotice(String noticeId) async {
+    DemoMode.ensureCanWrite();
+
     final snapshot = await _notifications
         .where('noticeId', isEqualTo: noticeId)
         .get();
@@ -164,6 +185,8 @@ class NotificationService {
   }
 
   Future<void> purgeExpiredNotifications({String? uid}) async {
+    if (DemoMode.isActive) return;
+
     final currentUid = uid ?? FirebaseAuth.instance.currentUser?.uid;
     if (currentUid == null) return;
 
@@ -175,7 +198,10 @@ class NotificationService {
           .where('deleteAt', isLessThanOrEqualTo: cutoff)
           .get();
     } on FirebaseException catch (error) {
-      if (error.code == 'permission-denied') return;
+      if (error.code == 'permission-denied' ||
+          error.code == 'failed-precondition') {
+        return;
+      }
       rethrow;
     }
 
@@ -204,6 +230,8 @@ class NotificationService {
     required String type,
     Map<String, dynamic>? data,
   }) async {
+    DemoMode.ensureCanWrite();
+
     if (uids.isEmpty) return;
     final deleteAt = Timestamp.fromDate(DateTime.now().add(_notificationTtl));
 
@@ -241,6 +269,8 @@ class NotificationService {
   Future<List<String>> fetchStudentCrUidsByBatchIds(
     List<String> batchIds,
   ) async {
+    if (DemoMode.isActive) return const [];
+
     final uids = <String>{};
     for (final batchId in batchIds) {
       final snapshot = await _db
@@ -256,6 +286,8 @@ class NotificationService {
   }
 
   Future<List<String>> fetchAllStudentCrUids() async {
+    if (DemoMode.isActive) return const [];
+
     final snapshot = await _db
         .collection('users')
         .where('role', whereIn: ['student', 'cr'])
@@ -265,6 +297,8 @@ class NotificationService {
   }
 
   Future<List<String>> fetchUidsByRoles(List<String> roles) async {
+    if (DemoMode.isActive) return const [];
+
     if (roles.isEmpty) return const [];
 
     final snapshot = await _db
@@ -276,6 +310,8 @@ class NotificationService {
   }
 
   Future<List<String>> fetchAllUserUids() async {
+    if (DemoMode.isActive) return const [];
+
     final snapshot = await _db.collection('users').get();
     return snapshot.docs.map((d) => d.id).toList();
   }

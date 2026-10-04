@@ -11,6 +11,9 @@ class ResourceModel {
   final String fileType;
   final String uploadedBy;
   final String uploadedByUid;
+  final String batchId;
+  final String batchName;
+  final int academicYear;
   final DateTime createdAt;
 
   ResourceModel({
@@ -24,6 +27,9 @@ class ResourceModel {
     required this.fileType,
     required this.uploadedBy,
     required this.uploadedByUid,
+    required this.batchId,
+    required this.batchName,
+    required this.academicYear,
     required this.createdAt,
   });
 
@@ -39,6 +45,9 @@ class ResourceModel {
       fileType: data['fileType'] ?? 'unknown',
       uploadedBy: data['uploadedBy'] ?? '',
       uploadedByUid: data['uploadedByUid'] ?? '',
+      batchId: data['batchId'] ?? '',
+      batchName: data['batchName'] ?? '',
+      academicYear: (data['academicYear'] as num?)?.toInt() ?? 0,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

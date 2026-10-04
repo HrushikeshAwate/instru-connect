@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instru_connect/features/admin/screens/admin_dashboard.dart';
 import 'package:instru_connect/features/batches/screens/manage_batches_screen.dart';
+import 'package:instru_connect/features/career_links/screens/career_links_screen.dart';
 import 'package:instru_connect/features/complaints/screens/complaint_list_screen.dart';
 import 'package:instru_connect/features/events/screens/event_calendar_screen.dart';
 import 'package:instru_connect/features/home/screens/home_staff.dart';
@@ -35,6 +36,7 @@ class AppRouter {
         routeName == Routes.createNotice ||
         routeName == Routes.eventCalendar ||
         routeName == Routes.complaints ||
+        routeName == Routes.careerLinks ||
         routeName == Routes.notifications ||
         routeName == Routes.resources ||
         routeName == Routes.resourceDetail ||
@@ -81,6 +83,9 @@ class AppRouter {
 
       case Routes.complaints:
         return MaterialPageRoute(builder: (_) => const ComplaintListScreen());
+
+      case Routes.careerLinks:
+        return MaterialPageRoute(builder: (_) => const CareerLinksScreen());
 
       case Routes.notifications:
         return MaterialPageRoute(builder: (_) => const NotificationsScreen());

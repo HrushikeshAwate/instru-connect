@@ -20,16 +20,21 @@ service cloud.firestore {
       return userData() != null ? userData().role : null;
     }
 
+    function roleMatches(pattern) {
+      return userRole() is string && userRole().matches(pattern);
+    }
+
     function isStudent() {
-      return userRole() == 'student' || userRole() == 'cr';
+      return roleMatches('^[sS][tT][uU][dD][eE][nN][tT]\\s*$')
+        || roleMatches('^[cC][rR]\\s*$');
     }
 
     function isFaculty() {
-      return userRole() == 'faculty';
+      return roleMatches('^[fF][aA][cC][uU][lL][tT][yY]\\s*$');
     }
 
     function isAdmin() {
-      return userRole() == 'admin';
+      return roleMatches('^[aA][dD][mM][iI][nN]\\s*$');
     }
 
     function isFacultyLike() {
@@ -37,15 +42,15 @@ service cloud.firestore {
     }
 
     function canCreateResourceContent() {
-      return userRole() in ['cr', 'CR', 'faculty', 'Faculty', 'admin', 'Admin'];
+      return isFacultyLike();
     }
 
     function canManageResourceContent() {
-      return userRole() in ['faculty', 'Faculty', 'admin', 'Admin'];
+      return isFacultyLike();
     }
 
     function canManageAttendance() {
-      return isFaculty() || isAdmin() || userRole() == 'cr';
+      return isFaculty() || isAdmin() || roleMatches('^[cC][rR]\\s*$');
     }
 
     function canEditAttendance() {
@@ -54,7 +59,7 @@ service cloud.firestore {
 
     function canManageOwnNotice(resourceData) {
       return isSignedIn()
-        && (isFaculty() || userRole() == 'cr')
+        && (isFaculty() || roleMatches('^[cC][rR]\\s*$'))
         && resourceData.createdBy == request.auth.uid;
     }
 
@@ -74,10 +79,20 @@ service cloud.firestore {
     }
 
     function isValidComplaintCreatorRole() {
-      return userRole() == 'student'
-        || userRole() == 'cr'
-        || userRole() == 'faculty'
-        || userRole() == 'staff';
+      return isStudent()
+        || isFaculty()
+        || roleMatches('^[sS][tT][aA][fF][fF]\\s*$');
+    }
+
+    function requestRoleMatchesUserRole() {
+      return (request.resource.data.createdByRole == 'student'
+          && roleMatches('^[sS][tT][uU][dD][eE][nN][tT]\\s*$'))
+        || (request.resource.data.createdByRole == 'cr'
+          && roleMatches('^[cC][rR]\\s*$'))
+        || (request.resource.data.createdByRole == 'faculty'
+          && isFaculty())
+        || (request.resource.data.createdByRole == 'staff'
+          && roleMatches('^[sS][tT][aA][fF][fF]\\s*$'));
     }
 
     function complaintOwnerCanOnlyAttachMedia() {
@@ -158,13 +173,13 @@ service cloud.firestore {
 
     match /complaints/{complaintId} {
       allow read: if isFacultyLike()
-        || userRole() == 'staff'
+        || roleMatches('^[sS][tT][aA][fF][fF]\\s*$')
         || isComplaintOwner(resource.data);
 
       allow create: if isSignedIn()
         && isValidComplaintCreatorRole()
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.createdByRole == userRole()
+        && requestRoleMatchesUserRole()
         && request.resource.data.status == 'submitted'
         && request.resource.data.assignedTo == null
         && request.resource.data.assignedRole == null
@@ -190,8 +205,16 @@ service cloud.firestore {
       allow create, update, delete: if isSignedIn() && isFacultyLike();
     }
 
-    match /resources/{resourceId} {
+    match /careerLinks/{linkDocId} {
       allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+
+    match /resources/{resourceId} {
+      allow read: if isSignedIn()
+        && (isFacultyLike()
+          || (resource.data.batchId == userData().batchId
+            && resource.data.academicYear == userData().academicYear));
       allow create: if isSignedIn()
         && canCreateResourceContent()
         && request.resource.data.uploadedByUid == request.auth.uid;
@@ -209,6 +232,11 @@ service cloud.firestore {
     match /timetables/{timetableId} {
       allow read: if isSignedIn();
       allow create, update, delete: if isSignedIn() && isFacultyLike();
+
+      match /cells/{cellId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isSignedIn() && isFacultyLike();
+      }
     }
 
     match /email_logs/{logId} {

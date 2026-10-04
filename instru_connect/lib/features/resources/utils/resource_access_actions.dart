@@ -8,21 +8,12 @@ Future<void> previewResourceFile({
   required String fileType,
 }) async {
   final fileUri = Uri.parse(fileUrl);
-  final previewUri = Uri.https('docs.google.com', '/gview', {
-    'embedded': 'true',
-    'url': fileUrl,
-  });
-  final uri = canUseDocumentPreview(fileType) ? previewUri : fileUri;
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
+  await launchUrl(fileUri, mode: LaunchMode.externalApplication);
 }
 
 Future<void> downloadResourceFile(String fileUrl) async {
   final uri = Uri.parse(fileUrl);
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
 Future<void> copyTextWithMessage({
@@ -40,14 +31,4 @@ Future<void> shareResourceLinks({
   required String subject,
 }) async {
   await SharePlus.instance.share(ShareParams(text: text, subject: subject));
-}
-
-bool canUseDocumentPreview(String fileType) {
-  final type = fileType.toLowerCase();
-  return type == 'pdf' ||
-      type == 'doc' ||
-      type == 'docx' ||
-      type == 'ppt' ||
-      type == 'pptx' ||
-      type == 'txt';
 }

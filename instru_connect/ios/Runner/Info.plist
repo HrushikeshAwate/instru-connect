@@ -40,8 +40,15 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>http</string>
+		<string>https</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to the camera to capture images for complaints.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app may use your location to enhance your experience.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to the microphone to record videos for complaints.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

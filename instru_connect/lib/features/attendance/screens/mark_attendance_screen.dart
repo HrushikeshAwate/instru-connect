@@ -36,6 +36,8 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
   bool _isSaving = false;
   bool _hasInitialized = false;
   String _searchQuery = '';
+  final Map<String, String> _profileMisByUid = {};
+  String? _loadedProfileBatchId;
 
   @override
   void initState() {
@@ -50,8 +52,8 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
     final aData = a.data() as Map<String, dynamic>;
     final bData = b.data() as Map<String, dynamic>;
 
-    final aMis = (aData['MIS No'] ?? aData['mis'] ?? '').toString().trim();
-    final bMis = (bData['MIS No'] ?? bData['mis'] ?? '').toString().trim();
+    final aMis = _misForDocument(a.id, aData);
+    final bMis = _misForDocument(b.id, bData);
     final aName = (aData['Name'] ?? aData['name'] ?? '').toString().trim();
     final bName = (bData['Name'] ?? bData['name'] ?? '').toString().trim();
 
@@ -59,7 +61,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
     final bHasMis = bMis.isNotEmpty;
 
     if (aHasMis && bHasMis) {
-      final misCompare = aMis.toLowerCase().compareTo(bMis.toLowerCase());
+      final misCompare = _compareMis(aMis, bMis);
       if (misCompare != 0) return misCompare;
     } else if (aHasMis != bHasMis) {
       return aHasMis ? -1 : 1;
@@ -71,10 +73,62 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
     return a.id.compareTo(b.id);
   }
 
+  String _misForDocument(String uid, Map<String, dynamic> data) {
+    final profileMis = _profileMisByUid[uid];
+    if (profileMis != null && profileMis.isNotEmpty) return profileMis;
+    return (data['misNo'] ?? data['MIS No'] ?? data['mis'] ?? '')
+        .toString()
+        .trim();
+  }
+
+  int _compareMis(String first, String second) {
+    final firstNumber = int.tryParse(first);
+    final secondNumber = int.tryParse(second);
+    if (firstNumber != null && secondNumber != null) {
+      return firstNumber.compareTo(secondNumber);
+    }
+    return first.toLowerCase().compareTo(second.toLowerCase());
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<String> _resolveProfileMis(String uid, String fallback) async {
+    final profile = await ref
+        .read(firebaseFirestoreProvider)
+        .collection('profiles')
+        .doc(uid)
+        .get();
+    final misNo = (profile.data()?['misNo'] ?? '').toString().trim();
+    return misNo.isNotEmpty ? misNo : fallback;
+  }
+
+  Future<void> _loadProfileMis(
+    String batchId,
+    List<QueryDocumentSnapshot<Object?>> docs,
+  ) async {
+    if (_loadedProfileBatchId == batchId) return;
+    _loadedProfileBatchId = batchId;
+    final profileEntries = await Future.wait(
+      docs.map((doc) async {
+        final profile = await ref
+            .read(firebaseFirestoreProvider)
+            .collection('profiles')
+            .doc(doc.id)
+            .get();
+        final mis = (profile.data()?['misNo'] ?? '').toString().trim();
+        return MapEntry(doc.id, mis);
+      }),
+    );
+    if (!mounted) return;
+    setState(() {
+      for (final entry in profileEntries) {
+        if (entry.value.isNotEmpty) _profileMisByUid[entry.key] = entry.value;
+      }
+    });
   }
 
   Future<void> _handleSave() async {
@@ -157,6 +211,10 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                 final docs = snapshot.data!.docs.toList()
                   ..sort(_compareStudents);
 
+                if (_loadedProfileBatchId != widget.batchId) {
+                  _loadProfileMis(widget.batchId, docs);
+                }
+
                 if (!_hasInitialized) {
                   for (final doc in docs) {
                     absentStatus[doc.id] =
@@ -173,9 +231,7 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                   final name = (data['Name'] ?? data['name'] ?? '')
                       .toString()
                       .toLowerCase();
-                  final mis = (data['MIS No'] ?? data['mis'] ?? '')
-                      .toString()
-                      .toLowerCase();
+                  final mis = _misForDocument(doc.id, data).toLowerCase();
                   return name.contains(query) || mis.contains(query);
                 }).toList();
 
@@ -395,16 +451,22 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
                                         final isAbsent =
                                             absentStatus[uid] ?? false;
 
+                                        final fallbackMis =
+                                            (data['misNo'] ??
+                                                    data['MIS No'] ??
+                                                    data['mis'] ??
+                                                    '')
+                                                .toString();
+
                                         return _StudentCard(
                                           name:
                                               data['Name'] ??
                                               data['name'] ??
                                               'Unknown',
-                                          mis:
-                                              (data['MIS No'] ??
-                                                      data['mis'] ??
-                                                      'N/A')
-                                                  .toString(),
+                                          misFuture: _resolveProfileMis(
+                                            uid,
+                                            fallbackMis,
+                                          ),
                                           isAbsent: isAbsent,
                                           onTap: () {
                                             setState(() {
@@ -471,13 +533,13 @@ class _MarkAttendanceScreenState extends ConsumerState<MarkAttendanceScreen> {
 
 class _StudentCard extends StatelessWidget {
   final String name;
-  final String mis;
+  final Future<String> misFuture;
   final bool isAbsent;
   final VoidCallback onTap;
 
   const _StudentCard({
     required this.name,
-    required this.mis,
+    required this.misFuture,
     required this.isAbsent,
     required this.onTap,
   });
@@ -530,21 +592,28 @@ class _StudentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    FutureBuilder<String>(
+                      future: misFuture,
+                      builder: (context, snapshot) {
+                        return Text(
+                          snapshot.data ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 4),
                     Text(
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'MIS: $mis',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(
+                          alpha: 0.72,
+                        ),
                       ),
                     ),
                   ],

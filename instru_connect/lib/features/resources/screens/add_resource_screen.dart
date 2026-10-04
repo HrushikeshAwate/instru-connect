@@ -37,6 +37,34 @@ class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
     super.initState();
     _resourceService = ref.read(resourceServiceProvider);
     _roleService = ref.read(firestoreRoleServiceProvider);
+    _batchesFuture = _loadBatches();
+  }
+
+  late final Future<List<_BatchOption>> _batchesFuture;
+  String? _selectedBatchId;
+  _BatchOption? _selectedBatch;
+
+  Future<List<_BatchOption>> _loadBatches() async {
+    final snapshot = await ref
+        .read(firebaseFirestoreProvider)
+        .collection('batches')
+        .get();
+    final batches = snapshot.docs
+        .map((doc) {
+          final data = doc.data();
+          return _BatchOption(
+            id: doc.id,
+            name: (data['name'] ?? doc.id).toString(),
+            academicYear: (data['currentYear'] as num?)?.toInt() ?? 0,
+          );
+        })
+        .where((batch) => batch.academicYear > 0)
+        .toList();
+    batches.sort((a, b) {
+      final yearCompare = a.academicYear.compareTo(b.academicYear);
+      return yearCompare != 0 ? yearCompare : a.name.compareTo(b.name);
+    });
+    return batches;
   }
 
   @override
@@ -65,7 +93,6 @@ class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
         'png',
       ],
     );
-
     if (result != null && result.files.single.path != null) {
       setState(() {
         _selectedFile = File(result.files.single.path!);
@@ -96,11 +123,11 @@ class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
 
       if (role.isEmpty) throw Exception('User role not found');
       final normalizedRole = role.trim().toLowerCase();
-      if (normalizedRole != 'cr' &&
-          normalizedRole != 'faculty' &&
-          normalizedRole != 'admin') {
+      if (normalizedRole != 'faculty' && normalizedRole != 'admin') {
         throw Exception('You are not allowed to add resources.');
       }
+      final batch = _selectedBatch;
+      if (batch == null) throw Exception('Please select a batch.');
 
       await _resourceService.addResource(
         title: _titleCtrl.text.trim(),
@@ -110,6 +137,9 @@ class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
         file: _selectedFile!,
         role: role,
         uid: user.uid,
+        batchId: batch.id,
+        batchName: batch.name,
+        academicYear: batch.academicYear,
       );
 
       if (mounted) Navigator.pop(context);
@@ -212,6 +242,50 @@ class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
                                   hintText: 'Example: Control Systems',
                                 ),
                                 textCapitalization: TextCapitalization.words,
+                              ),
+                              const SizedBox(height: 12),
+
+                              FutureBuilder<List<_BatchOption>>(
+                                future: _batchesFuture,
+                                builder: (context, snapshot) {
+                                  final batches = snapshot.data ?? const [];
+                                  return DropdownButtonFormField<String>(
+                                    initialValue:
+                                        batches.any(
+                                          (batch) =>
+                                              batch.id == _selectedBatchId,
+                                        )
+                                        ? _selectedBatchId
+                                        : null,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Year and Batch *',
+                                      helperText:
+                                          'Students see resources assigned to their batch',
+                                    ),
+                                    items: batches
+                                        .map(
+                                          (batch) => DropdownMenuItem(
+                                            value: batch.id,
+                                            child: Text(
+                                              '${_yearLabel(batch.academicYear)} • ${batch.name}',
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: _loading
+                                        ? null
+                                        : (value) {
+                                            final batch = batches.firstWhere(
+                                              (item) => item.id == value,
+                                            );
+                                            setState(() {
+                                              _selectedBatchId = value;
+                                              _selectedBatch = batch;
+                                            });
+                                          },
+                                  );
+                                },
                               ),
                               const SizedBox(height: 12),
 
@@ -326,6 +400,33 @@ class _AddResourceScreenState extends ConsumerState<AddResourceScreen> {
         ],
       ),
     );
+  }
+}
+
+class _BatchOption {
+  const _BatchOption({
+    required this.id,
+    required this.name,
+    required this.academicYear,
+  });
+
+  final String id;
+  final String name;
+  final int academicYear;
+}
+
+String _yearLabel(int year) {
+  switch (year) {
+    case 1:
+      return 'FY';
+    case 2:
+      return 'SY';
+    case 3:
+      return 'TY';
+    case 4:
+      return 'Fourth Year';
+    default:
+      return 'Year $year';
   }
 }
 

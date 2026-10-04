@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 
 import '../../../config/theme/ui_colors.dart';
 import '../../../core/providers/app_providers.dart';
@@ -28,6 +29,7 @@ class _AssignBatchToStudentsScreenState
     final theme = Theme.of(context);
     final firestore = ref.watch(firebaseFirestoreProvider);
     final batchService = ref.watch(batchServiceProvider);
+    final hideUserDetails = DemoMode.isActive;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -357,10 +359,16 @@ class _AssignBatchToStudentsScreenState
                                         .toString();
 
                                     return _StudentCard(
-                                      name: _getStudentName(data),
-                                      email: (data['email'] ?? '').toString(),
-                                      mis: (data['MIS No'] ?? data['mis'] ?? '')
-                                          .toString(),
+                                      name: hideUserDetails
+                                          ? 'Student'
+                                          : _getStudentName(data),
+                                      email: hideUserDetails
+                                          ? ''
+                                          : (data['email'] ?? '').toString(),
+                                      mis: hideUserDetails
+                                          ? ''
+                                          : (data['MIS No'] ?? data['mis'] ?? '')
+                                                .toString(),
                                       currentBatch: batchNameById[batchId],
                                       assigned: batchId.isNotEmpty,
                                       selected: selected,
@@ -428,6 +436,7 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideUserDetails = DemoMode.isActive;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -453,9 +462,9 @@ class _StudentCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(email),
-            if (mis.isNotEmpty) Text('MIS: $mis'),
-            const SizedBox(height: 4),
+            if (!hideUserDetails && email.isNotEmpty) Text(email),
+            if (!hideUserDetails && mis.isNotEmpty) Text('MIS: $mis'),
+            if (!hideUserDetails) const SizedBox(height: 4),
             Text(
               assigned
                   ? 'Current batch: ${currentBatch ?? 'Assigned'}'

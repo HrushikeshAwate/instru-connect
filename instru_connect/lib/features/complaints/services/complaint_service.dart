@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
 import 'package:instru_connect/core/session/current_user.dart';
@@ -53,7 +54,7 @@ class ComplaintService {
       'status': 'submitted',
       'progressNote': null,
       'createdBy': createdBy,
-      'createdByRole': createdByRole,
+      'createdByRole': normalizedRole,
       'isAnonymous': isAnonymous,
       'assignedTo': null,
       'assignedRole': null,
@@ -66,17 +67,24 @@ class ComplaintService {
       'lastUpdatedAt': FieldValue.serverTimestamp(),
     });
 
-    await _activityNotifications.notifyAdminsAndFaculty(
-      title: 'New Complaint Submitted',
-      body: title,
-      type: 'complaint_created',
-      data: {
-        'complaintId': docRef.id,
-        'category': category,
-        'createdBy': createdBy,
-        'createdByRole': createdByRole,
-      },
-    );
+    try {
+      await _activityNotifications.notifyAdminsAndFaculty(
+        title: 'New Complaint Submitted',
+        body: title,
+        type: 'complaint_created',
+        data: {
+          'complaintId': docRef.id,
+          'category': category,
+          'createdBy': createdBy,
+          'createdByRole': normalizedRole,
+        },
+      );
+    } on FirebaseException catch (error) {
+      debugPrint(
+        'Complaint created but complaint notification fan-out failed: '
+        '${error.code} ${error.message}',
+      );
+    }
 
     return docRef;
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/widgets/app_ui.dart';
 import 'package:instru_connect/features/attendance/screens/attendance_history_screen.dart';
@@ -47,6 +48,7 @@ class SubjectDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hideUserDetails = DemoMode.isActive;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
@@ -149,8 +151,8 @@ class SubjectDetailScreen extends ConsumerWidget {
                           final bool low = percentage < 75 && total > 0;
 
                           return _StudentAttendanceCard(
-                            name: name,
-                            mis: mis,
+                            name: hideUserDetails ? 'Student' : name,
+                            mis: hideUserDetails ? '' : mis,
                             attended: attended,
                             total: total,
                             percentage: percentage,
@@ -212,6 +214,7 @@ class _StudentAttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = isLow ? UIColors.error : UIColors.success;
+    final hideUserDetails = DemoMode.isActive;
 
     return Container(
       decoration: BoxDecoration(
@@ -246,13 +249,15 @@ class _StudentAttendanceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 6),
-                  Text(
-                    'MIS: $mis',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                  if (!hideUserDetails && mis.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'MIS: $mis',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 6),
                   Text(
                     '$attended / $total classes attended',

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:instru_connect/core/services/session_cache_service.dart';
 import 'package:instru_connect/features/auth/domain/repositories/auth_repository.dart';
@@ -46,37 +47,37 @@ class AuthService implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithDemoMode() async {
+  Future<void> signInWithDemoMode({
+    required String id,
+    required String password,
+  }) async {
     await _safeSignOut();
 
     try {
+      final email = _demoEmailForId(id);
       final credential = await _auth.signInWithEmailAndPassword(
-        email: DemoAccount.email,
-        password: DemoAccount.password,
+        email: email,
+        password: password,
       );
       await _prepareDemoUserProfile(credential.user);
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-        try {
-          final credential = await _auth.createUserWithEmailAndPassword(
-            email: DemoAccount.email,
-            password: DemoAccount.password,
-          );
-          await _prepareDemoUserProfile(credential.user);
-          return;
-        } on FirebaseAuthException catch (createError) {
-          throw FirebaseAuthException(
-            code: createError.code,
-            message: _friendlyDemoSignInMessage(createError),
-          );
-        }
-      }
-
       throw FirebaseAuthException(
         code: e.code,
         message: _friendlyDemoSignInMessage(e),
       );
     }
+  }
+
+  String _demoEmailForId(String id) {
+    final normalized = id.trim().toLowerCase();
+    if (normalized == DemoAccount.email || normalized == DemoAccount.misNo) {
+      return DemoAccount.email;
+    }
+
+    throw FirebaseAuthException(
+      code: 'invalid-demo-id',
+      message: 'Enter the valid demo account ID or email.',
+    );
   }
 
   Future<void> _prepareDemoUserProfile(User? user) async {
@@ -105,10 +106,10 @@ class AuthService implements AuthRepository {
     switch (e.code) {
       case 'operation-not-allowed':
         return 'Demo Mode needs Email/Password sign-in enabled in Firebase Authentication.';
-      case 'email-already-in-use':
+      case 'user-not-found':
       case 'invalid-credential':
       case 'wrong-password':
-        return 'The demo account exists but the demo password does not match. Update the Firebase Auth user password to ${DemoAccount.password}.';
+        return 'Invalid demo ID or password.';
       case 'network-request-failed':
         return 'Demo Mode could not reach Firebase. Please check your internet connection and try again.';
       default:
@@ -144,7 +145,7 @@ class AuthService implements AuthRepository {
       }
 
       return credential;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stackTrace) {
       if (_isMissingInitialStateText(e.message ?? '') ||
           _isMissingInitialStateText(e.code)) {
         await _safeSignOut();
@@ -159,9 +160,17 @@ class AuthService implements AuthRepository {
         return _signInWithMicrosoftInternal(retryOnRecoverableFailure: false);
       }
 
+      await FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'Microsoft sign-in failed: ${e.code}',
+        fatal: false,
+      );
+
       throw FirebaseAuthException(
         code: e.code,
-        message: _friendlySignInMessage(e),
+        message:
+            '${_friendlySignInMessage(e)}\n\n[diag] code=${e.code} | ${e.message ?? 'no message'}',
       );
     } catch (e) {
       if (_isMissingInitialStateText(e.toString())) {
@@ -180,7 +189,8 @@ class AuthService implements AuthRepository {
       throw FirebaseAuthException(
         code: 'sign-in-failed',
         message:
-            'Sign-in could not be completed. Please try again. If the account was deleted from Firebase, ask an admin to re-create its access.',
+            'Sign-in could not be completed. Please try again. If the account was deleted from Firebase, ask an admin to re-create its access.'
+            '\n\n[diag] $e',
       );
     }
   }
@@ -224,6 +234,10 @@ class AuthService implements AuthRepository {
     if (normalizedMessage.contains('public encryption key') ||
         normalizedMessage.contains('generic idp')) {
       return 'The secure sign-in session could not be prepared. Please try again. If it keeps happening after reinstalling or clearing app data, the Firebase mobile auth configuration may need to be refreshed.';
+    }
+
+    if (normalizedMessage.contains('package certificate hash')) {
+      return 'This Play Store build is not linked to Firebase yet. Ask the app administrator to register the Play App Signing SHA-1 and SHA-256 certificates in Firebase. Sign-in will work once the configuration has propagated.';
     }
 
     switch (e.code) {

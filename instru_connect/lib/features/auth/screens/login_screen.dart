@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/core/providers/app_providers.dart';
@@ -63,29 +64,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (e.code == 'missing-initial-state') {
         _redirecting = false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.message ?? 'Could not sign in. Please try again in a moment.',
-          ),
-        ),
+      final cert = await _certInfo();
+      _showSignInError(
+        '${e.message ?? 'Could not sign in. Please try again in a moment.'}'
+        '\n\n$cert',
       );
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not sign in right now. Please try again.'),
-        ),
-      );
+    } catch (e) {
+      final cert = await _certInfo();
+      _showSignInError('Could not sign in right now.\n\n[diag] $e\n\n$cert');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _loginWithDemoMode() async {
+  static const MethodChannel _certChannel = MethodChannel('app_cert_info');
+
+  Future<String> _certInfo() async {
+    try {
+      final sha256 = await _certChannel.invokeMethod<String>('getSigningSha256');
+      final sha1 = await _certChannel.invokeMethod<String>('getSigningSha1');
+      return '[installed cert]\nSHA-256: $sha256\nSHA-1: $sha1';
+    } catch (e) {
+      return '[installed cert] could not read: $e';
+    }
+  }
+
+  void _showSignInError(String message) {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign-in error'),
+        content: SingleChildScrollView(child: SelectableText(message)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loginWithDemoMode({
+    required String id,
+    required String password,
+  }) async {
     if (_loading || _redirecting) return;
     setState(() => _loading = true);
     try {
-      await _authService.signInWithDemoMode();
+      await _authService.signInWithDemoMode(id: id, password: password);
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -101,6 +129,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _showDemoSignInDialog() async {
+    if (_loading || _redirecting) return;
+
+    final credentials = await showDialog<_DemoCredentials>(
+      context: context,
+      builder: (_) => const _DemoSignInDialog(),
+    );
+
+    if (credentials == null) return;
+
+    await _loginWithDemoMode(
+      id: credentials.id,
+      password: credentials.password,
+    );
   }
 
   @override
@@ -216,10 +260,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.visibility_outlined),
                             label: const Text(
-                              'Continue in Demo Mode',
+                              'Sign in with Demo Account',
                               style: TextStyle(fontSize: 15),
                             ),
-                            onPressed: _loginWithDemoMode,
+                            onPressed: _showDemoSignInDialog,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -240,6 +284,109 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DemoCredentials {
+  const _DemoCredentials({required this.id, required this.password});
+
+  final String id;
+  final String password;
+}
+
+class _DemoSignInDialog extends StatefulWidget {
+  const _DemoSignInDialog();
+
+  @override
+  State<_DemoSignInDialog> createState() => _DemoSignInDialogState();
+}
+
+class _DemoSignInDialogState extends State<_DemoSignInDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _idController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    Navigator.of(context).pop(
+      _DemoCredentials(
+        id: _idController.text,
+        password: _passwordController.text,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Demo Account'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _idController,
+              decoration: const InputDecoration(
+                labelText: 'Demo ID or email',
+                prefixIcon: Icon(Icons.badge_outlined),
+              ),
+              textInputAction: TextInputAction.next,
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) {
+                  return 'Enter demo ID or email';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () {
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  },
+                ),
+              ),
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _submit(),
+              validator: (value) {
+                if ((value ?? '').isEmpty) {
+                  return 'Enter password';
+                }
+                return null;
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Sign in')),
+      ],
     );
   }
 }

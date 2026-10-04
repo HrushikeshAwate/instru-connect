@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
+import 'package:instru_connect/core/constants/profile_defaults.dart';
 import 'package:instru_connect/core/demo/demo_account.dart';
 import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/services/auth/auth_service.dart';
@@ -190,7 +191,7 @@ class _RoleLoadingScreenState extends ConsumerState<RoleLoadingScreen> {
         'name': CurrentUser.name ?? '',
         'email': CurrentUser.email ?? '',
         'misNo': null,
-        'department': null,
+        'department': ProfileDefaults.department,
         'batchId': CurrentUser.batchId,
         'coCurricular': null,
         'contactNo': null,

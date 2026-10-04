@@ -4,6 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instru_connect/config/routes/route_names.dart';
+import 'package:instru_connect/core/constants/profile_defaults.dart';
 import 'package:instru_connect/core/providers/app_providers.dart';
 import 'package:instru_connect/core/services/account_deletion_service.dart';
 import 'package:instru_connect/features/profile/model/profile_model.dart';
@@ -51,10 +52,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String get _targetUserId =>
       widget.userId ?? ref.read(firebaseAuthProvider).currentUser!.uid;
   bool get _isReadOnlyView => widget.readOnly || !_isViewingOwnProfile;
+  String get _department => (profile.department ?? '').trim().isEmpty
+      ? ProfileDefaults.department
+      : profile.department!.trim();
 
   bool get _isStudentOrCr => _role == 'student' || _role == 'cr';
   bool get _hasCompletedRequiredDetails {
-    final hasDepartment = (profile.department ?? '').trim().isNotEmpty;
+    final hasDepartment = _department.isNotEmpty;
     final hasContact = (profile.contactNo ?? '').trim().isNotEmpty;
     final hasMis =
         !_isStudentOrCr || _misNoPattern.hasMatch((profile.misNo ?? '').trim());
@@ -95,7 +99,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         name: (userData['name'] ?? currentUser.displayName ?? '').toString(),
         email: (userData['email'] ?? currentUser.email ?? '').toString(),
         misNo: null,
-        department: null,
+        department: ProfileDefaults.department,
         batchId: (userData['batchId'] as String?)?.trim().isNotEmpty == true
             ? userData['batchId'] as String
             : null,
@@ -145,6 +149,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         builder: (_) => _ProfileDetailsEditScreen(
           profile: profile,
           isStudentOrCr: _isStudentOrCr,
+          role: _role,
         ),
       ),
     );
@@ -324,7 +329,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         _basicInfoRow(
                           icon: Icons.account_tree_outlined,
                           label: 'Department',
-                          value: _displayValue(profile.department),
+                          value: _displayValue(_department),
                         ),
                         _basicInfoRow(
                           icon: Icons.auto_awesome_outlined,
@@ -626,10 +631,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 class _ProfileDetailsEditScreen extends ConsumerStatefulWidget {
   final ProfileModel profile;
   final bool isStudentOrCr;
+  final String role;
 
   const _ProfileDetailsEditScreen({
     required this.profile,
     required this.isStudentOrCr,
+    required this.role,
   });
 
   @override
@@ -640,10 +647,12 @@ class _ProfileDetailsEditScreen extends ConsumerStatefulWidget {
 class _ProfileDetailsEditScreenState
     extends ConsumerState<_ProfileDetailsEditScreen> {
   static final RegExp _misNoPattern = RegExp(r'^\d{9}$');
+  static final RegExp _nonDigitPattern = RegExp(r'\D');
 
   final _formKey = GlobalKey<FormState>();
   late final ProfileService _service;
 
+  late final TextEditingController _nameController;
   late final TextEditingController _misController;
   late final TextEditingController _deptController;
   late final TextEditingController _coCurricularController;
@@ -656,10 +665,11 @@ class _ProfileDetailsEditScreenState
   void initState() {
     super.initState();
     _service = ref.read(profileServiceProvider);
-    _misController = TextEditingController(text: widget.profile.misNo ?? '');
-    _deptController = TextEditingController(
-      text: widget.profile.department ?? '',
+    _nameController = TextEditingController(text: widget.profile.name);
+    _misController = TextEditingController(
+      text: _digitsOnly(widget.profile.misNo),
     );
+    _deptController = TextEditingController(text: ProfileDefaults.department);
     _coCurricularController = TextEditingController(
       text: widget.profile.coCurricular ?? '',
     );
@@ -673,6 +683,7 @@ class _ProfileDetailsEditScreenState
 
   @override
   void dispose() {
+    _nameController.dispose();
     _misController.dispose();
     _deptController.dispose();
     _coCurricularController.dispose();
@@ -688,8 +699,9 @@ class _ProfileDetailsEditScreenState
 
     await _service.updateProfile(
       uid: widget.profile.uid,
-      misNo: widget.isStudentOrCr ? _misController.text.trim() : null,
-      department: _deptController.text.trim(),
+      name: _canEditOwnName ? _nameController.text.trim() : null,
+      misNo: widget.isStudentOrCr ? _digitsOnly(_misController.text) : null,
+      department: ProfileDefaults.department,
       coCurricular: _coCurricularController.text.trim(),
       contactNo: _contactController.text.trim(),
       parentContactNo: widget.isStudentOrCr
@@ -717,12 +729,25 @@ class _ProfileDetailsEditScreenState
                 _WhiteCard(
                   child: Column(
                     children: [
+                      if (_canEditOwnName)
+                        _editableField(
+                          'Name',
+                          _nameController,
+                          required: true,
+                          validator: (value) {
+                            if ((value ?? '').trim().isEmpty) {
+                              return 'Name is required';
+                            }
+                            return null;
+                          },
+                        ),
                       if (widget.isStudentOrCr)
                         _editableField(
                           'MIS No',
                           _misController,
                           required: true,
                           keyboardType: TextInputType.number,
+                          maxLength: 9,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(9),
@@ -742,6 +767,8 @@ class _ProfileDetailsEditScreenState
                         'Department',
                         _deptController,
                         required: true,
+                        readOnly: true,
+                        suffixIcon: const Icon(Icons.lock_outline_rounded),
                       ),
                       _editableField(
                         'Co-curricular Activities',
@@ -789,7 +816,10 @@ class _ProfileDetailsEditScreenState
     TextEditingController controller, {
     int maxLines = 1,
     bool required = false,
+    bool readOnly = false,
+    Widget? suffixIcon,
     TextInputType? keyboardType,
+    int? maxLength,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
@@ -798,7 +828,9 @@ class _ProfileDetailsEditScreenState
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        readOnly: readOnly,
         keyboardType: keyboardType,
+        maxLength: maxLength,
         inputFormatters: inputFormatters,
         validator:
             validator ??
@@ -810,9 +842,22 @@ class _ProfileDetailsEditScreenState
                     return null;
                   }
                 : null),
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: suffixIcon,
+          counterText: maxLength == null ? null : '',
+        ),
       ),
     );
+  }
+
+  static String _digitsOnly(String? value) {
+    return (value ?? '').replaceAll(_nonDigitPattern, '');
+  }
+
+  bool get _canEditOwnName {
+    final role = widget.role.trim().toLowerCase();
+    return role == 'faculty' || role == 'admin';
   }
 }
 

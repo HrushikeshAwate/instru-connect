@@ -240,6 +240,13 @@ class HomeFaculty extends ConsumerWidget {
                       gradient: UIColors.tileGradient(1),
                       onTap: () => _exportAchievements(context, ref),
                     ),
+                    AppActionTile(
+                      icon: Icons.work_outline_rounded,
+                      label: 'Career Links',
+                      gradient: UIColors.tileGradient(2),
+                      onTap: () =>
+                          Navigator.pushNamed(context, Routes.careerLinks),
+                    ),
                   ],
                 ),
 

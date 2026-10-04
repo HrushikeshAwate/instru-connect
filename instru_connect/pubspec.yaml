@@ -2,7 +2,7 @@ name: instru_connect
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+2
+version: 1.0.1+10
 
 environment:
   sdk: ^3.8.1
@@ -40,6 +40,11 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
   flutter_launcher_icons: ^0.13.1
+
+dependency_overrides:
+  flutter_local_notifications:
+    path: local_packages/flutter_local_notifications
+
 flutter_icons:
   android: true
   ios: true
@@ -53,6 +58,4 @@ flutter:
     - assets/images/ice3.jpg
     - assets/images/ice4.jpg
     - assets/logo/ic_logo_runtime.png
-    - assets/PDF's/btech_timetable.pdf
-    - assets/PDF's/sy_timetable.pdf
-    - assets/PDF's/ty_timetable.pdf
+    

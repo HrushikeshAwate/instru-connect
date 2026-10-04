@@ -27,10 +27,6 @@ class ResourceDetailScreen extends ConsumerWidget {
     final canDeleteFuture = _resolveCanDeleteResources(ref);
     final canUseLinkControlsFuture = _resolveCanUseLinkControls(ref);
     final fileUri = Uri.parse(resource.fileUrl);
-    final previewUri = Uri.https('docs.google.com', '/gview', {
-      'embedded': 'true',
-      'url': resource.fileUrl,
-    });
 
     Future<void> copyResourceLink() async {
       await Clipboard.setData(ClipboardData(text: resource.fileUrl));
@@ -41,18 +37,16 @@ class ResourceDetailScreen extends ConsumerWidget {
     }
 
     Future<void> openResourceLink() async {
-      if (await canLaunchUrl(fileUri)) {
-        await launchUrl(fileUri, mode: LaunchMode.externalApplication);
+      if (!await launchUrl(fileUri, mode: LaunchMode.externalApplication) &&
+          context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No app can open this resource')),
+        );
       }
     }
 
     Future<void> previewResource() async {
-      final uri = _canUseDocumentPreview(resource.fileType)
-          ? previewUri
-          : fileUri;
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      await openResourceLink();
     }
 
     return Scaffold(
@@ -235,15 +229,6 @@ class ResourceDetailScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-bool _canUseDocumentPreview(String fileType) {
-  final type = fileType.toLowerCase();
-  return type == 'pdf' ||
-      type == 'doc' ||
-      type == 'docx' ||
-      type == 'ppt' ||
-      type == 'pptx';
 }
 
 Future<bool> _resolveCanUseLinkControls(WidgetRef ref) async {

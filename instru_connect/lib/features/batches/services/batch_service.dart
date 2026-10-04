@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:instru_connect/core/constants/app_roles.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:instru_connect/core/services/activity_notification_service.dart';
 import 'package:instru_connect/core/services/notification_service.dart';
 import 'package:instru_connect/core/session/current_user.dart';
@@ -15,12 +16,15 @@ class BatchService {
   String get _normalizedRole => (CurrentUser.role ?? '').trim().toLowerCase();
 
   bool get canManageBatches =>
+      !DemoMode.isActive &&
       _normalizedRole == AppRoles.admin || _normalizedRole == AppRoles.faculty;
 
   bool get canDeleteBatches =>
+      !DemoMode.isActive &&
       _normalizedRole == AppRoles.admin || _normalizedRole == AppRoles.faculty;
 
   bool get canManageSubjects =>
+      !DemoMode.isActive &&
       _normalizedRole == AppRoles.admin || _normalizedRole == AppRoles.faculty;
 
   Map<String, dynamic> _asStringDynamicMap(dynamic value) {
@@ -36,6 +40,8 @@ class BatchService {
   }
 
   Future<void> promoteAllStudents() async {
+    DemoMode.ensureCanWrite();
+
     final batchesSnapshot = await _db.collection('batches').get();
     final Map<int, String> yearToBatchId = {};
 
@@ -118,6 +124,8 @@ class BatchService {
     required String subjectName,
     required String subjectCode,
   }) async {
+    DemoMode.ensureCanWrite();
+
     if (!canManageSubjects) {
       throw Exception('Only admin or faculty can manage subjects.');
     }
@@ -172,6 +180,8 @@ class BatchService {
     required String studentUid,
     required String batchId,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final userRef = _db.collection('users').doc(studentUid);
     final batchRef = _db.collection('batches').doc(batchId);
 
@@ -193,6 +203,8 @@ class BatchService {
     required List<String> studentUids,
     required String batchId,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final batchRef = _db.collection('batches').doc(batchId);
     final batchSnap = await batchRef.get();
     if (!batchSnap.exists) throw Exception('Batch not found');
@@ -215,6 +227,8 @@ class BatchService {
     required List<String> absentStudentUids,
     required List<String> allStudentUids,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final sessionId = await createSession(
       batchId: batchId,
       subjectName: subjectName,
@@ -240,6 +254,8 @@ class BatchService {
     DateTime? startTime,
     DateTime? endTime,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final normalizedSubject = subjectName.trim();
     final subjectDoc = await _resolveSubject(batchId, normalizedSubject);
     if (subjectDoc == null) {
@@ -280,6 +296,8 @@ class BatchService {
     required List<String> newAbsentUids,
     required List<String> allStudentUids,
   }) async {
+    DemoMode.ensureCanWrite();
+
     await _markAttendanceForSession(
       sessionId: docId,
       batchId: batchId,
@@ -291,6 +309,8 @@ class BatchService {
   }
 
   Future<void> deleteAttendance(String batchId, String docId) async {
+    DemoMode.ensureCanWrite();
+
     final sessionRef = _db.collection('sessions').doc(docId);
     final sessionSnap = await sessionRef.get();
     if (!sessionSnap.exists) return;
@@ -331,6 +351,8 @@ class BatchService {
     required String subjectId,
     required String subjectName,
   }) async {
+    DemoMode.ensureCanWrite();
+
     if (!canManageSubjects) {
       throw Exception('Only admin or faculty can delete subjects.');
     }
@@ -392,6 +414,8 @@ class BatchService {
     required String batchId,
     required List<Map<String, String>> subjects,
   }) async {
+    DemoMode.ensureCanWrite();
+
     if (!canManageSubjects) {
       throw Exception('Only admin or faculty can delete subjects.');
     }
@@ -408,6 +432,8 @@ class BatchService {
   }
 
   Future<void> deleteBatchCascade({required String batchId}) async {
+    DemoMode.ensureCanWrite();
+
     if (!canDeleteBatches) {
       throw Exception('Only admin or faculty can delete batches.');
     }
@@ -467,6 +493,8 @@ class BatchService {
   }
 
   Future<void> deleteBatchesCascade({required List<String> batchIds}) async {
+    DemoMode.ensureCanWrite();
+
     if (!canDeleteBatches) {
       throw Exception('Only admin or faculty can delete batches.');
     }

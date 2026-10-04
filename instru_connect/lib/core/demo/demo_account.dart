@@ -1,3 +1,5 @@
+import 'package:instru_connect/core/constants/profile_defaults.dart';
+
 class DemoAccount {
   static const email = 'appreview.instru@coeptech.ac.in';
   static const password = String.fromEnvironment(
@@ -5,10 +7,10 @@ class DemoAccount {
     defaultValue: 'DEMO_ACCOUNT_PASSWORD',
   );
   static const name = 'App Review Demo';
-  static const department = 'Instrumentation Department';
+  static const department = ProfileDefaults.department;
   static const contactNo = '9999999999';
   static const parentContactNo = '9999999998';
-  static const misNo = 'DEMO2026';
+  static const misNo = '999999999';
 
   static bool isDemoEmail(String? email) {
     return email?.trim().toLowerCase() == DemoAccount.email;

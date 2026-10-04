@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 
 class AdminService {
   final _db = FirebaseFirestore.instance;
 
   Future<int> getTotalUsers() async {
+    if (DemoMode.isActive) return 0;
+
     try {
       final snapshot = await _db.collection('users').count().get();
       final count = snapshot.count;
@@ -15,6 +18,8 @@ class AdminService {
   }
 
   Stream<int> pendingComplaintsCount() {
+    if (DemoMode.isActive) return Stream.value(0);
+
     return FirebaseFirestore.instance.collection('complaints').snapshots().map((
       snapshot,
     ) {
@@ -27,6 +32,10 @@ class AdminService {
   }
 
   Stream<Map<String, int>> complaintStatusCounts() {
+    if (DemoMode.isActive) {
+      return Stream.value(const {'pending': 0, 'resolved': 0});
+    }
+
     return FirebaseFirestore.instance.collection('complaints').snapshots().map((
       snapshot,
     ) {

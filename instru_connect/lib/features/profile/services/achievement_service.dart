@@ -6,6 +6,7 @@ import 'package:csv/csv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:instru_connect/core/demo/demo_mode.dart';
 import 'package:path_provider/path_provider.dart';
 
 class AchievementService {
@@ -18,6 +19,10 @@ class AchievementService {
   // =====================================================
 
   Stream<List<Map<String, dynamic>>> fetchAchievements(String uid) {
+    if (DemoMode.isActive) {
+      return Stream.value(const <Map<String, dynamic>>[]);
+    }
+
     return _db
         .collection('achievements')
         .where('uid', isEqualTo: uid)
@@ -31,6 +36,8 @@ class AchievementService {
   // =====================================================
 
   Future<PlatformFile?> pickAchievementFile() async {
+    DemoMode.ensureCanWrite();
+
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
@@ -57,6 +64,8 @@ class AchievementService {
     required String description,
     required PlatformFile file,
   }) async {
+    DemoMode.ensureCanWrite();
+
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('User not authenticated');
@@ -104,6 +113,10 @@ class AchievementService {
   // =====================================================
 
   Future<String> exportAllAchievementsCsv() async {
+    if (DemoMode.isActive) {
+      throw Exception('App Review Demo cannot export stored achievement data.');
+    }
+
     final achievementsSnap = await _db
         .collection('achievements')
         .orderBy('createdAtClient', descending: true)
